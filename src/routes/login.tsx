@@ -94,7 +94,7 @@ function LoginPage() {
             onChange={(event) => setForm({ ...form, email: event.target.value })}
             placeholder="you@example.com"
           />
-          {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+          {errors["email"] && <p className="text-xs text-destructive">{errors["email"]}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -114,7 +114,7 @@ function LoginPage() {
             value={form.password}
             onChange={(event) => setForm({ ...form, password: event.target.value })}
           />
-          {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+          {errors["password"] && <p className="text-xs text-destructive">{errors["password"]}</p>}
         </div>
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>

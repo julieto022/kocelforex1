@@ -81,7 +81,7 @@ function ResetPasswordPage() {
             value={form.password}
             onChange={(event) => setForm({ ...form, password: event.target.value })}
           />
-          {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+          {errors["password"] && <p className="text-xs text-destructive">{errors["password"]}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">Confirm new password</Label>
@@ -92,8 +92,8 @@ function ResetPasswordPage() {
             value={form.confirmPassword}
             onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
           />
-          {errors.confirmPassword && (
-            <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+          {errors["confirmPassword"] && (
+            <p className="text-xs text-destructive">{errors["confirmPassword"]}</p>
           )}
         </div>
         <Button type="submit" className="w-full" disabled={mutation.isPending}>

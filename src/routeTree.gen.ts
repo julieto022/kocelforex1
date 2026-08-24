@@ -10,33 +10,325 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AppAnalysisRouteImport } from './routes/_app.analysis'
+import { Route as AppBotsRouteImport } from './routes/_app.bots'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppHelpRouteImport } from './routes/_app.help'
+import { Route as AppMarketsRouteImport } from './routes/_app.markets'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
+import { Route as AppTradesRouteImport } from './routes/_app.trades'
+import { Route as AppBotsCreateRouteImport } from './routes/_app.bots.create'
+import { Route as AppSettingsIndexRouteImport } from './routes/_app.settings.index'
+import { Route as AppSettingsAppearanceRouteImport } from './routes/_app.settings.appearance'
+import { Route as AppSettingsGeneralRouteImport } from './routes/_app.settings.general'
+import { Route as AppSettingsMt5RouteImport } from './routes/_app.settings.mt5'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/_app.settings.notifications'
+import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.profile'
+import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
+import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAnalysisRoute = AppAnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBotsRoute = AppBotsRouteImport.update({
+  id: '/bots',
+  path: '/bots',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHelpRoute = AppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarketsRoute = AppMarketsRouteImport.update({
+  id: '/markets',
+  path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStrategiesRoute = AppStrategiesRouteImport.update({
+  id: '/strategies',
+  path: '/strategies',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTradesRoute = AppTradesRouteImport.update({
+  id: '/trades',
+  path: '/trades',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBotsCreateRoute = AppBotsCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => AppBotsRoute,
+} as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsAppearanceRoute = AppSettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsGeneralRoute = AppSettingsGeneralRouteImport.update({
+  id: '/general',
+  path: '/general',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsMt5Route = AppSettingsMt5RouteImport.update({
+  id: '/mt5',
+  path: '/mt5',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AppSettingsRoute,
+  } as any)
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsTradingRoute = AppSettingsTradingRouteImport.update({
+  id: '/trading',
+  path: '/trading',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/analysis': typeof AppAnalysisRoute
+  '/bots': typeof AppBotsRouteWithChildren
+  '/dashboard': typeof AppDashboardRoute
+  '/help': typeof AppHelpRoute
+  '/markets': typeof AppMarketsRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
+  '/strategies': typeof AppStrategiesRoute
+  '/trades': typeof AppTradesRoute
+  '/bots/create': typeof AppBotsCreateRoute
+  '/settings/appearance': typeof AppSettingsAppearanceRoute
+  '/settings/general': typeof AppSettingsGeneralRoute
+  '/settings/mt5': typeof AppSettingsMt5Route
+  '/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
+  '/settings/security': typeof AppSettingsSecurityRoute
+  '/settings/trading': typeof AppSettingsTradingRoute
+  '/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/analysis': typeof AppAnalysisRoute
+  '/bots': typeof AppBotsRouteWithChildren
+  '/dashboard': typeof AppDashboardRoute
+  '/help': typeof AppHelpRoute
+  '/markets': typeof AppMarketsRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/strategies': typeof AppStrategiesRoute
+  '/trades': typeof AppTradesRoute
+  '/bots/create': typeof AppBotsCreateRoute
+  '/settings/appearance': typeof AppSettingsAppearanceRoute
+  '/settings/general': typeof AppSettingsGeneralRoute
+  '/settings/mt5': typeof AppSettingsMt5Route
+  '/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
+  '/settings/security': typeof AppSettingsSecurityRoute
+  '/settings/trading': typeof AppSettingsTradingRoute
+  '/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_app/analysis': typeof AppAnalysisRoute
+  '/_app/bots': typeof AppBotsRouteWithChildren
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/help': typeof AppHelpRoute
+  '/_app/markets': typeof AppMarketsRoute
+  '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/_app/strategies': typeof AppStrategiesRoute
+  '/_app/trades': typeof AppTradesRoute
+  '/_app/bots/create': typeof AppBotsCreateRoute
+  '/_app/settings/appearance': typeof AppSettingsAppearanceRoute
+  '/_app/settings/general': typeof AppSettingsGeneralRoute
+  '/_app/settings/mt5': typeof AppSettingsMt5Route
+  '/_app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/_app/settings/profile': typeof AppSettingsProfileRoute
+  '/_app/settings/security': typeof AppSettingsSecurityRoute
+  '/_app/settings/trading': typeof AppSettingsTradingRoute
+  '/_app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/onboarding'
+    | '/register'
+    | '/reset-password'
+    | '/analysis'
+    | '/bots'
+    | '/dashboard'
+    | '/help'
+    | '/markets'
+    | '/notifications'
+    | '/settings'
+    | '/strategies'
+    | '/trades'
+    | '/bots/create'
+    | '/settings/appearance'
+    | '/settings/general'
+    | '/settings/mt5'
+    | '/settings/notifications'
+    | '/settings/profile'
+    | '/settings/security'
+    | '/settings/trading'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/onboarding'
+    | '/register'
+    | '/reset-password'
+    | '/analysis'
+    | '/bots'
+    | '/dashboard'
+    | '/help'
+    | '/markets'
+    | '/notifications'
+    | '/strategies'
+    | '/trades'
+    | '/bots/create'
+    | '/settings/appearance'
+    | '/settings/general'
+    | '/settings/mt5'
+    | '/settings/notifications'
+    | '/settings/profile'
+    | '/settings/security'
+    | '/settings/trading'
+    | '/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/forgot-password'
+    | '/login'
+    | '/onboarding'
+    | '/register'
+    | '/reset-password'
+    | '/_app/analysis'
+    | '/_app/bots'
+    | '/_app/dashboard'
+    | '/_app/help'
+    | '/_app/markets'
+    | '/_app/notifications'
+    | '/_app/settings'
+    | '/_app/strategies'
+    | '/_app/trades'
+    | '/_app/bots/create'
+    | '/_app/settings/appearance'
+    | '/_app/settings/general'
+    | '/_app/settings/mt5'
+    | '/_app/settings/notifications'
+    | '/_app/settings/profile'
+    | '/_app/settings/security'
+    | '/_app/settings/trading'
+    | '/_app/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +340,248 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/analysis': {
+      id: '/_app/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AppAnalysisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bots': {
+      id: '/_app/bots'
+      path: '/bots'
+      fullPath: '/bots'
+      preLoaderRoute: typeof AppBotsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/help': {
+      id: '/_app/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AppHelpRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/markets': {
+      id: '/_app/markets'
+      path: '/markets'
+      fullPath: '/markets'
+      preLoaderRoute: typeof AppMarketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/strategies': {
+      id: '/_app/strategies'
+      path: '/strategies'
+      fullPath: '/strategies'
+      preLoaderRoute: typeof AppStrategiesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/trades': {
+      id: '/_app/trades'
+      path: '/trades'
+      fullPath: '/trades'
+      preLoaderRoute: typeof AppTradesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bots/create': {
+      id: '/_app/bots/create'
+      path: '/create'
+      fullPath: '/bots/create'
+      preLoaderRoute: typeof AppBotsCreateRouteImport
+      parentRoute: typeof AppBotsRoute
+    }
+    '/_app/settings/': {
+      id: '/_app/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/appearance': {
+      id: '/_app/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AppSettingsAppearanceRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/general': {
+      id: '/_app/settings/general'
+      path: '/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof AppSettingsGeneralRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/mt5': {
+      id: '/_app/settings/mt5'
+      path: '/mt5'
+      fullPath: '/settings/mt5'
+      preLoaderRoute: typeof AppSettingsMt5RouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/notifications': {
+      id: '/_app/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/profile': {
+      id: '/_app/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/security': {
+      id: '/_app/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/trading': {
+      id: '/_app/settings/trading'
+      path: '/trading'
+      fullPath: '/settings/trading'
+      preLoaderRoute: typeof AppSettingsTradingRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
   }
 }
 
+interface AppBotsRouteChildren {
+  AppBotsCreateRoute: typeof AppBotsCreateRoute
+}
+
+const AppBotsRouteChildren: AppBotsRouteChildren = {
+  AppBotsCreateRoute: AppBotsCreateRoute,
+}
+
+const AppBotsRouteWithChildren =
+  AppBotsRoute._addFileChildren(AppBotsRouteChildren)
+
+interface AppSettingsRouteChildren {
+  AppSettingsAppearanceRoute: typeof AppSettingsAppearanceRoute
+  AppSettingsGeneralRoute: typeof AppSettingsGeneralRoute
+  AppSettingsMt5Route: typeof AppSettingsMt5Route
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
+  AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
+  AppSettingsTradingRoute: typeof AppSettingsTradingRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsAppearanceRoute: AppSettingsAppearanceRoute,
+  AppSettingsGeneralRoute: AppSettingsGeneralRoute,
+  AppSettingsMt5Route: AppSettingsMt5Route,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
+  AppSettingsSecurityRoute: AppSettingsSecurityRoute,
+  AppSettingsTradingRoute: AppSettingsTradingRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAnalysisRoute: typeof AppAnalysisRoute
+  AppBotsRoute: typeof AppBotsRouteWithChildren
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppHelpRoute: typeof AppHelpRoute
+  AppMarketsRoute: typeof AppMarketsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppStrategiesRoute: typeof AppStrategiesRoute
+  AppTradesRoute: typeof AppTradesRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAnalysisRoute: AppAnalysisRoute,
+  AppBotsRoute: AppBotsRouteWithChildren,
+  AppDashboardRoute: AppDashboardRoute,
+  AppHelpRoute: AppHelpRoute,
+  AppMarketsRoute: AppMarketsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppStrategiesRoute: AppStrategiesRoute,
+  AppTradesRoute: AppTradesRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

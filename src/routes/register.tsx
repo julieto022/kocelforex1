@@ -156,27 +156,27 @@ function RegisterPage() {
           mutation.mutate();
         }}
       >
-        <Field label="Full name" id="fullName" error={errors.fullName}>
+        <Field label="Full name" id="fullName" error={errors["fullName"]}>
           <Input id="fullName" autoComplete="name" {...field("fullName")} />
         </Field>
-        <Field label="Username" id="username" error={errors.username}>
+        <Field label="Username" id="username" error={errors["username"]}>
           <Input id="username" autoComplete="username" {...field("username")} />
         </Field>
-        <Field label="Email" id="email" error={errors.email}>
+        <Field label="Email" id="email" error={errors["email"]}>
           <Input id="email" type="email" autoComplete="email" {...field("email")} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Country" id="country" error={errors.country}>
+          <Field label="Country" id="country" error={errors["country"]}>
             <Input id="country" autoComplete="country-name" {...field("country")} />
           </Field>
-          <Field label="Phone" id="phone" error={errors.phone}>
+          <Field label="Phone" id="phone" error={errors["phone"]}>
             <Input id="phone" type="tel" autoComplete="tel" {...field("phone")} />
           </Field>
         </div>
-        <Field label="Password" id="password" error={errors.password}>
+        <Field label="Password" id="password" error={errors["password"]}>
           <Input id="password" type="password" autoComplete="new-password" {...field("password")} />
         </Field>
-        <Field label="Confirm password" id="confirmPassword" error={errors.confirmPassword}>
+        <Field label="Confirm password" id="confirmPassword" error={errors["confirmPassword"]}>
           <Input
             id="confirmPassword"
             type="password"
@@ -184,7 +184,7 @@ function RegisterPage() {
             {...field("confirmPassword")}
           />
         </Field>
-        <Field label="Referral code (optional)" id="referralCode" error={errors.referralCode}>
+        <Field label="Referral code (optional)" id="referralCode" error={errors["referralCode"]}>
           <Input id="referralCode" {...field("referralCode")} />
         </Field>
 
@@ -199,7 +199,7 @@ function RegisterPage() {
             not hold funds. Trading involves risk.
           </Label>
         </div>
-        {errors.accepted && <p className="text-xs text-destructive">{errors.accepted}</p>}
+        {errors["accepted"] && <p className="text-xs text-destructive">{errors["accepted"]}</p>}
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
