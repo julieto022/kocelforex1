@@ -4,7 +4,7 @@ import type { NotificationPreferences, Profile, UserSettings } from "./types";
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   if (error) throw error;
-  return (data as Profile) ?? null;
+  return (data as unknown as Profile) ?? null;
 }
 
 export async function updateProfile(userId: string, patch: Partial<Profile>) {
@@ -23,11 +23,14 @@ export async function getSettings(userId: string): Promise<UserSettings | null> 
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
-  return (data as UserSettings) ?? null;
+  return (data as unknown as UserSettings) ?? null;
 }
 
 export async function updateSettings(userId: string, patch: Partial<UserSettings>) {
-  const { error } = await supabase.from("user_settings").update(patch).eq("user_id", userId);
+  const { error } = await supabase
+    .from("user_settings")
+    .update(patch as never)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
