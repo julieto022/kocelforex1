@@ -92,7 +92,10 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "row" })
           <HelpCircle className="size-4" /> Help
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={() => void handleSignOut()}>
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          onSelect={() => void handleSignOut()}
+        >
           <LogOut className="size-4" /> Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
