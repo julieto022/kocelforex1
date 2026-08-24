@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
+function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: (() => void) | undefined }) {
   return (
     <nav className="flex flex-col gap-0.5">
       {items.map((item) => (
@@ -37,7 +37,7 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
   );
 }
 
-function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   return (
     <div className="flex h-full flex-col gap-4 p-3">
       <div className="px-1.5 py-2">

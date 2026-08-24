@@ -7,7 +7,7 @@ export type RegisterInput = {
   password: string;
   country: string;
   phone: string;
-  referralCode?: string;
+  referralCode?: string | undefined;
 };
 
 export async function register(input: RegisterInput) {

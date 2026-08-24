@@ -26,7 +26,7 @@ export async function getNotifications(userId: string): Promise<AppNotification[
 
 export async function createNotification(
   userId: string,
-  input: { type: string; title: string; message?: string },
+  input: { type: string; title: string; message?: string | undefined },
 ) {
   const { error } = await supabase.from("notifications").insert({
     user_id: userId,

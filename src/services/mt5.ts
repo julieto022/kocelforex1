@@ -6,9 +6,9 @@ export type CreateConnectionInput = {
   accountName: string;
   mt5Login: string;
   server: string;
-  accountType?: string;
+  accountType?: string | undefined;
   environment: "demo" | "real";
-  nickname?: string;
+  nickname?: string | undefined;
 };
 
 const SELECT = "*, broker:brokers(*)";
