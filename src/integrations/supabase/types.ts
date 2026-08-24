@@ -166,6 +166,356 @@ export type Database = {
         }
         Relationships: []
       }
+      community_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      community_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "community_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      community_posts: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          idea: Json | null
+          image_url: string | null
+          symbol: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          idea?: Json | null
+          image_url?: string | null
+          symbol?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          idea?: Json | null
+          image_url?: string | null
+          symbol?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      community_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_reports: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          details: string | null
+          id: string
+          post_id: string | null
+          reason: string
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id?: string | null
+          reason: string
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id?: string | null
+          reason?: string
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "community_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      economic_events: {
+        Row: {
+          actual: string | null
+          created_at: string
+          currency: string
+          event_name: string
+          event_time: string
+          forecast: string | null
+          id: string
+          impact: string
+          previous: string | null
+          source: string | null
+        }
+        Insert: {
+          actual?: string | null
+          created_at?: string
+          currency: string
+          event_name: string
+          event_time: string
+          forecast?: string | null
+          id?: string
+          impact?: string
+          previous?: string | null
+          source?: string | null
+        }
+        Update: {
+          actual?: string | null
+          created_at?: string
+          currency?: string
+          event_name?: string
+          event_time?: string
+          forecast?: string | null
+          id?: string
+          impact?: string
+          previous?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      news: {
+        Row: {
+          category: string
+          content: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          image_url: string | null
+          impact: string
+          published_at: string | null
+          source: string | null
+          summary: string | null
+          symbol: string | null
+          title: string
+          url: string | null
+        }
+        Insert: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          impact?: string
+          published_at?: string | null
+          source?: string | null
+          summary?: string | null
+          symbol?: string | null
+          title: string
+          url?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          impact?: string
+          published_at?: string | null
+          source?: string | null
+          summary?: string | null
+          symbol?: string | null
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      nfp_predictions: {
+        Row: {
+          actual: string | null
+          analysis: string | null
+          confidence: number | null
+          confidence_breakdown: Json
+          created_at: string
+          eurusd_impact: string | null
+          expected_impact: string | null
+          factors: Json
+          forecast: string | null
+          gbpusd_impact: string | null
+          gold_impact: string | null
+          id: string
+          nas100_impact: string | null
+          prediction: string | null
+          previous: string | null
+          release_date: string
+          updated_at: string
+          usd_impact: string | null
+        }
+        Insert: {
+          actual?: string | null
+          analysis?: string | null
+          confidence?: number | null
+          confidence_breakdown?: Json
+          created_at?: string
+          eurusd_impact?: string | null
+          expected_impact?: string | null
+          factors?: Json
+          forecast?: string | null
+          gbpusd_impact?: string | null
+          gold_impact?: string | null
+          id?: string
+          nas100_impact?: string | null
+          prediction?: string | null
+          previous?: string | null
+          release_date: string
+          updated_at?: string
+          usd_impact?: string | null
+        }
+        Update: {
+          actual?: string | null
+          analysis?: string | null
+          confidence?: number | null
+          confidence_breakdown?: Json
+          created_at?: string
+          eurusd_impact?: string | null
+          expected_impact?: string | null
+          factors?: Json
+          forecast?: string | null
+          gbpusd_impact?: string | null
+          gold_impact?: string | null
+          id?: string
+          nas100_impact?: string | null
+          prediction?: string | null
+          previous?: string | null
+          release_date?: string
+          updated_at?: string
+          usd_impact?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -235,6 +585,69 @@ export type Database = {
           referral_code?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      signals: {
+        Row: {
+          analysis: Json
+          confidence: number | null
+          confidence_breakdown: Json
+          created_at: string
+          direction: string
+          entry: number | null
+          entry_zone: string | null
+          id: string
+          market_condition: string | null
+          result: string | null
+          risk_reward: string | null
+          status: string
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          timeframe: string | null
+          user_id: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          analysis?: Json
+          confidence?: number | null
+          confidence_breakdown?: Json
+          created_at?: string
+          direction: string
+          entry?: number | null
+          entry_zone?: string | null
+          id?: string
+          market_condition?: string | null
+          result?: string | null
+          risk_reward?: string | null
+          status?: string
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+          timeframe?: string | null
+          user_id?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          analysis?: Json
+          confidence?: number | null
+          confidence_breakdown?: Json
+          created_at?: string
+          direction?: string
+          entry?: number | null
+          entry_zone?: string | null
+          id?: string
+          market_condition?: string | null
+          result?: string | null
+          risk_reward?: string | null
+          status?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          timeframe?: string | null
+          user_id?: string | null
+          valid_until?: string | null
         }
         Relationships: []
       }
