@@ -181,3 +181,228 @@ export type AccountSummary = {
   total_pl: number | null;
   currency: string;
 };
+
+/* ---------------------------------------------------------------------------
+ * Phase 1 expansion: News, Economic Calendar, NFP, Signals, Community
+ * ------------------------------------------------------------------------- */
+
+export type ImpactLevel = "high" | "medium" | "low";
+
+export const IMPACT_MODEL: Record<ImpactLevel, { label: string; tone: StatusTone }> = {
+  high: { label: "High impact", tone: "danger" },
+  medium: { label: "Medium impact", tone: "warning" },
+  low: { label: "Low impact", tone: "neutral" },
+};
+
+export type NewsCategory =
+  | "forex"
+  | "economic"
+  | "central_banks"
+  | "commodities"
+  | "indices"
+  | "global_markets";
+
+export const NEWS_CATEGORIES: { id: NewsCategory; label: string; description: string }[] = [
+  { id: "forex", label: "Forex", description: "Currency-market news." },
+  { id: "economic", label: "Economic", description: "Economic reports and macroeconomic developments." },
+  {
+    id: "central_banks",
+    label: "Central Banks",
+    description: "Interest-rate decisions, speeches and monetary-policy developments.",
+  },
+  { id: "commodities", label: "Commodities", description: "Gold, oil and other relevant commodity news." },
+  { id: "indices", label: "Indices", description: "Major index-related market developments." },
+  { id: "global_markets", label: "Global Markets", description: "Major international market events." },
+];
+
+export const NEWS_CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"] as const;
+
+export const NEWS_MARKETS = ["forex", "gold", "indices", "commodities", "crypto"] as const;
+
+export type NewsItem = {
+  id: string;
+  title: string;
+  summary: string | null;
+  content: string | null;
+  source: string | null;
+  url: string | null;
+  image_url: string | null;
+  category: string;
+  impact: ImpactLevel | string;
+  currency: string | null;
+  symbol: string | null;
+  published_at: string | null;
+  created_at: string;
+};
+
+export type EconomicEvent = {
+  id: string;
+  event_name: string;
+  currency: string;
+  impact: ImpactLevel | string;
+  previous: string | null;
+  forecast: string | null;
+  actual: string | null;
+  event_time: string;
+  source: string | null;
+};
+
+export type MarketBias = "bullish" | "bearish" | "neutral" | string;
+
+export type NfpFactorStatus = "positive" | "negative" | "neutral" | "pending" | "analyzing";
+
+export type NfpFactor = { name: string; status: NfpFactorStatus; value?: string | null };
+
+export const NFP_FACTORS: string[] = [
+  "Previous NFP",
+  "Current Forecast",
+  "Employment trends",
+  "Unemployment Rate",
+  "Average Hourly Earnings",
+  "ADP Employment",
+  "Initial Jobless Claims",
+  "Continuing Claims",
+  "JOLTS",
+  "Labor-market strength",
+  "Economic growth",
+  "Inflation environment",
+  "USD strength",
+  "Historical NFP reactions",
+  "Recent market volatility",
+];
+
+export type NfpPrediction = {
+  id: string;
+  release_date: string;
+  forecast: string | null;
+  previous: string | null;
+  actual: string | null;
+  prediction: string | null;
+  confidence: number | null;
+  confidence_breakdown: Record<string, number> | null;
+  usd_impact: MarketBias | null;
+  gold_impact: MarketBias | null;
+  eurusd_impact: MarketBias | null;
+  gbpusd_impact: MarketBias | null;
+  nas100_impact: MarketBias | null;
+  expected_impact: string | null;
+  factors: NfpFactor[] | null;
+  analysis: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SignalDirection = "BUY" | "SELL" | "WAIT" | "NO TRADE" | "EXPIRED" | string;
+export type SignalStatus = "active" | "expiring" | "expired" | "invalidated" | string;
+
+export const SIGNAL_FACTORS: string[] = [
+  "Trend",
+  "Momentum",
+  "Volatility",
+  "Market Structure",
+  "Support/Resistance",
+  "Candlestick",
+  "Multi-Timeframe",
+  "Spread",
+  "News Risk",
+];
+
+export type Signal = {
+  id: string;
+  user_id: string | null;
+  symbol: string;
+  direction: SignalDirection;
+  timeframe: string | null;
+  confidence: number | null;
+  confidence_breakdown: Record<string, number> | null;
+  entry: number | null;
+  entry_zone: string | null;
+  stop_loss: number | null;
+  take_profit: number | null;
+  risk_reward: string | null;
+  market_condition: string | null;
+  analysis: { name: string; status: string; note?: string | null }[] | null;
+  result: string | null;
+  status: SignalStatus;
+  valid_until: string | null;
+  created_at: string;
+};
+
+export type CommunityCategory =
+  | "general"
+  | "market"
+  | "idea"
+  | "education"
+  | "news"
+  | "question";
+
+export const COMMUNITY_CATEGORIES: { id: CommunityCategory; label: string }[] = [
+  { id: "general", label: "General Discussion" },
+  { id: "market", label: "Market Discussion" },
+  { id: "idea", label: "Trading Idea" },
+  { id: "education", label: "Education" },
+  { id: "news", label: "News Discussion" },
+  { id: "question", label: "Question" },
+];
+
+export type TradingIdea = {
+  direction?: "BUY" | "SELL" | string;
+  timeframe?: string;
+  entry?: string;
+  stop_loss?: string;
+  take_profit?: string;
+  risk_reward?: string;
+  analysis?: string;
+};
+
+export type CommunityAuthor = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
+export type CommunityPost = {
+  id: string;
+  user_id: string;
+  category: CommunityCategory | string;
+  content: string;
+  image_url: string | null;
+  symbol: string | null;
+  idea: TradingIdea | null;
+  created_at: string;
+  updated_at: string;
+  author?: CommunityAuthor | null;
+  reaction_count?: number;
+  comment_count?: number;
+  reacted?: boolean;
+};
+
+export type CommunityComment = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  parent_id: string | null;
+  content: string;
+  created_at: string;
+  author?: CommunityAuthor | null;
+};
+
+export const REPORT_REASONS = [
+  "Spam",
+  "Harassment",
+  "Scam",
+  "Misleading information",
+  "Inappropriate content",
+  "Other",
+] as const;
+
+export const COMMUNITY_NOTIFICATION_TYPES = [
+  "community_like",
+  "community_comment",
+  "community_reply",
+  "community_follow",
+  "community_report",
+  "community_share",
+  "community_activity",
+] as const;
