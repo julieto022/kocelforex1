@@ -24,11 +24,11 @@ export function StatusBadge({
   dot = true,
   size = "md",
 }: {
-  tone?: StatusTone;
+  tone?: StatusTone | undefined;
   children: React.ReactNode;
-  className?: string;
-  dot?: boolean;
-  size?: "sm" | "md";
+  className?: string | undefined;
+  dot?: boolean | undefined;
+  size?: "sm" | "md" | undefined;
 }) {
   return (
     <span
@@ -51,8 +51,8 @@ export function BridgeStatusBadge({
   size = "md",
 }: {
   status: BridgeStatus;
-  className?: string;
-  size?: "sm" | "md";
+  className?: string | undefined;
+  size?: "sm" | "md" | undefined;
 }) {
   const model = BRIDGE_STATUS_MODEL[status] ?? BRIDGE_STATUS_MODEL.NOT_CONNECTED;
   return (
