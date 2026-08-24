@@ -13,12 +13,12 @@ export function SectionCard({
   className,
   bodyClassName,
 }: {
-  title?: string;
-  description?: string;
-  action?: ReactNode;
+  title?: string | undefined;
+  description?: string | undefined;
+  action?: ReactNode | undefined;
   children: ReactNode;
-  className?: string;
-  bodyClassName?: string;
+  className?: string | undefined;
+  bodyClassName?: string | undefined;
 }) {
   return (
     <section className={cn("panel overflow-hidden", className)}>
@@ -47,13 +47,13 @@ export function EmptyState({
   secondary,
   className,
 }: {
-  icon?: LucideIcon;
+  icon?: LucideIcon | undefined;
   title: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  secondary?: ReactNode;
-  className?: string;
+  description?: string | undefined;
+  actionLabel?: string | undefined;
+  onAction?: () => void | undefined;
+  secondary?: ReactNode | undefined;
+  className?: string | undefined;
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center px-4 py-10 text-center", className)}>
@@ -86,10 +86,10 @@ export function ErrorState({
   onRetry,
   secondary,
 }: {
-  title?: string;
-  description?: string;
-  onRetry?: () => void;
-  secondary?: ReactNode;
+  title?: string | undefined;
+  description?: string | undefined;
+  onRetry?: () => void | undefined;
+  secondary?: ReactNode | undefined;
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-10 text-center">

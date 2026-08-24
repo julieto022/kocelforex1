@@ -25,8 +25,8 @@ export function KocelLogo({
   className,
   showTagline = false,
 }: {
-  className?: string;
-  showTagline?: boolean;
+  className?: string | undefined;
+  showTagline?: boolean | undefined;
 }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
