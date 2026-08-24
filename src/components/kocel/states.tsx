@@ -51,7 +51,7 @@ export function EmptyState({
   title: string;
   description?: string | undefined;
   actionLabel?: string | undefined;
-  onAction?: () => void | undefined;
+  onAction?: (() => void) | undefined;
   secondary?: ReactNode | undefined;
   className?: string | undefined;
 }) {
@@ -88,7 +88,7 @@ export function ErrorState({
 }: {
   title?: string | undefined;
   description?: string | undefined;
-  onRetry?: () => void | undefined;
+  onRetry?: (() => void) | undefined;
   secondary?: ReactNode | undefined;
 }) {
   return (
