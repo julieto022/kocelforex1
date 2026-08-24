@@ -58,7 +58,7 @@ function NotificationSettings() {
             </div>
             <Switch
               id={option.key}
-              checked={Boolean(settings?.notifications?.[option.key])}
+              checked={current[option.key]}
               disabled={mutation.isPending}
               onCheckedChange={(checked) => mutation.mutate({ [option.key]: checked })}
             />
