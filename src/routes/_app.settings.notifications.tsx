@@ -22,12 +22,22 @@ const options: { key: keyof NotificationPreferences; label: string; description:
   { key: "push", label: "Push notifications", description: "Send alerts to this device." },
 ];
 
+const defaults: NotificationPreferences = {
+  trade: true,
+  bot: true,
+  connection: true,
+  risk: true,
+  email: false,
+  push: false,
+};
+
 function NotificationSettings() {
   const { user, settings, refresh } = useAuth();
+  const current = { ...defaults, ...(settings?.notifications ?? {}) };
 
   const mutation = useMutation({
     mutationFn: (patch: Partial<NotificationPreferences>) =>
-      updateNotificationPreferences(user!.id, patch),
+      updateNotificationPreferences(user!.id, { ...current, ...patch }),
     onSuccess: () => {
       refresh();
       toast.success("Notification preferences saved");
