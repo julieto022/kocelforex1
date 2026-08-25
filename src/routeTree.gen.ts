@@ -29,6 +29,7 @@ import { Route as AppSignalPredictionRouteImport } from './routes/_app.signal-pr
 import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
 import { Route as AppTradesRouteImport } from './routes/_app.trades'
 import { Route as AppBotsCreateRouteImport } from './routes/_app.bots.create'
+import { Route as AppCommunityIndexRouteImport } from './routes/_app.community.index'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app.settings.index'
 import { Route as AppSettingsAppearanceRouteImport } from './routes/_app.settings.appearance'
 import { Route as AppSettingsGeneralRouteImport } from './routes/_app.settings.general'
@@ -137,6 +138,11 @@ const AppBotsCreateRoute = AppBotsCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => AppBotsRoute,
 } as any)
+const AppCommunityIndexRoute = AppCommunityIndexRouteImport.update({
+  id: '/community/',
+  path: '/community/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
+  '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -234,6 +241,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
+  '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/settings/security': typeof AppSettingsSecurityRoute
   '/_app/settings/trading': typeof AppSettingsTradingRoute
+  '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/settings/trading'
+    | '/community/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/settings/trading'
+    | '/community'
     | '/settings'
   id:
     | '__root__'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/_app/settings/profile'
     | '/_app/settings/security'
     | '/_app/settings/trading'
+    | '/_app/community/'
     | '/_app/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBotsCreateRouteImport
       parentRoute: typeof AppBotsRoute
     }
+    '/_app/community/': {
+      id: '/_app/community/'
+      path: '/community'
+      fullPath: '/community/'
+      preLoaderRoute: typeof AppCommunityIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/': {
       id: '/_app/settings/'
       path: '/'
@@ -618,6 +637,7 @@ interface AppRouteChildren {
   AppSignalPredictionRoute: typeof AppSignalPredictionRoute
   AppStrategiesRoute: typeof AppStrategiesRoute
   AppTradesRoute: typeof AppTradesRoute
+  AppCommunityIndexRoute: typeof AppCommunityIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -633,6 +653,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSignalPredictionRoute: AppSignalPredictionRoute,
   AppStrategiesRoute: AppStrategiesRoute,
   AppTradesRoute: AppTradesRoute,
+  AppCommunityIndexRoute: AppCommunityIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
