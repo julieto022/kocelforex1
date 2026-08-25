@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  createConnection as createConnectionFn,
+  disconnectConnection as disconnectConnectionFn,
+  regenerateConnectionCode as regenerateConnectionCodeFn,
+  renameConnection as renameConnectionFn,
+} from "@/lib/functions/mt5.functions";
 import type { BrokerConnection } from "./types";
 
 export type CreateConnectionInput = {
@@ -33,61 +39,47 @@ export async function getMT5Connection(id: string): Promise<BrokerConnection | n
   return (data as unknown as BrokerConnection) ?? null;
 }
 
-/**
- * Phase 1: the connection code is generated client-side for the setup workflow.
- * Phase 2 replaces this with a backend-issued, single-use code.
- */
-export function generateConnectionCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const block = () =>
-    Array.from(
-      { length: 4 },
-      () => alphabet[Math.floor(Math.random() * alphabet.length)],
-    ).join("");
-  return `KCL-${block()}-${block()}`;
+async function requireConnection(id: string): Promise<BrokerConnection> {
+  const connection = await getMT5Connection(id);
+  if (!connection) throw new Error("We couldn't load that connection.");
+  return connection;
 }
 
+/**
+ * Connection codes are issued and hashed by the backend. The plaintext value
+ * exists only while the code is pending; the Bridge claim clears it.
+ */
 export async function createMT5Connection(
   userId: string,
   input: CreateConnectionInput,
 ): Promise<BrokerConnection> {
-  const { data, error } = await supabase
-    .from("broker_connections")
-    .insert({
-      user_id: userId,
-      broker_id: input.brokerId,
-      account_name: input.accountName,
-      nickname: input.nickname ?? null,
-      mt5_login: input.mt5Login,
+  const result = await createConnectionFn({
+    data: {
+      brokerId: input.brokerId,
+      accountName: input.accountName,
+      mt5Login: input.mt5Login,
       server: input.server,
-      account_type: input.accountType ?? null,
-      environment: input.environment,
-      status: "WAITING_FOR_BRIDGE",
-      connection_code: generateConnectionCode(),
-    })
-    .select(SELECT)
-    .single();
-  if (error) throw error;
-  return data as unknown as BrokerConnection;
+      accountType: input.accountType ?? null,
+      environment: input.environment.toUpperCase() as "DEMO" | "REAL",
+      nickname: input.nickname ?? null,
+    },
+  });
+  const connection = await requireConnection(result.id);
+  return { ...connection, connection_code: result.code };
 }
 
 export async function renameMT5Connection(id: string, nickname: string) {
-  const { error } = await supabase.from("broker_connections").update({ nickname }).eq("id", id);
-  if (error) throw error;
+  await renameConnectionFn({ data: { connectionId: id, nickname } });
 }
 
 export async function regenerateConnectionCode(id: string) {
-  const { error } = await supabase
-    .from("broker_connections")
-    .update({ connection_code: generateConnectionCode(), status: "WAITING_FOR_BRIDGE" })
-    .eq("id", id);
-  if (error) throw error;
+  const result = await regenerateConnectionCodeFn({ data: { connectionId: id } });
+  return result.code;
 }
 
 /** Disconnecting removes the account from the Kocel workspace. It never closes MT5 trades. */
 export async function disconnectMT5(id: string) {
-  const { error } = await supabase.from("broker_connections").delete().eq("id", id);
-  if (error) throw error;
+  await disconnectConnectionFn({ data: { connectionId: id } });
 }
 
 export function maskLogin(login: string) {

@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { registerCurrentSession } from "@/lib/functions/sessions.functions";
 import { getProfile, getSettings } from "@/services/users";
 import type { Profile, UserSettings } from "@/services/types";
 
@@ -30,9 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       if (!nextSession) queryClient.clear();
+      // Register the device so the Security page can list and revoke it.
+      if (event === "SIGNED_IN" && nextSession) {
+        void registerCurrentSession().catch(() => undefined);
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);

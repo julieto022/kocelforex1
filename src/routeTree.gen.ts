@@ -39,6 +39,12 @@ import { Route as AppSettingsNotificationsRouteImport } from './routes/_app.sett
 import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.profile'
 import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
 import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/public/bridge/authenticate'
+import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/public/bridge/disconnect'
+import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
+import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
+import { Route as ApiPublicBridgeStatusRouteImport } from './routes/api/public/bridge/status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -190,6 +196,39 @@ const AppSettingsTradingRoute = AppSettingsTradingRouteImport.update({
   path: '/trading',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBridgeAuthenticateRoute =
+  ApiPublicBridgeAuthenticateRouteImport.update({
+    id: '/api/public/bridge/authenticate',
+    path: '/api/public/bridge/authenticate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBridgeDisconnectRoute =
+  ApiPublicBridgeDisconnectRouteImport.update({
+    id: '/api/public/bridge/disconnect',
+    path: '/api/public/bridge/disconnect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBridgeHeartbeatRoute =
+  ApiPublicBridgeHeartbeatRouteImport.update({
+    id: '/api/public/bridge/heartbeat',
+    path: '/api/public/bridge/heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBridgeRegisterRoute = ApiPublicBridgeRegisterRouteImport.update({
+  id: '/api/public/bridge/register',
+  path: '/api/public/bridge/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBridgeStatusRoute = ApiPublicBridgeStatusRouteImport.update({
+  id: '/api/public/bridge/status',
+  path: '/api/public/bridge/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -219,8 +258,14 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
+  '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
+  '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
+  '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
+  '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -249,8 +294,14 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
+  '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
+  '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
+  '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
+  '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -282,8 +333,14 @@ export interface FileRoutesById {
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/settings/security': typeof AppSettingsSecurityRoute
   '/_app/settings/trading': typeof AppSettingsTradingRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
+  '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
+  '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
+  '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
+  '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -315,8 +372,14 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/settings/trading'
+    | '/api/public/health'
     | '/community/'
     | '/settings/'
+    | '/api/public/bridge/authenticate'
+    | '/api/public/bridge/disconnect'
+    | '/api/public/bridge/heartbeat'
+    | '/api/public/bridge/register'
+    | '/api/public/bridge/status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -345,8 +408,14 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/settings/trading'
+    | '/api/public/health'
     | '/community'
     | '/settings'
+    | '/api/public/bridge/authenticate'
+    | '/api/public/bridge/disconnect'
+    | '/api/public/bridge/heartbeat'
+    | '/api/public/bridge/register'
+    | '/api/public/bridge/status'
   id:
     | '__root__'
     | '/'
@@ -377,8 +446,14 @@ export interface FileRouteTypes {
     | '/_app/settings/profile'
     | '/_app/settings/security'
     | '/_app/settings/trading'
+    | '/api/public/health'
     | '/_app/community/'
     | '/_app/settings/'
+    | '/api/public/bridge/authenticate'
+    | '/api/public/bridge/disconnect'
+    | '/api/public/bridge/heartbeat'
+    | '/api/public/bridge/register'
+    | '/api/public/bridge/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -389,6 +464,12 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
+  ApiPublicBridgeDisconnectRoute: typeof ApiPublicBridgeDisconnectRoute
+  ApiPublicBridgeHeartbeatRoute: typeof ApiPublicBridgeHeartbeatRoute
+  ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
+  ApiPublicBridgeStatusRoute: typeof ApiPublicBridgeStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -603,6 +684,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsTradingRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/authenticate': {
+      id: '/api/public/bridge/authenticate'
+      path: '/api/public/bridge/authenticate'
+      fullPath: '/api/public/bridge/authenticate'
+      preLoaderRoute: typeof ApiPublicBridgeAuthenticateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/disconnect': {
+      id: '/api/public/bridge/disconnect'
+      path: '/api/public/bridge/disconnect'
+      fullPath: '/api/public/bridge/disconnect'
+      preLoaderRoute: typeof ApiPublicBridgeDisconnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/heartbeat': {
+      id: '/api/public/bridge/heartbeat'
+      path: '/api/public/bridge/heartbeat'
+      fullPath: '/api/public/bridge/heartbeat'
+      preLoaderRoute: typeof ApiPublicBridgeHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/register': {
+      id: '/api/public/bridge/register'
+      path: '/api/public/bridge/register'
+      fullPath: '/api/public/bridge/register'
+      preLoaderRoute: typeof ApiPublicBridgeRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/status': {
+      id: '/api/public/bridge/status'
+      path: '/api/public/bridge/status'
+      fullPath: '/api/public/bridge/status'
+      preLoaderRoute: typeof ApiPublicBridgeStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -687,6 +810,12 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,
+  ApiPublicBridgeDisconnectRoute: ApiPublicBridgeDisconnectRoute,
+  ApiPublicBridgeHeartbeatRoute: ApiPublicBridgeHeartbeatRoute,
+  ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
+  ApiPublicBridgeStatusRoute: ApiPublicBridgeStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

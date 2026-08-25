@@ -1,0 +1,142 @@
+openapi: 3.1.0
+info:
+  title: Kocel Forex Hub — Bridge & Public API
+  version: 2.0.0
+  description: >
+    Public HTTP contract consumed by the Kocel Bridge EA running inside the
+    user's own MetaTrader 5 terminal. Kocel never receives MT5 credentials:
+    the EA authenticates with a single-use pairing code, then with a signed,
+    short-lived bridge token. Application features use typed server functions
+    instead of HTTP and are therefore not described here.
+servers:
+  - url: https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8.lovable.app
+    description: Production
+  - url: https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8-dev.lovable.app
+    description: Preview
+
+components:
+  securitySchemes:
+    bridgeToken:
+      type: http
+      scheme: bearer
+      description: Bridge session token returned by /api/public/bridge/register.
+  schemas:
+    Envelope:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data: {}
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                [
+                  VALIDATION_ERROR,
+                  UNAUTHENTICATED,
+                  FORBIDDEN,
+                  NOT_FOUND,
+                  CONFLICT,
+                  RATE_LIMITED,
+                  CODE_EXPIRED,
+                  CODE_ALREADY_CLAIMED,
+                  SERVICE_UNAVAILABLE,
+                  INTERNAL_ERROR,
+                ]
+            message: { type: string }
+    AccountSnapshot:
+      type: object
+      required: [balance, equity, margin, freeMargin, marginLevel, currency, leverage]
+      properties:
+        balance: { type: number }
+        equity: { type: number }
+        margin: { type: number }
+        freeMargin: { type: number }
+        marginLevel: { type: [number, "null"] }
+        currency: { type: string }
+        leverage: { type: [number, "null"] }
+
+paths:
+  /api/public/health:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/public/bridge/register:
+    post:
+      summary: Exchange a pairing code for a bridge session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, mt5Login, server, eaVersion]
+              properties:
+                code: { type: string, example: KCL-4F7Q-2XKD }
+                mt5Login: { type: string, example: "51234567" }
+                server: { type: string, example: "ICMarketsSC-Demo" }
+                eaVersion: { type: string, example: "1.0.0" }
+                terminalBuild: { type: [string, "null"] }
+      responses:
+        "200":
+          description: Token issued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+        "404": { description: Unknown code }
+        "409": { description: Code already claimed or login mismatch }
+        "410": { description: Code expired }
+        "429": { description: Too many attempts }
+
+  /api/public/bridge/authenticate:
+    post:
+      summary: Verify the current bridge token
+      security: [{ bridgeToken: [] }]
+      responses:
+        "200": { description: Token valid }
+        "401": { description: Invalid or expired token }
+
+  /api/public/bridge/heartbeat:
+    post:
+      summary: Report liveness and the current account snapshot
+      security: [{ bridgeToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [CONNECTED, ERROR] }
+                account: { $ref: "#/components/schemas/AccountSnapshot" }
+                openTrades: { type: integer, minimum: 0 }
+                message: { type: [string, "null"] }
+      responses:
+        "200": { description: Heartbeat accepted }
+        "401": { description: Invalid or expired token }
+
+  /api/public/bridge/disconnect:
+    post:
+      summary: Report a clean EA shutdown (never closes MT5 trades)
+      security: [{ bridgeToken: [] }]
+      responses:
+        "200": { description: Disconnect recorded }
+        "401": { description: Invalid or expired token }
+
+  /api/public/bridge/status:
+    get:
+      summary: Server-side view of this connection
+      security: [{ bridgeToken: [] }]
+      responses:
+        "200": { description: Current status }
+        "401": { description: Invalid or expired token }

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, LogOut, Monitor, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -9,6 +9,11 @@ import { SectionCard } from "@/components/kocel/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  listSessions,
+  revokeAllSessions,
+  revokeSession,
+} from "@/lib/functions/sessions.functions";
 import { updatePassword } from "@/services/auth";
 
 export const Route = createFileRoute("/_app/settings/security")({
@@ -32,6 +37,29 @@ const schema = z
   });
 
 function SecuritySettings() {
+  const queryClient = useQueryClient();
+  const sessionsQuery = useQuery({ queryKey: ["sessions"], queryFn: () => listSessions() });
+  const invalidateSessions = () =>
+    queryClient.invalidateQueries({ queryKey: ["sessions"] });
+
+  const revokeOne = useMutation({
+    mutationFn: (sessionId: string) => revokeSession({ data: { sessionId } }),
+    onSuccess: () => {
+      toast.success("Device signed out");
+      void invalidateSessions();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const revokeOthers = useMutation({
+    mutationFn: () => revokeAllSessions(),
+    onSuccess: () => {
+      toast.success("All other devices signed out");
+      void invalidateSessions();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +114,60 @@ function SecuritySettings() {
             Update password
           </Button>
         </form>
+      </SectionCard>
+
+      <SectionCard
+        title="Active sessions"
+        description="Devices currently signed in to your Kocel account."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={revokeOthers.isPending}
+            onClick={() => revokeOthers.mutate()}
+          >
+            <LogOut className="mr-2 size-4" />
+            Sign out other devices
+          </Button>
+        }
+      >
+        {sessionsQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading sessions…</p>
+        ) : (sessionsQuery.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No other sessions recorded yet.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {(sessionsQuery.data ?? []).map((session) => (
+              <li key={session.id} className="flex items-center justify-between gap-4 py-3">
+                <div className="flex items-start gap-3">
+                  <Monitor className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="text-sm">
+                    <p className="font-medium">
+                      {session.browser} on {session.os}
+                      {session.current && (
+                        <span className="ml-2 text-xs text-primary">This device</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {session.device} · last active{" "}
+                      {new Date(session.last_activity_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                {!session.current && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={revokeOne.isPending}
+                    onClick={() => revokeOne.mutate(session.id)}
+                  >
+                    Sign out
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </SectionCard>
 
       <SectionCard title="Account separation">

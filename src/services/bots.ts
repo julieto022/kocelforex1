@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  createBot as createBotFn,
+  deleteBot as deleteBotFn,
+  setBotStatus as setBotStatusFn,
+  updateBot as updateBotFn,
+} from "@/lib/functions/bots.functions";
 import type { Bot } from "./types";
 
 export type CreateBotInput = {
@@ -7,6 +13,7 @@ export type CreateBotInput = {
   riskProfile: string;
   brokerConnectionId: string | null;
   strategyId: string | null;
+  timeframe?: string | null;
 };
 
 export async function getBots(userId: string): Promise<Bot[]> {
@@ -19,31 +26,35 @@ export async function getBots(userId: string): Promise<Bot[]> {
   return (data ?? []) as unknown as Bot[];
 }
 
-export async function createBot(userId: string, input: CreateBotInput): Promise<Bot> {
-  const { data, error } = await supabase
-    .from("bots")
-    .insert({
-      user_id: userId,
+export async function createBot(_userId: string, input: CreateBotInput): Promise<Bot> {
+  const bot = await createBotFn({
+    data: {
       name: input.name,
       symbol: input.symbol,
-      risk_profile: input.riskProfile,
-      broker_connection_id: input.brokerConnectionId,
-      strategy_id: input.strategyId,
-      status: "stopped",
-    })
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as Bot;
+      riskProfile: input.riskProfile.toUpperCase() as
+        | "CONSERVATIVE"
+        | "BALANCED"
+        | "AGGRESSIVE",
+      timeframe: input.timeframe ?? null,
+      brokerConnectionId: input.brokerConnectionId,
+      strategyId: input.strategyId,
+      configuration: {},
+    },
+  });
+  return bot as unknown as Bot;
+}
+
+export async function updateBot(id: string, patch: { name?: string; timeframe?: string | null }) {
+  await updateBotFn({ data: { botId: id, ...patch } });
 }
 
 export async function deleteBot(id: string) {
-  const { error } = await supabase.from("bots").delete().eq("id", id);
-  if (error) throw error;
+  await deleteBotFn({ data: { botId: id } });
 }
 
-/** Phase 2 owns real execution. Phase 1 only records intent. */
+/** Records the requested run-state; the Bridge EA performs the actual execution. */
 export async function setBotStatus(id: string, status: Bot["status"]) {
-  const { error } = await supabase.from("bots").update({ status }).eq("id", id);
-  if (error) throw error;
+  await setBotStatusFn({
+    data: { botId: id, status: String(status).toUpperCase() as never },
+  });
 }

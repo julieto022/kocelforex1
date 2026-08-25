@@ -1,16 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/lib/functions/notifications.functions";
 import type { AppNotification } from "./types";
 
 export const NOTIFICATION_TYPES = [
-  "account_connected",
-  "account_disconnected",
-  "bridge_offline",
-  "bot_started",
-  "bot_stopped",
-  "trade_opened",
-  "trade_closed",
-  "risk_warning",
-  "system",
+  "ACCOUNT_CONNECTED",
+  "ACCOUNT_DISCONNECTED",
+  "BRIDGE_OFFLINE",
+  "BOT_UPDATE",
+  "TRADE_UPDATE",
+  "RISK_ALERT",
+  "SYSTEM",
 ] as const;
 
 export async function getNotifications(userId: string): Promise<AppNotification[]> {
@@ -24,6 +26,10 @@ export async function getNotifications(userId: string): Promise<AppNotification[
   return (data ?? []) as unknown as AppNotification[];
 }
 
+/**
+ * Notifications are written by the backend as a side effect of business events.
+ * This client insert remains only for local, user-initiated reminders.
+ */
 export async function createNotification(
   userId: string,
   input: { type: string; title: string; message?: string | undefined },
@@ -37,11 +43,10 @@ export async function createNotification(
   if (error) throw error;
 }
 
-export async function markAllRead(userId: string) {
-  const { error } = await supabase
-    .from("notifications")
-    .update({ read: true })
-    .eq("user_id", userId)
-    .eq("read", false);
-  if (error) throw error;
+export async function markRead(id: string) {
+  await markNotificationRead({ data: { notificationId: id } });
+}
+
+export async function markAllRead(_userId: string) {
+  await markAllNotificationsRead();
 }
