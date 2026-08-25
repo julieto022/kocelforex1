@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { registerCurrentSession } from "@/lib/functions/sessions.functions";
 import { getProfile, getSettings } from "@/services/users";
 import type { Profile, UserSettings } from "@/services/types";
 
