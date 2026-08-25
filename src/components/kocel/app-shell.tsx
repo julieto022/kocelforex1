@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AccountSwitcher, ConnectionIndicator } from "@/components/kocel/account-switcher";
 import { KocelLogo } from "@/components/kocel/brand";
 import {
+  mobileMoreNav,
   mobileNav,
   pageTitles,
   primaryNav,
@@ -161,12 +162,7 @@ function MobileTabBar() {
       {menuOpen && (
         <div className="fixed inset-x-0 bottom-14 z-30 border-t border-border bg-popover p-3 shadow-lift lg:hidden">
           <div className="grid grid-cols-2 gap-2">
-            {[
-              { to: "/strategies", label: "Strategies" },
-              { to: "/analysis", label: "Analysis" },
-              { to: "/settings", label: "Settings" },
-              { to: "/help", label: "Help" },
-            ].map((item) => (
+            {mobileMoreNav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
