@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AccountSwitcher, ConnectionIndicator } from "@/components/kocel/account-switcher";
 import { KocelLogo } from "@/components/kocel/brand";
 import {
+  mobileMoreNav,
   mobileNav,
   pageTitles,
   primaryNav,
