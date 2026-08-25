@@ -25,9 +25,12 @@ import { Route as AppNewsRouteImport } from './routes/_app.news'
 import { Route as AppNfpPredictionRouteImport } from './routes/_app.nfp-prediction'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppSignalPredictionRouteImport } from './routes/_app.signal-prediction'
 import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
 import { Route as AppTradesRouteImport } from './routes/_app.trades'
 import { Route as AppBotsCreateRouteImport } from './routes/_app.bots.create'
+import { Route as AppCommunityIndexRouteImport } from './routes/_app.community.index'
+import { Route as AppCommunityUserIdRouteImport } from './routes/_app.community.$userId'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app.settings.index'
 import { Route as AppSettingsAppearanceRouteImport } from './routes/_app.settings.appearance'
 import { Route as AppSettingsGeneralRouteImport } from './routes/_app.settings.general'
@@ -116,6 +119,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSignalPredictionRoute = AppSignalPredictionRouteImport.update({
+  id: '/signal-prediction',
+  path: '/signal-prediction',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppStrategiesRoute = AppStrategiesRouteImport.update({
   id: '/strategies',
   path: '/strategies',
@@ -130,6 +138,16 @@ const AppBotsCreateRoute = AppBotsCreateRouteImport.update({
   id: '/create',
   path: '/create',
   getParentRoute: () => AppBotsRoute,
+} as any)
+const AppCommunityIndexRoute = AppCommunityIndexRouteImport.update({
+  id: '/community/',
+  path: '/community/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCommunityUserIdRoute = AppCommunityUserIdRouteImport.update({
+  id: '/community/$userId',
+  path: '/community/$userId',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/',
@@ -189,9 +207,11 @@ export interface FileRoutesByFullPath {
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/bots/create': typeof AppBotsCreateRoute
+  '/community/$userId': typeof AppCommunityUserIdRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
   '/settings/general': typeof AppSettingsGeneralRoute
   '/settings/mt5': typeof AppSettingsMt5Route
@@ -199,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
+  '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -216,9 +237,11 @@ export interface FileRoutesByTo {
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
+  '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/bots/create': typeof AppBotsCreateRoute
+  '/community/$userId': typeof AppCommunityUserIdRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
   '/settings/general': typeof AppSettingsGeneralRoute
   '/settings/mt5': typeof AppSettingsMt5Route
@@ -226,6 +249,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
+  '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -246,9 +270,11 @@ export interface FileRoutesById {
   '/_app/nfp-prediction': typeof AppNfpPredictionRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/_app/signal-prediction': typeof AppSignalPredictionRoute
   '/_app/strategies': typeof AppStrategiesRoute
   '/_app/trades': typeof AppTradesRoute
   '/_app/bots/create': typeof AppBotsCreateRoute
+  '/_app/community/$userId': typeof AppCommunityUserIdRoute
   '/_app/settings/appearance': typeof AppSettingsAppearanceRoute
   '/_app/settings/general': typeof AppSettingsGeneralRoute
   '/_app/settings/mt5': typeof AppSettingsMt5Route
@@ -256,6 +282,7 @@ export interface FileRoutesById {
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/settings/security': typeof AppSettingsSecurityRoute
   '/_app/settings/trading': typeof AppSettingsTradingRoute
+  '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -276,9 +303,11 @@ export interface FileRouteTypes {
     | '/nfp-prediction'
     | '/notifications'
     | '/settings'
+    | '/signal-prediction'
     | '/strategies'
     | '/trades'
     | '/bots/create'
+    | '/community/$userId'
     | '/settings/appearance'
     | '/settings/general'
     | '/settings/mt5'
@@ -286,6 +315,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/settings/trading'
+    | '/community/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -303,9 +333,11 @@ export interface FileRouteTypes {
     | '/news'
     | '/nfp-prediction'
     | '/notifications'
+    | '/signal-prediction'
     | '/strategies'
     | '/trades'
     | '/bots/create'
+    | '/community/$userId'
     | '/settings/appearance'
     | '/settings/general'
     | '/settings/mt5'
@@ -313,6 +345,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/settings/trading'
+    | '/community'
     | '/settings'
   id:
     | '__root__'
@@ -332,9 +365,11 @@ export interface FileRouteTypes {
     | '/_app/nfp-prediction'
     | '/_app/notifications'
     | '/_app/settings'
+    | '/_app/signal-prediction'
     | '/_app/strategies'
     | '/_app/trades'
     | '/_app/bots/create'
+    | '/_app/community/$userId'
     | '/_app/settings/appearance'
     | '/_app/settings/general'
     | '/_app/settings/mt5'
@@ -342,6 +377,7 @@ export interface FileRouteTypes {
     | '/_app/settings/profile'
     | '/_app/settings/security'
     | '/_app/settings/trading'
+    | '/_app/community/'
     | '/_app/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -469,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/signal-prediction': {
+      id: '/_app/signal-prediction'
+      path: '/signal-prediction'
+      fullPath: '/signal-prediction'
+      preLoaderRoute: typeof AppSignalPredictionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/strategies': {
       id: '/_app/strategies'
       path: '/strategies'
@@ -489,6 +532,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/bots/create'
       preLoaderRoute: typeof AppBotsCreateRouteImport
       parentRoute: typeof AppBotsRoute
+    }
+    '/_app/community/': {
+      id: '/_app/community/'
+      path: '/community'
+      fullPath: '/community/'
+      preLoaderRoute: typeof AppCommunityIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/community/$userId': {
+      id: '/_app/community/$userId'
+      path: '/community/$userId'
+      fullPath: '/community/$userId'
+      preLoaderRoute: typeof AppCommunityUserIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/settings/': {
       id: '/_app/settings/'
@@ -596,8 +653,11 @@ interface AppRouteChildren {
   AppNfpPredictionRoute: typeof AppNfpPredictionRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSignalPredictionRoute: typeof AppSignalPredictionRoute
   AppStrategiesRoute: typeof AppStrategiesRoute
   AppTradesRoute: typeof AppTradesRoute
+  AppCommunityUserIdRoute: typeof AppCommunityUserIdRoute
+  AppCommunityIndexRoute: typeof AppCommunityIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -610,8 +670,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppNfpPredictionRoute: AppNfpPredictionRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSignalPredictionRoute: AppSignalPredictionRoute,
   AppStrategiesRoute: AppStrategiesRoute,
   AppTradesRoute: AppTradesRoute,
+  AppCommunityUserIdRoute: AppCommunityUserIdRoute,
+  AppCommunityIndexRoute: AppCommunityIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
