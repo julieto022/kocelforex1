@@ -118,6 +118,8 @@ function DashboardPage() {
         </>
       )}
 
+      <DashboardWidgets />
+
       <ConnectWizard open={wizardOpen} onOpenChange={setWizardOpen} />
     </div>
   );
