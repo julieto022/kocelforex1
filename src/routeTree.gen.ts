@@ -21,6 +21,8 @@ import { Route as AppBotsRouteImport } from './routes/_app.bots'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppMarketsRouteImport } from './routes/_app.markets'
+import { Route as AppNewsRouteImport } from './routes/_app.news'
+import { Route as AppNfpPredictionRouteImport } from './routes/_app.nfp-prediction'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
@@ -92,6 +94,16 @@ const AppHelpRoute = AppHelpRouteImport.update({
 const AppMarketsRoute = AppMarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNewsRoute = AppNewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNfpPredictionRoute = AppNfpPredictionRouteImport.update({
+  id: '/nfp-prediction',
+  path: '/nfp-prediction',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
@@ -173,6 +185,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
   '/markets': typeof AppMarketsRoute
+  '/news': typeof AppNewsRoute
+  '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/strategies': typeof AppStrategiesRoute
@@ -199,6 +213,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
   '/markets': typeof AppMarketsRoute
+  '/news': typeof AppNewsRoute
+  '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
@@ -226,6 +242,8 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/help': typeof AppHelpRoute
   '/_app/markets': typeof AppMarketsRoute
+  '/_app/news': typeof AppNewsRoute
+  '/_app/nfp-prediction': typeof AppNfpPredictionRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/strategies': typeof AppStrategiesRoute
@@ -254,6 +272,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/help'
     | '/markets'
+    | '/news'
+    | '/nfp-prediction'
     | '/notifications'
     | '/settings'
     | '/strategies'
@@ -280,6 +300,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/help'
     | '/markets'
+    | '/news'
+    | '/nfp-prediction'
     | '/notifications'
     | '/strategies'
     | '/trades'
@@ -306,6 +328,8 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/help'
     | '/_app/markets'
+    | '/_app/news'
+    | '/_app/nfp-prediction'
     | '/_app/notifications'
     | '/_app/settings'
     | '/_app/strategies'
@@ -415,6 +439,20 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof AppMarketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/news': {
+      id: '/_app/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof AppNewsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/nfp-prediction': {
+      id: '/_app/nfp-prediction'
+      path: '/nfp-prediction'
+      fullPath: '/nfp-prediction'
+      preLoaderRoute: typeof AppNfpPredictionRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/notifications': {
@@ -554,6 +592,8 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppHelpRoute: typeof AppHelpRoute
   AppMarketsRoute: typeof AppMarketsRoute
+  AppNewsRoute: typeof AppNewsRoute
+  AppNfpPredictionRoute: typeof AppNfpPredictionRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppStrategiesRoute: typeof AppStrategiesRoute
@@ -566,6 +606,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppHelpRoute: AppHelpRoute,
   AppMarketsRoute: AppMarketsRoute,
+  AppNewsRoute: AppNewsRoute,
+  AppNfpPredictionRoute: AppNfpPredictionRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppStrategiesRoute: AppStrategiesRoute,
