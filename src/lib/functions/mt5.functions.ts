@@ -163,10 +163,9 @@ export const getConnectionState = createServerFn({ method: "POST" })
       .from("broker_connections")
       .select("id, status, code_state, last_seen_at, connection_code_expires_at, ea_version")
       .eq("id", data.connectionId)
+      .eq("user_id", userId)
       .maybeSingle();
     if (error) throw toApiError(error);
-    if (!row || (await requireOwnership(supabase, "broker_connections", data.connectionId, userId), false)) {
-      throw notFound();
-    }
+    if (!row) throw notFound();
     return row;
   });
