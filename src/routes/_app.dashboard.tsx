@@ -4,6 +4,7 @@ import { Activity, PlugZap, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import { ConnectWizard } from "@/components/kocel/connect-wizard";
+import { DashboardWidgets } from "@/components/kocel/dashboard-widgets";
 import { PageHeader } from "@/components/kocel/page-header";
 import { EmptyState, SectionCard } from "@/components/kocel/states";
 import { BridgeStatusBadge } from "@/components/kocel/status-badge";
