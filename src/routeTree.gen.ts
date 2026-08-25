@@ -25,6 +25,7 @@ import { Route as AppNewsRouteImport } from './routes/_app.news'
 import { Route as AppNfpPredictionRouteImport } from './routes/_app.nfp-prediction'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppSignalPredictionRouteImport } from './routes/_app.signal-prediction'
 import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
 import { Route as AppTradesRouteImport } from './routes/_app.trades'
 import { Route as AppBotsCreateRouteImport } from './routes/_app.bots.create'
@@ -116,6 +117,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSignalPredictionRoute = AppSignalPredictionRouteImport.update({
+  id: '/signal-prediction',
+  path: '/signal-prediction',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppStrategiesRoute = AppStrategiesRouteImport.update({
   id: '/strategies',
   path: '/strategies',
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/bots/create': typeof AppBotsCreateRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
+  '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/bots/create': typeof AppBotsCreateRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/_app/nfp-prediction': typeof AppNfpPredictionRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/_app/signal-prediction': typeof AppSignalPredictionRoute
   '/_app/strategies': typeof AppStrategiesRoute
   '/_app/trades': typeof AppTradesRoute
   '/_app/bots/create': typeof AppBotsCreateRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/nfp-prediction'
     | '/notifications'
     | '/settings'
+    | '/signal-prediction'
     | '/strategies'
     | '/trades'
     | '/bots/create'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/nfp-prediction'
     | '/notifications'
+    | '/signal-prediction'
     | '/strategies'
     | '/trades'
     | '/bots/create'
@@ -332,6 +343,7 @@ export interface FileRouteTypes {
     | '/_app/nfp-prediction'
     | '/_app/notifications'
     | '/_app/settings'
+    | '/_app/signal-prediction'
     | '/_app/strategies'
     | '/_app/trades'
     | '/_app/bots/create'
@@ -469,6 +481,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/signal-prediction': {
+      id: '/_app/signal-prediction'
+      path: '/signal-prediction'
+      fullPath: '/signal-prediction'
+      preLoaderRoute: typeof AppSignalPredictionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/strategies': {
       id: '/_app/strategies'
       path: '/strategies'
@@ -596,6 +615,7 @@ interface AppRouteChildren {
   AppNfpPredictionRoute: typeof AppNfpPredictionRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSignalPredictionRoute: typeof AppSignalPredictionRoute
   AppStrategiesRoute: typeof AppStrategiesRoute
   AppTradesRoute: typeof AppTradesRoute
 }
@@ -610,6 +630,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppNfpPredictionRoute: AppNfpPredictionRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSignalPredictionRoute: AppSignalPredictionRoute,
   AppStrategiesRoute: AppStrategiesRoute,
   AppTradesRoute: AppTradesRoute,
 }
