@@ -40,6 +40,7 @@ import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.p
 import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
 import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -196,6 +197,11 @@ const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBridgeRegisterRoute = ApiPublicBridgeRegisterRouteImport.update({
+  id: '/api/public/bridge/register',
+  path: '/api/public/bridge/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/api/public/health': typeof ApiPublicHealthRoute
   '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/api/public/health': typeof ApiPublicHealthRoute
   '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -293,6 +301,7 @@ export interface FileRoutesById {
   '/api/public/health': typeof ApiPublicHealthRoute
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/api/public/health'
     | '/community/'
     | '/settings/'
+    | '/api/public/bridge/register'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/api/public/health'
     | '/community'
     | '/settings'
+    | '/api/public/bridge/register'
   id:
     | '__root__'
     | '/'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/api/public/health'
     | '/_app/community/'
     | '/_app/settings/'
+    | '/api/public/bridge/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -402,6 +414,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -623,6 +636,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bridge/register': {
+      id: '/api/public/bridge/register'
+      path: '/api/public/bridge/register'
+      fullPath: '/api/public/bridge/register'
+      preLoaderRoute: typeof ApiPublicBridgeRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -708,6 +728,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
