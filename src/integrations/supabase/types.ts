@@ -14,9 +14,46 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       bots: {
         Row: {
           broker_connection_id: string | null
+          configuration: Json
           created_at: string
           id: string
           name: string
@@ -24,11 +61,13 @@ export type Database = {
           status: string
           strategy_id: string | null
           symbol: string
+          timeframe: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           broker_connection_id?: string | null
+          configuration?: Json
           created_at?: string
           id?: string
           name: string
@@ -36,11 +75,13 @@ export type Database = {
           status?: string
           strategy_id?: string | null
           symbol: string
+          timeframe?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           broker_connection_id?: string | null
+          configuration?: Json
           created_at?: string
           id?: string
           name?: string
@@ -48,6 +89,7 @@ export type Database = {
           status?: string
           strategy_id?: string | null
           symbol?: string
+          timeframe?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -73,10 +115,16 @@ export type Database = {
           account_name: string
           account_type: string | null
           broker_id: string
+          claimed_at: string | null
+          code_state: string
           connection_code: string | null
+          connection_code_expires_at: string | null
+          connection_code_hash: string | null
           created_at: string
+          ea_version: string | null
           environment: string
           id: string
+          last_connected_at: string | null
           last_seen_at: string | null
           mt5_login: string
           nickname: string | null
@@ -89,10 +137,16 @@ export type Database = {
           account_name: string
           account_type?: string | null
           broker_id: string
+          claimed_at?: string | null
+          code_state?: string
           connection_code?: string | null
+          connection_code_expires_at?: string | null
+          connection_code_hash?: string | null
           created_at?: string
+          ea_version?: string | null
           environment?: string
           id?: string
+          last_connected_at?: string | null
           last_seen_at?: string | null
           mt5_login: string
           nickname?: string | null
@@ -105,10 +159,16 @@ export type Database = {
           account_name?: string
           account_type?: string | null
           broker_id?: string
+          claimed_at?: string | null
+          code_state?: string
           connection_code?: string | null
+          connection_code_expires_at?: string | null
+          connection_code_hash?: string | null
           created_at?: string
+          ea_version?: string | null
           environment?: string
           id?: string
+          last_connected_at?: string | null
           last_seen_at?: string | null
           mt5_login?: string
           nickname?: string | null
@@ -132,6 +192,7 @@ export type Database = {
           capabilities: Json
           connection_config: Json
           created_at: string
+          description: string | null
           id: string
           logo: string | null
           name: string
@@ -139,11 +200,13 @@ export type Database = {
           sort_order: number
           status: string
           supported: boolean
+          updated_at: string
         }
         Insert: {
           capabilities?: Json
           connection_config?: Json
           created_at?: string
+          description?: string | null
           id?: string
           logo?: string | null
           name: string
@@ -151,11 +214,13 @@ export type Database = {
           sort_order?: number
           status?: string
           supported?: boolean
+          updated_at?: string
         }
         Update: {
           capabilities?: Json
           connection_config?: Json
           created_at?: string
+          description?: string | null
           id?: string
           logo?: string | null
           name?: string
@@ -163,6 +228,7 @@ export type Database = {
           sort_order?: number
           status?: string
           supported?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
@@ -194,6 +260,8 @@ export type Database = {
           id: string
           parent_id: string | null
           post_id: string
+          status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -202,6 +270,8 @@ export type Database = {
           id?: string
           parent_id?: string | null
           post_id: string
+          status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -210,6 +280,8 @@ export type Database = {
           id?: string
           parent_id?: string | null
           post_id?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -258,6 +330,7 @@ export type Database = {
           id: string
           idea: Json | null
           image_url: string | null
+          status: string
           symbol: string | null
           updated_at: string
           user_id: string
@@ -269,6 +342,7 @@ export type Database = {
           id?: string
           idea?: Json | null
           image_url?: string | null
+          status?: string
           symbol?: string | null
           updated_at?: string
           user_id: string
@@ -280,6 +354,7 @@ export type Database = {
           id?: string
           idea?: Json | null
           image_url?: string | null
+          status?: string
           symbol?: string | null
           updated_at?: string
           user_id?: string
@@ -322,31 +397,37 @@ export type Database = {
         Row: {
           comment_id: string | null
           created_at: string
+          description: string | null
           details: string | null
           id: string
           post_id: string | null
           reason: string
           reporter_id: string
+          resolved_at: string | null
           status: string
         }
         Insert: {
           comment_id?: string | null
           created_at?: string
+          description?: string | null
           details?: string | null
           id?: string
           post_id?: string | null
           reason: string
           reporter_id: string
+          resolved_at?: string | null
           status?: string
         }
         Update: {
           comment_id?: string | null
           created_at?: string
+          description?: string | null
           details?: string | null
           id?: string
           post_id?: string | null
           reason?: string
           reporter_id?: string
+          resolved_at?: string | null
           status?: string
         }
         Relationships: [
@@ -366,9 +447,40 @@ export type Database = {
           },
         ]
       }
+      community_saves: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_saves_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       economic_events: {
         Row: {
           actual: string | null
+          category: string | null
+          country: string | null
           created_at: string
           currency: string
           event_name: string
@@ -378,9 +490,13 @@ export type Database = {
           impact: string
           previous: string | null
           source: string | null
+          source_url: string | null
+          updated_at: string
         }
         Insert: {
           actual?: string | null
+          category?: string | null
+          country?: string | null
           created_at?: string
           currency: string
           event_name: string
@@ -390,9 +506,13 @@ export type Database = {
           impact?: string
           previous?: string | null
           source?: string | null
+          source_url?: string | null
+          updated_at?: string
         }
         Update: {
           actual?: string | null
+          category?: string | null
+          country?: string | null
           created_at?: string
           currency?: string
           event_name?: string
@@ -402,8 +522,75 @@ export type Database = {
           impact?: string
           previous?: string | null
           source?: string | null
+          source_url?: string | null
+          updated_at?: string
         }
         Relationships: []
+      }
+      market_symbols: {
+        Row: {
+          asset_class: string
+          broker_connection_id: string
+          contract_size: number | null
+          created_at: string
+          digits: number | null
+          display_name: string | null
+          id: string
+          max_volume: number | null
+          min_volume: number | null
+          point: number | null
+          status: string
+          symbol: string
+          trade_mode: string | null
+          updated_at: string
+          user_id: string
+          volume_step: number | null
+        }
+        Insert: {
+          asset_class?: string
+          broker_connection_id: string
+          contract_size?: number | null
+          created_at?: string
+          digits?: number | null
+          display_name?: string | null
+          id?: string
+          max_volume?: number | null
+          min_volume?: number | null
+          point?: number | null
+          status?: string
+          symbol: string
+          trade_mode?: string | null
+          updated_at?: string
+          user_id: string
+          volume_step?: number | null
+        }
+        Update: {
+          asset_class?: string
+          broker_connection_id?: string
+          contract_size?: number | null
+          created_at?: string
+          digits?: number | null
+          display_name?: string | null
+          id?: string
+          max_volume?: number | null
+          min_volume?: number | null
+          point?: number | null
+          status?: string
+          symbol?: string
+          trade_mode?: string | null
+          updated_at?: string
+          user_id?: string
+          volume_step?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_symbols_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       news: {
         Row: {
@@ -416,9 +603,12 @@ export type Database = {
           impact: string
           published_at: string | null
           source: string | null
+          source_url: string | null
           summary: string | null
           symbol: string | null
+          symbols: Json
           title: string
+          updated_at: string
           url: string | null
         }
         Insert: {
@@ -431,9 +621,12 @@ export type Database = {
           impact?: string
           published_at?: string | null
           source?: string | null
+          source_url?: string | null
           summary?: string | null
           symbol?: string | null
+          symbols?: Json
           title: string
+          updated_at?: string
           url?: string | null
         }
         Update: {
@@ -446,10 +639,55 @@ export type Database = {
           impact?: string
           published_at?: string | null
           source?: string | null
+          source_url?: string | null
           summary?: string | null
           symbol?: string | null
+          symbols?: Json
           title?: string
+          updated_at?: string
           url?: string | null
+        }
+        Relationships: []
+      }
+      nfp_events: {
+        Row: {
+          actual: string | null
+          created_at: string
+          forecast: string | null
+          id: string
+          previous: string | null
+          release_date: string
+          release_time: string
+          source: string | null
+          status: string
+          surprise: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual?: string | null
+          created_at?: string
+          forecast?: string | null
+          id?: string
+          previous?: string | null
+          release_date: string
+          release_time: string
+          source?: string | null
+          status?: string
+          surprise?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual?: string | null
+          created_at?: string
+          forecast?: string | null
+          id?: string
+          previous?: string | null
+          release_date?: string
+          release_time?: string
+          source?: string | null
+          status?: string
+          surprise?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -468,9 +706,11 @@ export type Database = {
           gold_impact: string | null
           id: string
           nas100_impact: string | null
+          nfp_event_id: string | null
           prediction: string | null
           previous: string | null
           release_date: string
+          status: string
           updated_at: string
           usd_impact: string | null
         }
@@ -488,9 +728,11 @@ export type Database = {
           gold_impact?: string | null
           id?: string
           nas100_impact?: string | null
+          nfp_event_id?: string | null
           prediction?: string | null
           previous?: string | null
           release_date: string
+          status?: string
           updated_at?: string
           usd_impact?: string | null
         }
@@ -508,38 +750,57 @@ export type Database = {
           gold_impact?: string | null
           id?: string
           nas100_impact?: string | null
+          nfp_event_id?: string | null
           prediction?: string | null
           previous?: string | null
           release_date?: string
+          status?: string
           updated_at?: string
           usd_impact?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nfp_predictions_nfp_event_id_fkey"
+            columns: ["nfp_event_id"]
+            isOneToOne: false
+            referencedRelation: "nfp_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
           created_at: string
+          entity_id: string | null
+          entity_type: string | null
           id: string
           message: string | null
           read: boolean
+          read_at: string | null
           title: string
           type: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           message?: string | null
           read?: boolean
+          read_at?: string | null
           title: string
           type: string
           user_id: string
         }
         Update: {
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           message?: string | null
           read?: boolean
+          read_at?: string | null
           title?: string
           type?: string
           user_id?: string
@@ -551,12 +812,17 @@ export type Database = {
           avatar_url: string | null
           country: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
+          email_verified: boolean
           full_name: string | null
           id: string
+          last_login_at: string | null
           onboarding_completed: boolean
           phone: string | null
           referral_code: string | null
+          status: string
+          two_factor_enabled: boolean
           updated_at: string
           username: string | null
         }
@@ -564,12 +830,17 @@ export type Database = {
           avatar_url?: string | null
           country?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
+          email_verified?: boolean
           full_name?: string | null
           id: string
+          last_login_at?: string | null
           onboarding_completed?: boolean
           phone?: string | null
           referral_code?: string | null
+          status?: string
+          two_factor_enabled?: boolean
           updated_at?: string
           username?: string | null
         }
@@ -577,20 +848,53 @@ export type Database = {
           avatar_url?: string | null
           country?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
+          email_verified?: boolean
           full_name?: string | null
           id?: string
+          last_login_at?: string | null
           onboarding_completed?: boolean
           phone?: string | null
           referral_code?: string | null
+          status?: string
+          two_factor_enabled?: boolean
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          bucket_key: string
+          created_at: string
+          hits: number
+          id: string
+          window_seconds: number
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          created_at?: string
+          hits?: number
+          id?: string
+          window_seconds: number
+          window_start: string
+        }
+        Update: {
+          bucket_key?: string
+          created_at?: string
+          hits?: number
+          id?: string
+          window_seconds?: number
+          window_start?: string
         }
         Relationships: []
       }
       signals: {
         Row: {
           analysis: Json
+          broker_connection_id: string | null
           confidence: number | null
           confidence_breakdown: Json
           created_at: string
@@ -606,11 +910,14 @@ export type Database = {
           symbol: string
           take_profit: number | null
           timeframe: string | null
+          updated_at: string
           user_id: string | null
+          valid_from: string | null
           valid_until: string | null
         }
         Insert: {
           analysis?: Json
+          broker_connection_id?: string | null
           confidence?: number | null
           confidence_breakdown?: Json
           created_at?: string
@@ -626,11 +933,14 @@ export type Database = {
           symbol: string
           take_profit?: number | null
           timeframe?: string | null
+          updated_at?: string
           user_id?: string | null
+          valid_from?: string | null
           valid_until?: string | null
         }
         Update: {
           analysis?: Json
+          broker_connection_id?: string | null
           confidence?: number | null
           confidence_breakdown?: Json
           created_at?: string
@@ -646,14 +956,25 @@ export type Database = {
           symbol?: string
           take_profit?: number | null
           timeframe?: string | null
+          updated_at?: string
           user_id?: string | null
+          valid_from?: string | null
           valid_until?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "signals_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strategies: {
         Row: {
           configuration: Json
+          configuration_schema: Json
           created_at: string
           description: string
           id: string
@@ -662,9 +983,12 @@ export type Database = {
           slug: string
           status: string
           timeframe: string | null
+          timeframes: Json
+          updated_at: string
         }
         Insert: {
           configuration?: Json
+          configuration_schema?: Json
           created_at?: string
           description: string
           id?: string
@@ -673,9 +997,12 @@ export type Database = {
           slug: string
           status?: string
           timeframe?: string | null
+          timeframes?: Json
+          updated_at?: string
         }
         Update: {
           configuration?: Json
+          configuration_schema?: Json
           created_at?: string
           description?: string
           id?: string
@@ -684,6 +1011,8 @@ export type Database = {
           slug?: string
           status?: string
           timeframe?: string | null
+          timeframes?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -692,6 +1021,7 @@ export type Database = {
           bot_id: string | null
           broker_connection_id: string | null
           closed_at: string | null
+          commission: number | null
           created_at: string
           entry_price: number | null
           exit_price: number | null
@@ -700,10 +1030,12 @@ export type Database = {
           profit: number | null
           status: string
           stop_loss: number | null
+          swap: number | null
           symbol: string
           take_profit: number | null
           ticket: string | null
           type: string
+          updated_at: string
           user_id: string
           volume: number | null
         }
@@ -711,6 +1043,7 @@ export type Database = {
           bot_id?: string | null
           broker_connection_id?: string | null
           closed_at?: string | null
+          commission?: number | null
           created_at?: string
           entry_price?: number | null
           exit_price?: number | null
@@ -719,10 +1052,12 @@ export type Database = {
           profit?: number | null
           status?: string
           stop_loss?: number | null
+          swap?: number | null
           symbol: string
           take_profit?: number | null
           ticket?: string | null
           type: string
+          updated_at?: string
           user_id: string
           volume?: number | null
         }
@@ -730,6 +1065,7 @@ export type Database = {
           bot_id?: string | null
           broker_connection_id?: string | null
           closed_at?: string | null
+          commission?: number | null
           created_at?: string
           entry_price?: number | null
           exit_price?: number | null
@@ -738,10 +1074,12 @@ export type Database = {
           profit?: number | null
           status?: string
           stop_loss?: number | null
+          swap?: number | null
           symbol?: string
           take_profit?: number | null
           ticket?: string | null
           type?: string
+          updated_at?: string
           user_id?: string
           volume?: number | null
         }
@@ -761,6 +1099,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device: string | null
+          expires_at: string
+          id: string
+          ip_address: string | null
+          last_activity_at: string
+          os: string | null
+          revoked_at: string | null
+          session_token_hash: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          last_activity_at?: string
+          os?: string | null
+          revoked_at?: string | null
+          session_token_hash: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          last_activity_at?: string
+          os?: string | null
+          revoked_at?: string | null
+          session_token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {
