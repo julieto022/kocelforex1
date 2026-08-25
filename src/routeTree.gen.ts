@@ -41,6 +41,7 @@ import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.
 import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/public/bridge/authenticate'
+import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/public/bridge/disconnect'
 import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
 import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
 
@@ -205,6 +206,12 @@ const ApiPublicBridgeAuthenticateRoute =
     path: '/api/public/bridge/authenticate',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBridgeDisconnectRoute =
+  ApiPublicBridgeDisconnectRouteImport.update({
+    id: '/api/public/bridge/disconnect',
+    path: '/api/public/bridge/disconnect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBridgeHeartbeatRoute =
   ApiPublicBridgeHeartbeatRouteImport.update({
     id: '/api/public/bridge/heartbeat',
@@ -249,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
+  '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
@@ -283,6 +291,7 @@ export interface FileRoutesByTo {
   '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
+  '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
@@ -320,6 +329,7 @@ export interface FileRoutesById {
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
+  '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/community/'
     | '/settings/'
     | '/api/public/bridge/authenticate'
+    | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
   fileRoutesByTo: FileRoutesByTo
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/settings'
     | '/api/public/bridge/authenticate'
+    | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
   id:
@@ -427,6 +439,7 @@ export interface FileRouteTypes {
     | '/_app/community/'
     | '/_app/settings/'
     | '/api/public/bridge/authenticate'
+    | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
   fileRoutesById: FileRoutesById
@@ -441,6 +454,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
+  ApiPublicBridgeDisconnectRoute: typeof ApiPublicBridgeDisconnectRoute
   ApiPublicBridgeHeartbeatRoute: typeof ApiPublicBridgeHeartbeatRoute
   ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
 }
@@ -671,6 +685,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBridgeAuthenticateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bridge/disconnect': {
+      id: '/api/public/bridge/disconnect'
+      path: '/api/public/bridge/disconnect'
+      fullPath: '/api/public/bridge/disconnect'
+      preLoaderRoute: typeof ApiPublicBridgeDisconnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bridge/heartbeat': {
       id: '/api/public/bridge/heartbeat'
       path: '/api/public/bridge/heartbeat'
@@ -771,6 +792,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,
+  ApiPublicBridgeDisconnectRoute: ApiPublicBridgeDisconnectRoute,
   ApiPublicBridgeHeartbeatRoute: ApiPublicBridgeHeartbeatRoute,
   ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
 }
