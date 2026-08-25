@@ -40,6 +40,7 @@ import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.p
 import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
 import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/public/bridge/authenticate'
 import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
 
 const IndexRoute = IndexRouteImport.update({
@@ -197,6 +198,12 @@ const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBridgeAuthenticateRoute =
+  ApiPublicBridgeAuthenticateRouteImport.update({
+    id: '/api/public/bridge/authenticate',
+    path: '/api/public/bridge/authenticate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBridgeRegisterRoute = ApiPublicBridgeRegisterRouteImport.update({
   id: '/api/public/bridge/register',
   path: '/api/public/bridge/register',
@@ -234,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/api/public/health': typeof ApiPublicHealthRoute
   '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
 export interface FileRoutesByTo {
@@ -266,6 +274,7 @@ export interface FileRoutesByTo {
   '/api/public/health': typeof ApiPublicHealthRoute
   '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
 export interface FileRoutesById {
@@ -301,6 +310,7 @@ export interface FileRoutesById {
   '/api/public/health': typeof ApiPublicHealthRoute
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
 }
 export interface FileRouteTypes {
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
     | '/api/public/health'
     | '/community/'
     | '/settings/'
+    | '/api/public/bridge/authenticate'
     | '/api/public/bridge/register'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/public/health'
     | '/community'
     | '/settings'
+    | '/api/public/bridge/authenticate'
     | '/api/public/bridge/register'
   id:
     | '__root__'
@@ -402,6 +414,7 @@ export interface FileRouteTypes {
     | '/api/public/health'
     | '/_app/community/'
     | '/_app/settings/'
+    | '/api/public/bridge/authenticate'
     | '/api/public/bridge/register'
   fileRoutesById: FileRoutesById
 }
@@ -414,6 +427,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
   ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
 }
 
@@ -636,6 +650,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bridge/authenticate': {
+      id: '/api/public/bridge/authenticate'
+      path: '/api/public/bridge/authenticate'
+      fullPath: '/api/public/bridge/authenticate'
+      preLoaderRoute: typeof ApiPublicBridgeAuthenticateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bridge/register': {
       id: '/api/public/bridge/register'
       path: '/api/public/bridge/register'
@@ -728,6 +749,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,
   ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
 }
 export const routeTree = rootRouteImport
