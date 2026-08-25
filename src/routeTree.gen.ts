@@ -44,6 +44,7 @@ import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/pu
 import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/public/bridge/disconnect'
 import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
 import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
+import { Route as ApiPublicBridgeStatusRouteImport } from './routes/api/public/bridge/status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -223,6 +224,11 @@ const ApiPublicBridgeRegisterRoute = ApiPublicBridgeRegisterRouteImport.update({
   path: '/api/public/bridge/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBridgeStatusRoute = ApiPublicBridgeStatusRouteImport.update({
+  id: '/api/public/bridge/status',
+  path: '/api/public/bridge/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
+  '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -294,6 +301,7 @@ export interface FileRoutesByTo {
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
+  '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
+  '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -370,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
+    | '/api/public/bridge/status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
+    | '/api/public/bridge/status'
   id:
     | '__root__'
     | '/'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
+    | '/api/public/bridge/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -457,6 +469,7 @@ export interface RootRouteChildren {
   ApiPublicBridgeDisconnectRoute: typeof ApiPublicBridgeDisconnectRoute
   ApiPublicBridgeHeartbeatRoute: typeof ApiPublicBridgeHeartbeatRoute
   ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
+  ApiPublicBridgeStatusRoute: typeof ApiPublicBridgeStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -706,6 +719,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBridgeRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bridge/status': {
+      id: '/api/public/bridge/status'
+      path: '/api/public/bridge/status'
+      fullPath: '/api/public/bridge/status'
+      preLoaderRoute: typeof ApiPublicBridgeStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -795,6 +815,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBridgeDisconnectRoute: ApiPublicBridgeDisconnectRoute,
   ApiPublicBridgeHeartbeatRoute: ApiPublicBridgeHeartbeatRoute,
   ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
+  ApiPublicBridgeStatusRoute: ApiPublicBridgeStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
