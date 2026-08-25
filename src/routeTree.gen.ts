@@ -30,6 +30,7 @@ import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
 import { Route as AppTradesRouteImport } from './routes/_app.trades'
 import { Route as AppBotsCreateRouteImport } from './routes/_app.bots.create'
 import { Route as AppCommunityIndexRouteImport } from './routes/_app.community.index'
+import { Route as AppCommunityUserIdRouteImport } from './routes/_app.community.$userId'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app.settings.index'
 import { Route as AppSettingsAppearanceRouteImport } from './routes/_app.settings.appearance'
 import { Route as AppSettingsGeneralRouteImport } from './routes/_app.settings.general'
@@ -143,6 +144,11 @@ const AppCommunityIndexRoute = AppCommunityIndexRouteImport.update({
   path: '/community/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCommunityUserIdRoute = AppCommunityUserIdRouteImport.update({
+  id: '/community/$userId',
+  path: '/community/$userId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/bots/create': typeof AppBotsCreateRoute
+  '/community/$userId': typeof AppCommunityUserIdRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
   '/settings/general': typeof AppSettingsGeneralRoute
   '/settings/mt5': typeof AppSettingsMt5Route
@@ -234,6 +241,7 @@ export interface FileRoutesByTo {
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/bots/create': typeof AppBotsCreateRoute
+  '/community/$userId': typeof AppCommunityUserIdRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
   '/settings/general': typeof AppSettingsGeneralRoute
   '/settings/mt5': typeof AppSettingsMt5Route
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/_app/strategies': typeof AppStrategiesRoute
   '/_app/trades': typeof AppTradesRoute
   '/_app/bots/create': typeof AppBotsCreateRoute
+  '/_app/community/$userId': typeof AppCommunityUserIdRoute
   '/_app/settings/appearance': typeof AppSettingsAppearanceRoute
   '/_app/settings/general': typeof AppSettingsGeneralRoute
   '/_app/settings/mt5': typeof AppSettingsMt5Route
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/strategies'
     | '/trades'
     | '/bots/create'
+    | '/community/$userId'
     | '/settings/appearance'
     | '/settings/general'
     | '/settings/mt5'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/strategies'
     | '/trades'
     | '/bots/create'
+    | '/community/$userId'
     | '/settings/appearance'
     | '/settings/general'
     | '/settings/mt5'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/_app/strategies'
     | '/_app/trades'
     | '/_app/bots/create'
+    | '/_app/community/$userId'
     | '/_app/settings/appearance'
     | '/_app/settings/general'
     | '/_app/settings/mt5'
@@ -528,6 +540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCommunityIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/community/$userId': {
+      id: '/_app/community/$userId'
+      path: '/community/$userId'
+      fullPath: '/community/$userId'
+      preLoaderRoute: typeof AppCommunityUserIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/': {
       id: '/_app/settings/'
       path: '/'
@@ -637,6 +656,7 @@ interface AppRouteChildren {
   AppSignalPredictionRoute: typeof AppSignalPredictionRoute
   AppStrategiesRoute: typeof AppStrategiesRoute
   AppTradesRoute: typeof AppTradesRoute
+  AppCommunityUserIdRoute: typeof AppCommunityUserIdRoute
   AppCommunityIndexRoute: typeof AppCommunityIndexRoute
 }
 
@@ -653,6 +673,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSignalPredictionRoute: AppSignalPredictionRoute,
   AppStrategiesRoute: AppStrategiesRoute,
   AppTradesRoute: AppTradesRoute,
+  AppCommunityUserIdRoute: AppCommunityUserIdRoute,
   AppCommunityIndexRoute: AppCommunityIndexRoute,
 }
 
