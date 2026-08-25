@@ -5,22 +5,24 @@
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no look-alike characters
 
-function randomBytes(length: number): Uint8Array {
-  const bytes = new Uint8Array(length);
+function randomBytes(length: number): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(new ArrayBuffer(length));
   crypto.getRandomValues(bytes);
   return bytes;
 }
 
-function toBase64Url(bytes: Uint8Array): string {
+function toBase64Url(bytes: Uint8Array<ArrayBuffer>): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function fromBase64Url(value: string): Uint8Array {
+function fromBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(padded + "=".repeat((4 - (padded.length % 4)) % 4));
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 /** Cryptographically secure opaque token, e.g. for session or reset records. */
@@ -37,7 +39,7 @@ export function generateConnectionCode(): string {
   return `KCL-${block()}-${block()}`;
 }
 
-async function sha256(input: string): Promise<Uint8Array> {
+async function sha256(input: string): Promise<Uint8Array<ArrayBuffer>> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
   return new Uint8Array(digest);
 }
