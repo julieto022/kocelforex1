@@ -1195,7 +1195,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      bump_rate_limit: {
+        Args: {
+          _bucket_key: string
+          _window_seconds: number
+          _window_start: string
+        }
+        Returns: number
+      }
+      create_broker_connection: {
+        Args: {
+          _account_name: string
+          _account_type: string
+          _broker_id: string
+          _code_expires_at: string
+          _code_hash: string
+          _environment: string
+          _mt5_login: string
+          _nickname: string
+          _server: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      soft_delete_account: { Args: { _user_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
