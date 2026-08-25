@@ -73,9 +73,9 @@ export type BridgeAccountSnapshot = {
 
 export type BridgeHeartbeat = {
   status: Extract<ConnectionStatus, "CONNECTED" | "ERROR">;
-  account?: BridgeAccountSnapshot;
-  openTrades?: number;
-  message?: string | null;
+  account?: BridgeAccountSnapshot | undefined;
+  openTrades?: number | undefined;
+  message?: string | null | undefined;
 };
 
 export type BridgeStatus = {

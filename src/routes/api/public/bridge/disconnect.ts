@@ -23,8 +23,8 @@ export const Route = createFileRoute("/api/public/bridge/disconnect")({
           const identity = await authenticateBridge(request);
           if (!identity) return fail("UNAUTHENTICATED", "Invalid or expired bridge token.");
           await limitBridge(identity);
-          const body = await readJson(request, schema).catch(() => ({ reason: null }));
-          await bridgeService.disconnect(identity, body.reason ?? undefined);
+          const body = await readJson(request, schema).catch(() => null);
+          await bridgeService.disconnect(identity, body?.reason ?? undefined);
           return ok({ connectionId: identity.connectionId }, "Disconnected");
         } catch (error) {
           return toErrorResponse(error);

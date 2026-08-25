@@ -24,9 +24,9 @@ export function readRequestMetadata(): RequestMetadata {
 export async function recordAudit(input: {
   userId: string | null;
   action: AuditAction;
-  entityType?: string | null;
-  entityId?: string | null;
-  metadata?: Record<string, unknown>;
+  entityType?: string | null | undefined;
+  entityId?: string | null | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }): Promise<void> {
   const { ip, userAgent } = readRequestMetadata();
   try {
