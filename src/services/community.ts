@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listSavedPostIds,
+  reportContent as reportContentFn,
+  savePost,
+  unsavePost,
+} from "@/lib/functions/community.functions";
 import type {
   CommunityAuthor,
   CommunityComment,
@@ -165,7 +171,7 @@ export async function toggleReaction(userId: string, postId: string, reacted: bo
 }
 
 export async function reportContent(
-  reporterId: string,
+  _reporterId: string,
   input: {
     reason: string;
     details?: string | undefined;
@@ -173,14 +179,24 @@ export async function reportContent(
     commentId?: string | undefined;
   },
 ) {
-  const { error } = await supabase.from("community_reports").insert({
-    reporter_id: reporterId,
-    reason: input.reason,
-    details: input.details ?? null,
-    post_id: input.postId ?? null,
-    comment_id: input.commentId ?? null,
+  await reportContentFn({
+    data: {
+      reason: input.reason.toUpperCase() as never,
+      details: input.details ?? null,
+      postId: input.postId ?? null,
+      commentId: input.commentId ?? null,
+    },
   });
-  if (error) throw error;
+}
+
+/** Saved posts live behind the backend so the save list stays owner-scoped. */
+export async function getSavedPostIds(): Promise<string[]> {
+  return listSavedPostIds();
+}
+
+export async function toggleSave(postId: string, saved: boolean) {
+  if (saved) await unsavePost({ data: { postId } });
+  else await savePost({ data: { postId } });
 }
 
 export async function isFollowing(followerId: string, followingId: string): Promise<boolean> {
