@@ -114,12 +114,8 @@ export type Database = {
         Row: {
           account_name: string
           account_type: string | null
+          authorized_at: string | null
           broker_id: string
-          claimed_at: string | null
-          code_state: string
-          connection_code: string | null
-          connection_code_expires_at: string | null
-          connection_code_hash: string | null
           created_at: string
           ea_version: string | null
           environment: string
@@ -128,20 +124,18 @@ export type Database = {
           last_seen_at: string | null
           mt5_login: string
           nickname: string | null
+          revoked_at: string | null
           server: string
           status: string
+          terminal_build: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           account_name: string
           account_type?: string | null
+          authorized_at?: string | null
           broker_id: string
-          claimed_at?: string | null
-          code_state?: string
-          connection_code?: string | null
-          connection_code_expires_at?: string | null
-          connection_code_hash?: string | null
           created_at?: string
           ea_version?: string | null
           environment?: string
@@ -150,20 +144,18 @@ export type Database = {
           last_seen_at?: string | null
           mt5_login: string
           nickname?: string | null
+          revoked_at?: string | null
           server: string
           status?: string
+          terminal_build?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           account_name?: string
           account_type?: string | null
+          authorized_at?: string | null
           broker_id?: string
-          claimed_at?: string | null
-          code_state?: string
-          connection_code?: string | null
-          connection_code_expires_at?: string | null
-          connection_code_hash?: string | null
           created_at?: string
           ea_version?: string | null
           environment?: string
@@ -172,8 +164,10 @@ export type Database = {
           last_seen_at?: string | null
           mt5_login?: string
           nickname?: string | null
+          revoked_at?: string | null
           server?: string
           status?: string
+          terminal_build?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -586,6 +580,68 @@ export type Database = {
           {
             foreignKeyName: "market_symbols_broker_connection_id_fkey"
             columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mt5_authorization_requests: {
+        Row: {
+          account_name: string | null
+          broker_hint: string | null
+          connection_id: string | null
+          created_at: string
+          decided_at: string | null
+          ea_version: string
+          expires_at: string
+          id: string
+          mt5_login: string
+          poll_token_hash: string
+          server: string
+          status: string
+          terminal_build: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          broker_hint?: string | null
+          connection_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          ea_version: string
+          expires_at: string
+          id?: string
+          mt5_login: string
+          poll_token_hash: string
+          server: string
+          status?: string
+          terminal_build?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          broker_hint?: string | null
+          connection_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          ea_version?: string
+          expires_at?: string
+          id?: string
+          mt5_login?: string
+          poll_token_hash?: string
+          server?: string
+          status?: string
+          terminal_build?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_authorization_requests_connection_id_fkey"
+            columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "broker_connections"
             referencedColumns: ["id"]
@@ -1202,21 +1258,6 @@ export type Database = {
           _window_start: string
         }
         Returns: number
-      }
-      create_broker_connection: {
-        Args: {
-          _account_name: string
-          _account_type: string
-          _broker_id: string
-          _code_expires_at: string
-          _code_hash: string
-          _environment: string
-          _mt5_login: string
-          _nickname: string
-          _server: string
-          _user_id: string
-        }
-        Returns: string
       }
       soft_delete_account: { Args: { _user_id: string }; Returns: undefined }
     }

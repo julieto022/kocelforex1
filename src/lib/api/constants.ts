@@ -6,30 +6,34 @@ export type AccountStatus = (typeof ACCOUNT_STATUS)[number];
 export const CONNECTION_ENVIRONMENTS = ["DEMO", "REAL"] as const;
 export type ConnectionEnvironment = (typeof CONNECTION_ENVIRONMENTS)[number];
 
+/**
+ * Connection lifecycle under the authorization architecture: the EA asks, the
+ * signed-in user approves in Kocel, then the bridge session runs.
+ */
 export const CONNECTION_STATUSES = [
   "NOT_CONNECTED",
-  "WAITING_FOR_BRIDGE",
-  "CONNECTING",
-  "AUTHENTICATING",
+  "AUTHORIZATION_REQUESTED",
+  "WAITING_FOR_USER",
+  "AUTHORIZED",
   "CONNECTED",
   "DISCONNECTED",
+  "REJECTED",
+  "REVOKED",
   "ERROR",
   "EXPIRED",
 ] as const;
 export type ConnectionStatus = (typeof CONNECTION_STATUSES)[number];
 
-/** Connection-code lifecycle, independent of the Bridge session status. */
-export const CODE_STATES = [
-  "CREATED",
-  "WAITING",
-  "CLAIMED",
-  "AUTHENTICATING",
-  "CONNECTED",
+/** Lifecycle of a single EA authorization request. */
+export const AUTHORIZATION_REQUEST_STATES = [
+  "AUTHORIZATION_REQUESTED",
+  "WAITING_FOR_USER",
+  "AUTHORIZED",
+  "REJECTED",
   "EXPIRED",
-  "FAILED",
-  "CANCELLED",
+  "REVOKED",
 ] as const;
-export type CodeState = (typeof CODE_STATES)[number];
+export type AuthorizationRequestState = (typeof AUTHORIZATION_REQUEST_STATES)[number];
 
 export const BOT_STATUSES = [
   "DRAFT",
@@ -82,6 +86,7 @@ export type BrokerCapability = (typeof BROKER_CAPABILITIES)[number];
 export const NOTIFICATION_TYPES = [
   "ACCOUNT_CONNECTED",
   "ACCOUNT_DISCONNECTED",
+  "ACCOUNT_AUTHORIZATION_REQUESTED",
   "BRIDGE_OFFLINE",
   "BOT_UPDATE",
   "TRADE_UPDATE",
@@ -105,11 +110,12 @@ export const AUDIT_ACTIONS = [
   "AUTH_PASSWORD_RESET_REQUESTED",
   "SECURITY_SETTINGS_CHANGED",
   "SESSION_REVOKED",
-  "CONNECTION_CREATED",
-  "CONNECTION_CODE_REGENERATED",
-  "CONNECTION_CLAIMED",
+  "CONNECTION_AUTHORIZATION_REQUESTED",
+  "CONNECTION_AUTHORIZED",
+  "CONNECTION_REJECTED",
   "CONNECTION_AUTHENTICATED",
   "CONNECTION_DISCONNECTED",
+  "CONNECTION_REVOKED",
   "CONNECTION_REMOVED",
   "BOT_CREATED",
   "BOT_UPDATED",
@@ -121,11 +127,14 @@ export const AUDIT_ACTIONS = [
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
-/** Connection-code lifetime. Short by design — the EA claims it immediately. */
-export const CONNECTION_CODE_TTL_MINUTES = 15;
+/** How long an EA authorization request waits for the user's decision. */
+export const AUTHORIZATION_REQUEST_TTL_MINUTES = 10;
 
-/** How long a Bridge session token stays valid before the EA must re-register. */
+/** How long a Bridge session token stays valid before the EA must re-authorize. */
 export const BRIDGE_TOKEN_TTL_SECONDS = 60 * 60 * 12;
 
 /** A connection is considered offline when no heartbeat arrives in this window. */
 export const BRIDGE_HEARTBEAT_TIMEOUT_SECONDS = 90;
+
+/** How often the EA should poll while the user decides. */
+export const BRIDGE_AUTHORIZATION_POLL_SECONDS = 5;
