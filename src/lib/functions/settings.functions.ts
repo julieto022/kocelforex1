@@ -97,8 +97,9 @@ export const deleteAccount = createServerFn({ method: "POST" })
     z.object({ confirmation: z.literal("DELETE") }).parse(data),
   )
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { error } = await supabase.rpc("soft_delete_account", { _user_id: userId });
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.rpc("soft_delete_account", { _user_id: userId });
     if (error) throw toApiError(error);
     await recordAudit({ userId, action: "ACCOUNT_DELETION_REQUESTED", entityType: "profile" });
     return { ok: true as const };

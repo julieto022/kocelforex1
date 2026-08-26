@@ -2,113 +2,87 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CONNECTION_CODE_TTL_MINUTES } from "@/lib/api/constants";
 import { conflict, notFound, toApiError } from "@/lib/api/errors";
-import { logger } from "@/lib/api/logger";
 import { recordAudit } from "@/lib/server/audit.server";
-import { generateConnectionCode, hashSecretValue } from "@/lib/server/crypto.server";
 import { requireOwnership } from "@/lib/server/ownership.server";
-import { enforceRateLimit } from "@/lib/server/rate-limit.server";
 
-const createSchema = z.object({
+const idSchema = z.object({ connectionId: z.string().uuid() });
+
+const requestSchema = z.object({ requestId: z.string().uuid() });
+const approveSchema = requestSchema.extend({
   brokerId: z.string().uuid(),
   accountName: z.string().trim().min(2).max(80),
-  mt5Login: z.string().trim().regex(/^[0-9]{4,20}$/, "MT5 login must be 4-20 digits"),
-  server: z.string().trim().min(2).max(120),
   accountType: z.string().trim().max(40).nullish(),
   environment: z.enum(["DEMO", "REAL"]),
   nickname: z.string().trim().max(60).nullish(),
 });
 
-export type CreatedConnection = {
-  id: string;
-  code: string;
-  expiresAt: string;
-};
-
-function codeExpiry(): string {
-  return new Date(Date.now() + CONNECTION_CODE_TTL_MINUTES * 60_000).toISOString();
-}
-
-/**
- * Creates a broker connection and issues its single-use Bridge pairing code.
- * The plaintext code is stored alongside its hash only while the code is
- * pending — the Bridge claim clears it and keeps only the hash.
- */
-export const createConnection = createServerFn({ method: "POST" })
+export const getAuthorizationRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => createSchema.parse(data))
-  .handler(async ({ data, context }): Promise<CreatedConnection> => {
-    const { supabase, userId } = context;
-    await enforceRateLimit("connectionCode", userId);
-
-    const code = generateConnectionCode();
-    const codeHash = await hashSecretValue(code);
-    const expiresAt = codeExpiry();
-
-    const { data: id, error } = await supabase.rpc("create_broker_connection", {
-      _user_id: userId,
-      _broker_id: data.brokerId,
-      _account_name: data.accountName,
-      _nickname: data.nickname as unknown as string,
-      _mt5_login: data.mt5Login,
-      _server: data.server,
-      _account_type: data.accountType as unknown as string,
-      _environment: data.environment,
-      _code_hash: codeHash,
-      _code_expires_at: expiresAt,
-    });
-
-    if (error) {
-      if (error.message.includes("DUPLICATE_CONNECTION")) {
-        throw conflict("That MT5 account is already connected to your workspace.");
-      }
-      logger.error("connection", "create connection failed", { error: error.message });
-      throw toApiError(error);
+  .inputValidator((data: unknown) => requestSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: request, error } = await supabaseAdmin.from("mt5_authorization_requests")
+      .select("id, mt5_login, server, environment, account_name, broker_hint, ea_version, terminal_build, status, expires_at")
+      .eq("id", data.requestId).maybeSingle();
+    if (error) throw toApiError(error);
+    if (!request) throw notFound();
+    if (new Date(request.expires_at).getTime() < Date.now() && ["WAITING_FOR_USER", "AUTHORIZATION_REQUESTED"].includes(request.status)) {
+      await supabaseAdmin.from("mt5_authorization_requests").update({ status: "EXPIRED" }).eq("id", request.id);
+      return { ...request, status: "EXPIRED" };
     }
-
-    const connectionId = id as unknown as string;
-    await supabase
-      .from("broker_connections")
-      .update({ connection_code: code })
-      .eq("id", connectionId);
-
-    logger.info("connection", "connection created", { connectionId });
-    return { id: connectionId, code, expiresAt };
+    return request;
   });
 
-const idSchema = z.object({ connectionId: z.string().uuid() });
-
-/** Invalidates the previous pairing code and issues a fresh one. */
-export const regenerateConnectionCode = createServerFn({ method: "POST" })
+export const approveAuthorizationRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => idSchema.parse(data))
-  .handler(async ({ data, context }): Promise<CreatedConnection> => {
+  .inputValidator((data: unknown) => approveSchema.parse(data))
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await enforceRateLimit("connectionCode", userId);
-    await requireOwnership(supabase, "broker_connections", data.connectionId, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: request } = await supabaseAdmin.from("mt5_authorization_requests")
+      .select("*").eq("id", data.requestId).maybeSingle();
+    if (!request) throw notFound();
+    if (request.status !== "WAITING_FOR_USER" || new Date(request.expires_at).getTime() < Date.now()) {
+      throw conflict("This authorization request is no longer available.");
+    }
+    const { data: connection, error } = await supabase.from("broker_connections").insert({
+      user_id: userId,
+      broker_id: data.brokerId,
+      account_name: data.accountName,
+      nickname: data.nickname ?? null,
+      mt5_login: request.mt5_login,
+      server: request.server,
+      account_type: data.accountType ?? null,
+      environment: data.environment,
+      status: "AUTHORIZED",
+      ea_version: request.ea_version,
+      terminal_build: request.terminal_build,
+      authorized_at: new Date().toISOString(),
+    }).select("id").single();
+    if (error || !connection) {
+      if (error?.message.includes("duplicate") || error?.code === "23505") throw conflict("That MT5 account is already connected to your workspace.");
+      throw toApiError(error);
+    }
+    const { error: updateError } = await supabaseAdmin.from("mt5_authorization_requests").update({
+      status: "AUTHORIZED", user_id: userId, connection_id: connection.id, decided_at: new Date().toISOString(),
+    }).eq("id", request.id).eq("status", "WAITING_FOR_USER");
+    if (updateError) throw toApiError(updateError);
+    await recordAudit({ userId, action: "CONNECTION_AUTHORIZED", entityType: "broker_connection", entityId: connection.id });
+    return { connectionId: connection.id };
+  });
 
-    const code = generateConnectionCode();
-    const expiresAt = codeExpiry();
-    const { error } = await supabase
-      .from("broker_connections")
-      .update({
-        connection_code: code,
-        connection_code_hash: await hashSecretValue(code),
-        connection_code_expires_at: expiresAt,
-        code_state: "WAITING",
-        status: "WAITING_FOR_BRIDGE",
-      })
-      .eq("id", data.connectionId);
+export const rejectAuthorizationRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => requestSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("mt5_authorization_requests").update({
+      status: "REJECTED", user_id: context.userId, decided_at: new Date().toISOString(),
+    }).eq("id", data.requestId).eq("status", "WAITING_FOR_USER");
     if (error) throw toApiError(error);
-
-    await recordAudit({
-      userId,
-      action: "CONNECTION_CODE_REGENERATED",
-      entityType: "broker_connection",
-      entityId: data.connectionId,
-    });
-    return { id: data.connectionId, code, expiresAt };
+    await recordAudit({ userId: context.userId, action: "CONNECTION_REJECTED", entityType: "mt5_authorization_request", entityId: data.requestId });
+    return { ok: true as const };
   });
 
 const renameSchema = idSchema.extend({ nickname: z.string().trim().min(1).max(60) });
@@ -138,6 +112,12 @@ export const disconnectConnection = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await requireOwnership(supabase, "broker_connections", data.connectionId, userId);
 
+    const { error: revokeError } = await supabase
+      .from("broker_connections")
+      .update({ status: "REVOKED", revoked_at: new Date().toISOString() })
+      .eq("id", data.connectionId);
+    if (revokeError) throw toApiError(revokeError);
+
     const { error } = await supabase
       .from("broker_connections")
       .delete()
@@ -153,7 +133,21 @@ export const disconnectConnection = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Current pairing state for a single connection, used by the setup wizard. */
+export const revokeConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await requireOwnership(supabase, "broker_connections", data.connectionId, userId);
+    const { error } = await supabase.from("broker_connections").update({
+      status: "REVOKED", revoked_at: new Date().toISOString(),
+    }).eq("id", data.connectionId);
+    if (error) throw toApiError(error);
+    await recordAudit({ userId, action: "CONNECTION_REVOKED", entityType: "broker_connection", entityId: data.connectionId });
+    return { ok: true as const };
+  });
+
+/** Current Bridge state for a single connection. */
 export const getConnectionState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => idSchema.parse(data))
@@ -161,7 +155,7 @@ export const getConnectionState = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("broker_connections")
-      .select("id, status, code_state, last_seen_at, connection_code_expires_at, ea_version")
+      .select("id, status, last_seen_at, ea_version, terminal_build, authorized_at, revoked_at")
       .eq("id", data.connectionId)
       .eq("user_id", userId)
       .maybeSingle();

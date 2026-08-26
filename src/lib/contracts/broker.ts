@@ -23,6 +23,7 @@ export type BrokerConnectionRequest = {
   accountName: string;
   mt5Login: string;
   server: string;
+  environment?: ConnectionEnvironment | null;
   environment: ConnectionEnvironment;
   accountType?: string | null;
 };
@@ -48,17 +49,29 @@ export type BridgeIdentity = {
 };
 
 export type BridgeRegisterRequest = {
-  code: string;
   mt5Login: string;
   server: string;
+  broker?: string | null;
+  accountName?: string | null;
   eaVersion: string;
   terminalBuild?: string | null;
+  authorizationOrigin?: string | null;
 };
 
 export type BridgeRegisterResult = {
-  token: string;
+  authorizationUrl: string;
+  requestId: string;
+  pollToken: string;
   expiresAt: string;
+  pollSeconds: number;
   heartbeatSeconds: number;
+};
+
+export type BridgeAuthorizationPoll = {
+  status: "WAITING_FOR_USER" | "AUTHORIZED" | "REJECTED" | "EXPIRED" | "REVOKED";
+  token?: string;
+  tokenExpiresAt?: string;
+  connectionId?: string;
 };
 
 export type BridgeAccountSnapshot = {
@@ -91,6 +104,7 @@ export type BridgeStatus = {
  */
 export interface BridgeService {
   register(request: BridgeRegisterRequest): Promise<BridgeRegisterResult>;
+  pollAuthorization(pollToken: string): Promise<BridgeAuthorizationPoll>;
   authenticate(token: string): Promise<BridgeIdentity | null>;
   heartbeat(identity: BridgeIdentity, payload: BridgeHeartbeat): Promise<BridgeStatus>;
   disconnect(identity: BridgeIdentity, reason?: string): Promise<void>;

@@ -593,6 +593,7 @@ export type Database = {
           connection_id: string | null
           created_at: string
           decided_at: string | null
+          environment: string | null
           ea_version: string
           expires_at: string
           id: string
@@ -610,6 +611,7 @@ export type Database = {
           connection_id?: string | null
           created_at?: string
           decided_at?: string | null
+          environment?: string | null
           ea_version: string
           expires_at: string
           id?: string
@@ -627,6 +629,7 @@ export type Database = {
           connection_id?: string | null
           created_at?: string
           decided_at?: string | null
+          environment?: string | null
           ea_version?: string
           expires_at?: string
           id?: string

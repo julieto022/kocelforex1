@@ -1,6 +1,8 @@
 export type BridgeStatus =
   | "NOT_CONNECTED"
-  | "WAITING_FOR_BRIDGE"
+  | "AUTHORIZATION_REQUESTED"
+  | "WAITING_FOR_USER"
+  | "AUTHORIZED"
   | "CONNECTING"
   | "AUTHENTICATING"
   | "CONNECTED"
@@ -20,10 +22,21 @@ export const BRIDGE_STATUS_MODEL: Record<
     explanation: "This account has not been linked to a Kocel Bridge EA yet.",
     action: "Start setup",
   },
-  WAITING_FOR_BRIDGE: {
-    label: "Waiting for Bridge EA",
+  AUTHORIZATION_REQUESTED: {
+    label: "Authorization requested",
     tone: "warning",
-    explanation: "Enter your Kocel connection code in the Bridge EA on your MT5 terminal.",
+    explanation: "The Bridge EA has requested browser authorization.",
+    action: "Approve in browser",
+  },
+  WAITING_FOR_USER: {
+    label: "Waiting for approval",
+    tone: "warning",
+    explanation: "Approve this MT5 connection in your Kocel browser window.",
+  },
+  AUTHORIZED: {
+    label: "Authorized",
+    tone: "info",
+    explanation: "This MT5 account is authorized. Waiting for the Bridge EA to connect.",
     action: "View setup steps",
   },
   CONNECTING: {
@@ -34,7 +47,7 @@ export const BRIDGE_STATUS_MODEL: Record<
   AUTHENTICATING: {
     label: "Verifying connection…",
     tone: "info",
-    explanation: "Verifying the connection code reported by your MT5 terminal.",
+    explanation: "Verifying the authorized Bridge session reported by your MT5 terminal.",
   },
   CONNECTED: {
     label: "Connected",
@@ -55,10 +68,10 @@ export const BRIDGE_STATUS_MODEL: Record<
     action: "Retry connection",
   },
   EXPIRED: {
-    label: "Code expired",
+    label: "Authorization expired",
     tone: "warning",
-    explanation: "The connection code expired before the Bridge EA reported in.",
-    action: "Generate new code",
+    explanation: "The browser authorization request expired before it was approved.",
+    action: "Connect again",
   },
 };
 
@@ -85,7 +98,9 @@ export type BrokerConnection = {
   account_type: string | null;
   environment: "demo" | "real" | string;
   status: BridgeStatus;
-  connection_code: string | null;
+  terminal_build: string | null;
+  authorized_at: string | null;
+  revoked_at: string | null;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;

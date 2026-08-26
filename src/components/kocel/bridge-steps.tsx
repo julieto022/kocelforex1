@@ -1,17 +1,14 @@
-import { Copy, Download, FileText } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
 export const BRIDGE_STEPS = [
-  "Download the Kocel Bridge EA.",
-  "Open MetaTrader 5 on your desktop or VPS.",
-  "Install the EA into the Experts folder and refresh the Navigator.",
-  "Attach Kocel Bridge EA to any chart of the account you are connecting.",
-  "Enter your Kocel connection code in the EA inputs.",
-  "Enable algorithmic trading and allow WebRequest for the Kocel endpoint.",
-  "Start the EA and confirm the smiley icon is active.",
-  "Return to Kocel and verify the connection status.",
+  "Open MetaTrader 5 and log into your broker account.",
+  "Download and install the Kocel Bridge EA.",
+  "Attach the EA to an MT5 chart.",
+  "Click Connect to Kocel inside the EA.",
+  "Approve the connection in your browser.",
 ];
 
 export function BridgeExplainer() {
@@ -56,31 +53,6 @@ export function BridgeDownloadActions() {
         <a href="/help">
           <FileText className="size-4" /> Installation guide
         </a>
-      </Button>
-    </div>
-  );
-}
-
-export function ConnectionCodeBlock({ code }: { code: string | null }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-dashed border-border-strong bg-muted/50 px-3 py-2.5">
-      <div className="min-w-0">
-        <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-          Connection code
-        </p>
-        <p className="num truncate text-lg font-semibold text-foreground">{code ?? "—"}</p>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={!code}
-        onClick={() => {
-          if (!code) return;
-          void navigator.clipboard.writeText(code);
-          toast.success("Connection code copied");
-        }}
-      >
-        <Copy className="size-3.5" /> Copy
       </Button>
     </div>
   );

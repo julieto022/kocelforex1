@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
-  generateConnectionCode,
   hashSecretValue,
   randomToken,
   signBridgeToken,
@@ -14,24 +13,13 @@ beforeAll(() => {
   process.env["BRIDGE_TOKEN_SECRET"] = "test-bridge-secret";
 });
 
-describe("connection codes", () => {
-  it("uses the KCL-XXXX-XXXX shape without look-alike characters", () => {
-    for (let i = 0; i < 50; i += 1) {
-      expect(generateConnectionCode()).toMatch(/^KCL-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/);
-    }
-  });
-
-  it("does not repeat codes", () => {
-    const codes = new Set(Array.from({ length: 200 }, generateConnectionCode));
-    expect(codes.size).toBe(200);
-  });
-
+describe("secret hashing", () => {
   it("hashes deterministically and never returns the plaintext", async () => {
-    const code = generateConnectionCode();
-    const hash = await hashSecretValue(code);
-    expect(hash).toBe(await hashSecretValue(code));
-    expect(hash).not.toContain(code);
-    expect(hash).not.toBe(await hashSecretValue(`${code}x`));
+    const token = randomToken();
+    const hash = await hashSecretValue(token);
+    expect(hash).toBe(await hashSecretValue(token));
+    expect(hash).not.toContain(token);
+    expect(hash).not.toBe(await hashSecretValue(`${token}x`));
   });
 });
 

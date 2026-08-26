@@ -3,8 +3,6 @@
  * Nothing here is ever imported into browser code.
  */
 
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no look-alike characters
-
 function randomBytes(length: number): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(new ArrayBuffer(length));
   crypto.getRandomValues(bytes);
@@ -30,15 +28,6 @@ export function randomToken(byteLength = 32): string {
   return toBase64Url(randomBytes(byteLength));
 }
 
-/** Cryptographically secure connection code in the form KCL-XXXX-XXXX. */
-export function generateConnectionCode(): string {
-  const block = () => {
-    const bytes = randomBytes(4);
-    return Array.from(bytes, (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join("");
-  };
-  return `KCL-${block()}-${block()}`;
-}
-
 async function sha256(input: string): Promise<Uint8Array<ArrayBuffer>> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
   return new Uint8Array(digest);
@@ -46,7 +35,7 @@ async function sha256(input: string): Promise<Uint8Array<ArrayBuffer>> {
 
 /**
  * One-way hash for values we must be able to look up but never read back:
- * connection codes, session identifiers, password-reset tokens.
+ * authorization poll tokens, session identifiers, password-reset tokens.
  */
 export async function hashSecretValue(value: string): Promise<string> {
   const pepper = process.env["CONNECTION_CODE_PEPPER"] ?? "";

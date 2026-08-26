@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt5.$requestId'
 import { Route as AppAnalysisRouteImport } from './routes/_app.analysis'
 import { Route as AppBotsRouteImport } from './routes/_app.bots'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -78,6 +79,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthorizeMt5RequestIdRoute = AuthorizeMt5RequestIdRouteImport.update({
+  id: '/authorize/mt5/$requestId',
+  path: '/authorize/mt5/$requestId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAnalysisRoute = AppAnalysisRouteImport.update({
@@ -464,6 +470,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  AuthorizeMt5RequestIdRoute: typeof AuthorizeMt5RequestIdRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
   ApiPublicBridgeDisconnectRoute: typeof ApiPublicBridgeDisconnectRoute
@@ -810,6 +817,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  AuthorizeMt5RequestIdRoute: AuthorizeMt5RequestIdRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,
   ApiPublicBridgeDisconnectRoute: ApiPublicBridgeDisconnectRoute,

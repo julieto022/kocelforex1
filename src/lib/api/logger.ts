@@ -14,6 +14,7 @@ const REDACTED_KEYS = [
   "bridge_token",
   "session_token",
   "session_token_hash",
+  "poll_token_hash",
   "connection_code",
   "connection_code_hash",
   "secret",

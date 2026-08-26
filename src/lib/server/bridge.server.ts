@@ -4,10 +4,12 @@
  */
 
 import {
+  AUTHORIZATION_REQUEST_TTL_MINUTES,
+  BRIDGE_AUTHORIZATION_POLL_SECONDS,
   BRIDGE_HEARTBEAT_TIMEOUT_SECONDS,
   BRIDGE_TOKEN_TTL_SECONDS,
 } from "@/lib/api/constants";
-import { ApiError, conflict, notFound } from "@/lib/api/errors";
+import { ApiError, notFound } from "@/lib/api/errors";
 import { logger } from "@/lib/api/logger";
 import type {
   BridgeHeartbeat,
@@ -18,7 +20,7 @@ import type {
   BridgeStatus,
 } from "@/lib/contracts/broker";
 import { recordAudit } from "@/lib/server/audit.server";
-import { hashSecretValue, signBridgeToken, verifyBridgeToken } from "@/lib/server/crypto.server";
+import { hashSecretValue, randomToken, signBridgeToken, verifyBridgeToken } from "@/lib/server/crypto.server";
 import { pushNotification } from "@/lib/server/notify.server";
 
 async function admin() {
@@ -34,63 +36,63 @@ function isOnline(lastSeenAt: string | null): boolean {
 export const bridgeService: BridgeService = {
   async register(request: BridgeRegisterRequest): Promise<BridgeRegisterResult> {
     const db = await admin();
-    const codeHash = await hashSecretValue(request.code.trim().toUpperCase());
+    const pollToken = randomToken(32);
+    const expiresAt = new Date(Date.now() + AUTHORIZATION_REQUEST_TTL_MINUTES * 60_000).toISOString();
 
-    const { data: connection, error } = await db
-      .from("broker_connections")
-      .select("id, user_id, mt5_login, code_state, connection_code_expires_at")
-      .eq("connection_code_hash", codeHash)
-      .maybeSingle();
-    if (error) throw new ApiError("INTERNAL_ERROR", "Could not verify that code.");
-    if (!connection) throw notFound("That connection code is not valid.");
-
-    if (connection.code_state === "CLAIMED" || connection.code_state === "CONNECTED") {
-      throw new ApiError("CODE_ALREADY_CLAIMED", "That code has already been used.");
-    }
-    if (
-      connection.connection_code_expires_at &&
-      new Date(connection.connection_code_expires_at).getTime() < Date.now()
-    ) {
-      await db.from("broker_connections").update({ code_state: "EXPIRED", status: "EXPIRED" }).eq("id", connection.id);
-      throw new ApiError("CODE_EXPIRED", "That code has expired. Generate a new one in Kocel.");
-    }
-    if (connection.mt5_login !== request.mt5Login) {
-      throw conflict("This code belongs to a different MT5 login.");
-    }
-
-    const expiresAtSeconds = Math.floor(Date.now() / 1000) + BRIDGE_TOKEN_TTL_SECONDS;
-    const token = await signBridgeToken({
-      cid: connection.id,
-      uid: connection.user_id,
-      login: connection.mt5_login,
-      exp: expiresAtSeconds,
-    });
-
-    await db
-      .from("broker_connections")
-      .update({
-        code_state: "CLAIMED",
-        status: "AUTHENTICATING",
-        claimed_at: new Date().toISOString(),
-        connection_code: null,
-        ea_version: request.eaVersion,
-        server: request.server,
-      })
-      .eq("id", connection.id);
+    const { data: authorization, error } = await db.from("mt5_authorization_requests").insert({
+      mt5_login: request.mt5Login,
+      server: request.server,
+      environment: request.environment ?? null,
+      broker_hint: request.broker ?? null,
+      account_name: request.accountName ?? null,
+      ea_version: request.eaVersion,
+      terminal_build: request.terminalBuild ?? null,
+      poll_token_hash: await hashSecretValue(pollToken),
+      expires_at: expiresAt,
+      status: "WAITING_FOR_USER",
+    }).select("id").single();
+    if (error || !authorization) throw new ApiError("INTERNAL_ERROR", "Could not create authorization request.");
 
     await recordAudit({
-      userId: connection.user_id,
-      action: "CONNECTION_CLAIMED",
-      entityType: "broker_connection",
-      entityId: connection.id,
+      userId: null,
+      action: "CONNECTION_AUTHORIZATION_REQUESTED",
+      entityType: "mt5_authorization_request",
+      entityId: authorization.id,
     });
-    logger.info("bridge", "connection claimed", { connectionId: connection.id });
+    logger.info("bridge", "authorization requested", { requestId: authorization.id });
 
     return {
-      token,
-      expiresAt: new Date(expiresAtSeconds * 1000).toISOString(),
+      authorizationUrl: `${request.authorizationOrigin ?? process.env["PUBLIC_APP_URL"] ?? ""}/authorize/mt5/${authorization.id}`,
+      requestId: authorization.id,
+      pollToken,
+      expiresAt,
+      pollSeconds: BRIDGE_AUTHORIZATION_POLL_SECONDS,
       heartbeatSeconds: 30,
     };
+  },
+
+  async pollAuthorization(pollToken: string) {
+    const db = await admin();
+    const { data } = await db.from("mt5_authorization_requests")
+      .select("id, status, connection_id, expires_at")
+      .eq("poll_token_hash", await hashSecretValue(pollToken))
+      .maybeSingle();
+    if (!data) throw notFound("That authorization request is not valid.");
+    if (new Date(data.expires_at).getTime() < Date.now() && ["WAITING_FOR_USER", "AUTHORIZATION_REQUESTED"].includes(data.status)) {
+      await db.from("mt5_authorization_requests").update({ status: "EXPIRED" }).eq("id", data.id);
+      return { status: "EXPIRED" as const };
+    }
+    if (data.status !== "AUTHORIZED" || !data.connection_id) {
+      return { status: data.status as "WAITING_FOR_USER" | "REJECTED" | "EXPIRED" | "REVOKED" };
+    }
+    const { data: connection } = await db.from("broker_connections")
+      .select("id, user_id, mt5_login, status, revoked_at")
+      .eq("id", data.connection_id).maybeSingle();
+    if (!connection || connection.revoked_at || connection.status === "REVOKED") return { status: "REVOKED" as const };
+    const expiresAtSeconds = Math.floor(Date.now() / 1000) + BRIDGE_TOKEN_TTL_SECONDS;
+    const token = await signBridgeToken({ cid: connection.id, uid: connection.user_id, login: connection.mt5_login, exp: expiresAtSeconds });
+    await db.from("broker_connections").update({ status: "AUTHENTICATING" }).eq("id", connection.id);
+    return { status: "AUTHORIZED" as const, token, tokenExpiresAt: new Date(expiresAtSeconds * 1000).toISOString(), connectionId: connection.id };
   },
 
   async authenticate(token: string): Promise<BridgeIdentity | null> {
@@ -100,10 +102,10 @@ export const bridgeService: BridgeService = {
     const db = await admin();
     const { data } = await db
       .from("broker_connections")
-      .select("id, user_id, mt5_login")
+      .select("id, user_id, mt5_login, status, revoked_at")
       .eq("id", claims.cid)
       .maybeSingle();
-    if (!data || data.user_id !== claims.uid || data.mt5_login !== claims.login) return null;
+    if (!data || data.user_id !== claims.uid || data.mt5_login !== claims.login || data.revoked_at || data.status === "REVOKED") return null;
 
     return { connectionId: data.id, userId: data.user_id, mt5Login: data.mt5_login };
   },
@@ -123,7 +125,6 @@ export const bridgeService: BridgeService = {
       .from("broker_connections")
       .update({
         status,
-        code_state: status === "CONNECTED" ? "CONNECTED" : "FAILED",
         last_seen_at: now,
         ...(status === "CONNECTED" ? { last_connected_at: now } : {}),
       })
@@ -158,7 +159,7 @@ export const bridgeService: BridgeService = {
     const db = await admin();
     await db
       .from("broker_connections")
-      .update({ status: "DISCONNECTED", code_state: "CANCELLED" })
+      .update({ status: "DISCONNECTED", revoked_at: new Date().toISOString() })
       .eq("id", identity.connectionId);
 
     await recordAudit({

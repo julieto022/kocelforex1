@@ -1,21 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
-  createConnection as createConnectionFn,
   disconnectConnection as disconnectConnectionFn,
-  regenerateConnectionCode as regenerateConnectionCodeFn,
+  revokeConnection as revokeConnectionFn,
   renameConnection as renameConnectionFn,
 } from "@/lib/functions/mt5.functions";
 import type { BrokerConnection } from "./types";
-
-export type CreateConnectionInput = {
-  brokerId: string;
-  accountName: string;
-  mt5Login: string;
-  server: string;
-  accountType?: string | undefined;
-  environment: "demo" | "real";
-  nickname?: string | undefined;
-};
 
 const SELECT = "*, broker:brokers(*)";
 
@@ -45,36 +34,12 @@ async function requireConnection(id: string): Promise<BrokerConnection> {
   return connection;
 }
 
-/**
- * Connection codes are issued and hashed by the backend. The plaintext value
- * exists only while the code is pending; the Bridge claim clears it.
- */
-export async function createMT5Connection(
-  userId: string,
-  input: CreateConnectionInput,
-): Promise<BrokerConnection> {
-  const result = await createConnectionFn({
-    data: {
-      brokerId: input.brokerId,
-      accountName: input.accountName,
-      mt5Login: input.mt5Login,
-      server: input.server,
-      accountType: input.accountType ?? null,
-      environment: input.environment.toUpperCase() as "DEMO" | "REAL",
-      nickname: input.nickname ?? null,
-    },
-  });
-  const connection = await requireConnection(result.id);
-  return { ...connection, connection_code: result.code };
-}
-
 export async function renameMT5Connection(id: string, nickname: string) {
   await renameConnectionFn({ data: { connectionId: id, nickname } });
 }
 
-export async function regenerateConnectionCode(id: string) {
-  const result = await regenerateConnectionCodeFn({ data: { connectionId: id } });
-  return result.code;
+export async function revokeMT5Connection(id: string) {
+  await revokeConnectionFn({ data: { connectionId: id } });
 }
 
 /** Disconnecting removes the account from the Kocel workspace. It never closes MT5 trades. */

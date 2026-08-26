@@ -3,7 +3,7 @@
 Kocel is a broker-independent MT5 automation and market-intelligence platform.
 The platform never asks for, stores, or transmits MT5 passwords or investor
 credentials. A user installs the **Kocel Bridge EA** in their own terminal, and
-the EA pairs with the platform using a single-use code.
+the EA requests browser authorization before receiving a short-lived, revocable Bridge session.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ Browser (React + TanStack Router)
   v
 Server functions  ──►  Postgres (RLS, owner-scoped policies)
   ^
-  |  HTTP + bridge token (HMAC signed)
+  |  HTTP + authorization poll token / bridge token (HMAC signed)
 Kocel Bridge EA (user's MetaTrader 5 terminal)
 ```
 
@@ -28,15 +28,19 @@ Kocel Bridge EA (user's MetaTrader 5 terminal)
 - **Contracts** — `src/lib/contracts/*` define provider and broker interfaces so
   data sources (news, calendar, NFP, market data, signals) can be swapped.
 
+The connection flow is `MT5 → EA → Browser Authorization → Kocel → Secure Bridge Session`.
+The EA calls `register` with terminal identity, opens the returned authorization URL, and polls
+`authenticate` with its opaque poll token. After the signed-in user approves the request, the
+endpoint returns the Bridge token. Kocel never receives the broker password.
+
 ## Connection lifecycle
 
-1. User creates a connection → server generates `KCL-XXXX-XXXX`, stores only a
-   peppered SHA-256 hash plus a short expiry, state `WAITING`.
-2. Bridge EA calls `POST /api/public/bridge/register` with the code.
-3. Server verifies the hash, marks the code `CLAIMED`, clears the plaintext, and
-   returns a signed bridge token.
-4. EA sends heartbeats; missed heartbeats age the connection to `STALE`.
-5. Disconnecting removes the account from the Kocel workspace only — it never
+1. Bridge EA calls `POST /api/public/bridge/register` with MT5 login, broker, server, and EA metadata.
+2. Server creates a short-lived authorization request and returns a browser URL plus an opaque poll token.
+3. The signed-in user reviews the masked MT5 identity and approves or rejects it.
+4. The EA polls `POST /api/public/bridge/authenticate`; approval returns a signed Bridge token.
+5. EA sends heartbeats; missed heartbeats make the connection offline.
+6. Disconnecting or revoking invalidates the connection before removal — it never
    closes or modifies MT5 positions.
 
 ## Security model
@@ -44,8 +48,9 @@ Kocel Bridge EA (user's MetaTrader 5 terminal)
 - Every user-facing table has RLS scoped to `auth.uid()`.
 - `rate_limits` has RLS enabled with **no policies** by design: it is a
   server-only counter table written through a `SECURITY DEFINER` function.
-- Codes, bridge tokens, and session tokens are stored hashed with
-  `CONNECTION_CODE_PEPPER`; tokens are signed with `BRIDGE_TOKEN_SECRET`.
+- Authorization poll tokens and session tokens are stored hashed with
+  `CONNECTION_CODE_PEPPER`; Bridge tokens are signed with `BRIDGE_TOKEN_SECRET` and checked
+  against the connection's revocation state.
 - Sensitive fields are redacted by `src/lib/api/logger.ts` before logging.
 
 ## Environment

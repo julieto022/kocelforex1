@@ -5,8 +5,8 @@ info:
   description: >
     Public HTTP contract consumed by the Kocel Bridge EA running inside the
     user's own MetaTrader 5 terminal. Kocel never receives MT5 credentials:
-    the EA authenticates with a single-use pairing code, then with a signed,
-    short-lived bridge token. Application features use typed server functions
+    the EA requests browser authorization, then receives a signed, short-lived
+    bridge token. Application features use typed server functions
     instead of HTTP and are therefore not described here.
 servers:
   - url: https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8.lovable.app
@@ -19,7 +19,7 @@ components:
     bridgeToken:
       type: http
       scheme: bearer
-      description: Bridge session token returned by /api/public/bridge/register.
+      description: Bridge session token returned by /api/public/bridge/authenticate after browser approval.
   schemas:
     Envelope:
       type: object
@@ -41,8 +41,9 @@ components:
                   NOT_FOUND,
                   CONFLICT,
                   RATE_LIMITED,
-                  CODE_EXPIRED,
-                  CODE_ALREADY_CLAIMED,
+                  AUTHORIZATION_EXPIRED,
+                  AUTHORIZATION_ALREADY_DECIDED,
+                  AUTHORIZATION_REJECTED,
                   SERVICE_UNAVAILABLE,
                   INTERNAL_ERROR,
                 ]
@@ -72,37 +73,45 @@ paths:
 
   /api/public/bridge/register:
     post:
-      summary: Exchange a pairing code for a bridge session token
+      summary: Create a browser authorization request from the EA terminal identity
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [code, mt5Login, server, eaVersion]
+              required: [mt5Login, server, eaVersion]
               properties:
-                code: { type: string, example: KCL-4F7Q-2XKD }
                 mt5Login: { type: string, example: "51234567" }
                 server: { type: string, example: "ICMarketsSC-Demo" }
+                broker: { type: [string, "null"], example: "Exness" }
+                accountName: { type: [string, "null"], example: "Main account" }
+                environment: { type: [string, "null"], enum: [DEMO, REAL] }
                 eaVersion: { type: string, example: "1.0.0" }
                 terminalBuild: { type: [string, "null"] }
       responses:
         "200":
-          description: Token issued
+          description: Authorization URL and opaque polling handle returned
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Envelope" }
-        "404": { description: Unknown code }
-        "409": { description: Code already claimed or login mismatch }
-        "410": { description: Code expired }
+        "410": { description: Authorization request expired }
         "429": { description: Too many attempts }
 
   /api/public/bridge/authenticate:
     post:
-      summary: Verify the current bridge token
-      security: [{ bridgeToken: [] }]
+      summary: Poll browser authorization or verify the current bridge token
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pollToken]
+              properties:
+                pollToken: { type: string, description: Opaque handle returned by register }
       responses:
-        "200": { description: Token valid }
+        "200": { description: Pending status or authenticated Bridge token }
         "401": { description: Invalid or expired token }
 
   /api/public/bridge/heartbeat:
