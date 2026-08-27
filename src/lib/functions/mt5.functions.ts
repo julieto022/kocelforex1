@@ -69,8 +69,9 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
         _user_id: userId,
         _broker_id: data.brokerId,
         _account_name: data.accountName,
-        _nickname: data.nickname ?? null,
-        _account_type: data.accountType ?? null,
+        // The SQL function accepts NULL for both; generated RPC types widen them to string.
+        _nickname: (data.nickname ?? null) as unknown as string,
+        _account_type: (data.accountType ?? null) as unknown as string,
         _environment: data.environment,
       },
     );
