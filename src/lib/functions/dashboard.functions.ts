@@ -24,7 +24,7 @@ export type DashboardOverview = {
  */
 export const getDashboardOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ connectionId: z.string().uuid().nullish() }).parse(data ?? {}),
   )
   .handler(async ({ data, context }): Promise<DashboardOverview> => {

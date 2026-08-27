@@ -61,13 +61,19 @@ See `.env.example`. Server-only values are read inside handlers via
 ## Testing
 
 ```bash
-bunx vitest run
+npm test
+npm run lint
+npm run build
+npm run test:integration
 ```
 
-Unit tests cover code formatting/hashing, bridge token signing and expiry, the
-API envelope, and the log redactor.
+Unit tests cover authorization token hashing, Bridge token signing and expiry,
+the API envelope, log redaction, and environment-gated Bridge registration/polling integration.
+`test:integration` requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PUBLIC_APP_URL`; it
+must be run against a disposable test project because it creates and deletes authorization rows.
 
 ## API reference
 
-`docs/openapi.yaml` documents the public Bridge contract. Application features
-use typed server functions, not HTTP endpoints.
+`docs/openapi.yaml` freezes the public Bridge contract as **Bridge API Version 1.0**.
+Application features use typed server functions, not HTTP endpoints. Changes to the Bridge
+wire contract require a new API version.

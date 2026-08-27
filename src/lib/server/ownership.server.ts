@@ -11,6 +11,7 @@ type Client = SupabaseClient<Database>;
  */
 export type OwnedTable =
   | "broker_connections"
+  | "bridge_sessions"
   | "bots"
   | "trades"
   | "signals"

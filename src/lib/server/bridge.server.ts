@@ -6,6 +6,7 @@
 import {
   AUTHORIZATION_REQUEST_TTL_MINUTES,
   BRIDGE_AUTHORIZATION_POLL_SECONDS,
+  BRIDGE_SESSION_TTL_SECONDS,
   BRIDGE_HEARTBEAT_TIMEOUT_SECONDS,
   BRIDGE_TOKEN_TTL_SECONDS,
 } from "@/lib/api/constants";
@@ -20,7 +21,12 @@ import type {
   BridgeStatus,
 } from "@/lib/contracts/broker";
 import { recordAudit } from "@/lib/server/audit.server";
-import { hashSecretValue, randomToken, signBridgeToken, verifyBridgeToken } from "@/lib/server/crypto.server";
+import {
+  hashSecretValue,
+  randomToken,
+  signBridgeToken,
+  verifyBridgeToken,
+} from "@/lib/server/crypto.server";
 import { pushNotification } from "@/lib/server/notify.server";
 
 async function admin() {
@@ -37,21 +43,28 @@ export const bridgeService: BridgeService = {
   async register(request: BridgeRegisterRequest): Promise<BridgeRegisterResult> {
     const db = await admin();
     const pollToken = randomToken(32);
-    const expiresAt = new Date(Date.now() + AUTHORIZATION_REQUEST_TTL_MINUTES * 60_000).toISOString();
+    const expiresAt = new Date(
+      Date.now() + AUTHORIZATION_REQUEST_TTL_MINUTES * 60_000,
+    ).toISOString();
 
-    const { data: authorization, error } = await db.from("mt5_authorization_requests").insert({
-      mt5_login: request.mt5Login,
-      server: request.server,
-      environment: request.environment ?? null,
-      broker_hint: request.broker ?? null,
-      account_name: request.accountName ?? null,
-      ea_version: request.eaVersion,
-      terminal_build: request.terminalBuild ?? null,
-      poll_token_hash: await hashSecretValue(pollToken),
-      expires_at: expiresAt,
-      status: "WAITING_FOR_USER",
-    }).select("id").single();
-    if (error || !authorization) throw new ApiError("INTERNAL_ERROR", "Could not create authorization request.");
+    const { data: authorization, error } = await db
+      .from("mt5_authorization_requests")
+      .insert({
+        mt5_login: request.mt5Login,
+        server: request.server,
+        environment: request.environment ?? null,
+        broker_hint: request.broker ?? null,
+        account_name: request.accountName ?? null,
+        ea_version: request.eaVersion,
+        terminal_build: request.terminalBuild ?? null,
+        poll_token_hash: await hashSecretValue(pollToken),
+        expires_at: expiresAt,
+        status: "WAITING_FOR_USER",
+      })
+      .select("id")
+      .single();
+    if (error || !authorization)
+      throw new ApiError("INTERNAL_ERROR", "Could not create authorization request.");
 
     await recordAudit({
       userId: null,
@@ -62,7 +75,7 @@ export const bridgeService: BridgeService = {
     logger.info("bridge", "authorization requested", { requestId: authorization.id });
 
     return {
-      authorizationUrl: `${request.authorizationOrigin ?? process.env["PUBLIC_APP_URL"] ?? ""}/authorize/mt5/${authorization.id}`,
+      authorizationUrl: `${canonicalAppUrl()}/authorize/mt5/${authorization.id}`,
       requestId: authorization.id,
       pollToken,
       expiresAt,
@@ -73,26 +86,67 @@ export const bridgeService: BridgeService = {
 
   async pollAuthorization(pollToken: string) {
     const db = await admin();
-    const { data } = await db.from("mt5_authorization_requests")
-      .select("id, status, connection_id, expires_at")
+    const { data } = await db
+      .from("mt5_authorization_requests")
+      .select("id, status, connection_id, expires_at, poll_token_used_at")
       .eq("poll_token_hash", await hashSecretValue(pollToken))
       .maybeSingle();
     if (!data) throw notFound("That authorization request is not valid.");
-    if (new Date(data.expires_at).getTime() < Date.now() && ["WAITING_FOR_USER", "AUTHORIZATION_REQUESTED"].includes(data.status)) {
+    if (data.status === "AUTHORIZED" && data.poll_token_used_at)
+      throw new ApiError(
+        "AUTHORIZATION_ALREADY_DECIDED",
+        "That authorization request has already issued a Bridge session.",
+      );
+    if (
+      new Date(data.expires_at).getTime() < Date.now() &&
+      ["WAITING_FOR_USER", "AUTHORIZATION_REQUESTED"].includes(data.status)
+    ) {
       await db.from("mt5_authorization_requests").update({ status: "EXPIRED" }).eq("id", data.id);
       return { status: "EXPIRED" as const };
     }
     if (data.status !== "AUTHORIZED" || !data.connection_id) {
       return { status: data.status as "WAITING_FOR_USER" | "REJECTED" | "EXPIRED" | "REVOKED" };
     }
-    const { data: connection } = await db.from("broker_connections")
+    const { data: connection } = await db
+      .from("broker_connections")
       .select("id, user_id, mt5_login, status, revoked_at")
-      .eq("id", data.connection_id).maybeSingle();
-    if (!connection || connection.revoked_at || connection.status === "REVOKED") return { status: "REVOKED" as const };
-    const expiresAtSeconds = Math.floor(Date.now() / 1000) + BRIDGE_TOKEN_TTL_SECONDS;
-    const token = await signBridgeToken({ cid: connection.id, uid: connection.user_id, login: connection.mt5_login, exp: expiresAtSeconds });
-    await db.from("broker_connections").update({ status: "AUTHENTICATING" }).eq("id", connection.id);
-    return { status: "AUTHORIZED" as const, token, tokenExpiresAt: new Date(expiresAtSeconds * 1000).toISOString(), connectionId: connection.id };
+      .eq("id", data.connection_id)
+      .maybeSingle();
+    if (!connection || connection.revoked_at || connection.status === "REVOKED")
+      return { status: "REVOKED" as const };
+    const sessionId = crypto.randomUUID();
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const expiresAtSeconds = issuedAt + BRIDGE_SESSION_TTL_SECONDS;
+    const token = await signBridgeToken({
+      cid: connection.id,
+      uid: connection.user_id,
+      login: connection.mt5_login,
+      sid: sessionId,
+      iat: issuedAt,
+      jti: randomToken(16),
+      exp: expiresAtSeconds,
+    });
+    const { error: sessionError } = await db.rpc("issue_bridge_session", {
+      _request_id: data.id,
+      _poll_token_hash: await hashSecretValue(pollToken),
+      _session_id: sessionId,
+      _token_hash: await hashSecretValue(token),
+      _user_id: connection.user_id,
+      _connection_id: connection.id,
+      _expires_at: new Date(expiresAtSeconds * 1000).toISOString(),
+    });
+    if (sessionError) {
+      if (sessionError.message.includes("AUTHORIZATION_ALREADY_DECIDED")) {
+        throw new ApiError("AUTHORIZATION_ALREADY_DECIDED", "That authorization request has already issued a Bridge session.");
+      }
+      throw new ApiError("INTERNAL_ERROR", "Could not create the Bridge session.");
+    }
+    return {
+      status: "AUTHORIZED" as const,
+      token,
+      tokenExpiresAt: new Date(expiresAtSeconds * 1000).toISOString(),
+      connectionId: connection.id,
+    };
   },
 
   async authenticate(token: string): Promise<BridgeIdentity | null> {
@@ -105,7 +159,28 @@ export const bridgeService: BridgeService = {
       .select("id, user_id, mt5_login, status, revoked_at")
       .eq("id", claims.cid)
       .maybeSingle();
-    if (!data || data.user_id !== claims.uid || data.mt5_login !== claims.login || data.revoked_at || data.status === "REVOKED") return null;
+    if (
+      !data ||
+      data.user_id !== claims.uid ||
+      data.mt5_login !== claims.login ||
+      data.revoked_at ||
+      data.status === "REVOKED"
+    )
+      return null;
+    const { data: session } = await db
+      .from("bridge_sessions")
+      .select("id, expires_at, revoked_at")
+      .eq("id", claims.sid)
+      .eq("connection_id", data.id)
+      .eq("user_id", data.user_id)
+      .eq("token_hash", await hashSecretValue(token))
+      .maybeSingle();
+    if (!session || session.revoked_at || new Date(session.expires_at).getTime() <= Date.now())
+      return null;
+    await db
+      .from("bridge_sessions")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", session.id);
 
     return { connectionId: data.id, userId: data.user_id, mt5Login: data.mt5_login };
   },
@@ -161,6 +236,11 @@ export const bridgeService: BridgeService = {
       .from("broker_connections")
       .update({ status: "DISCONNECTED", revoked_at: new Date().toISOString() })
       .eq("id", identity.connectionId);
+    await db
+      .from("bridge_sessions")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("connection_id", identity.connectionId)
+      .is("revoked_at", null);
 
     await recordAudit({
       userId: identity.userId,
@@ -195,3 +275,15 @@ export const bridgeService: BridgeService = {
     };
   },
 };
+
+function canonicalAppUrl(): string {
+  const raw = process.env["PUBLIC_APP_URL"];
+  if (!raw) throw new ApiError("INTERNAL_ERROR", "PUBLIC_APP_URL is not configured.");
+  try {
+    const url = new URL(raw);
+    if (!url.protocol.startsWith("http")) throw new Error("invalid protocol");
+    return url.origin;
+  } catch {
+    throw new ApiError("INTERNAL_ERROR", "PUBLIC_APP_URL is invalid.");
+  }
+}

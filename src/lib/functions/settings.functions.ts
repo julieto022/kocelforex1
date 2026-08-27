@@ -31,7 +31,7 @@ const settingsSchema = z.object({
 
 export const updateSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => settingsSchema.parse(data))
+  .validator((data: unknown) => settingsSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const patch = Object.fromEntries(
@@ -71,7 +71,7 @@ export const getProfile = createServerFn({ method: "GET" })
 
 export const updateProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => profileSchema.parse(data))
+  .validator((data: unknown) => profileSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const patch = Object.fromEntries(
@@ -93,7 +93,7 @@ export const updateProfile = createServerFn({ method: "POST" })
  */
 export const deleteAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ confirmation: z.literal("DELETE") }).parse(data),
   )
   .handler(async ({ context }) => {

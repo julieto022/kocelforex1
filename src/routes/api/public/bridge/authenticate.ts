@@ -9,6 +9,7 @@ import {
   preflight,
   toErrorResponse,
 } from "@/lib/server/bridge-http.server";
+import { enforceRateLimit } from "@/lib/server/rate-limit.server";
 
 const schema = z.object({ pollToken: z.string().min(20).max(200) });
 
@@ -24,7 +25,11 @@ export const Route = createFileRoute("/api/public/bridge/authenticate")({
             const body = await request.json().catch(() => null);
             const parsed = schema.safeParse(body);
             if (!parsed.success) return fail("UNAUTHENTICATED", "Authorization is still pending.");
-            return ok(await bridgeService.pollAuthorization(parsed.data.pollToken), "Authorization status");
+            await enforceRateLimit("bridgePoll", parsed.data.pollToken);
+            return ok(
+              await bridgeService.pollAuthorization(parsed.data.pollToken),
+              "Authorization status",
+            );
           }
           const identity = await authenticateBridge(request);
           if (!identity) return fail("UNAUTHENTICATED", "Invalid or expired bridge token.");

@@ -44,6 +44,9 @@ describe("bridge tokens", () => {
     cid: "11111111-1111-1111-1111-111111111111",
     uid: "22222222-2222-2222-2222-222222222222",
     login: "51234567",
+    sid: "33333333-3333-3333-3333-333333333333",
+    iat: Math.floor(Date.now() / 1000),
+    jti: "test-token-id",
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
 
@@ -60,6 +63,11 @@ describe("bridge tokens", () => {
 
   it("rejects malformed tokens", async () => {
     expect(await verifyBridgeToken("not-a-token")).toBeNull();
+  });
+
+  it("rejects tokens without a server-side session claim", async () => {
+    const token = await signBridgeToken({ ...claims, sid: "", jti: "" });
+    expect(await verifyBridgeToken(token)).toBeNull();
   });
 
   it("rejects expired tokens", async () => {

@@ -15,7 +15,7 @@ Tagline:
 One Hub. Any MT5 Broker. Smarter Trading.
 
 1. CORE PRODUCT CONCEPT
-Kocel Forex Hub is not a broker.
+   Kocel Forex Hub is not a broker.
 
 Kocel is an independent trading-management and automation platform that connects to users’ MT5 accounts through a Kocel Bridge EA installed on the user’s MT5 terminal.
 
@@ -43,7 +43,7 @@ The user creates a completely independent Kocel account.
 The broker account is then connected separately under Settings.
 
 2. PHASE 1 OBJECTIVE
-Phase 1 must establish the complete visual and functional foundation for Kocel Forex Hub.
+   Phase 1 must establish the complete visual and functional foundation for Kocel Forex Hub.
 
 Implement:
 
@@ -80,7 +80,7 @@ Phase 1 should NOT attempt to implement the complete trading engine.
 However, every UI component must be designed so Phase 2+ can connect real functionality without rebuilding the interface.
 
 3. DESIGN DIRECTION
-Create a premium fintech/trading SaaS interface.
+   Create a premium fintech/trading SaaS interface.
 
 The design should feel like a combination of:
 
@@ -107,7 +107,7 @@ Easy to understand
 Avoid excessive gradients, oversized cards, unnecessary animations, and clutter.
 
 4. COLOR SYSTEM
-Primary brand color:
+   Primary brand color:
 
 Kocel Green
 
@@ -142,7 +142,7 @@ Theme switching must be available from Settings.
 Persist the user’s selected theme.
 
 5. RESPONSIVE DESIGN
-The application must work perfectly on:
+   The application must work perfectly on:
 
 iPhone
 Android phones
@@ -177,8 +177,7 @@ Bottom navigation or collapsible navigation
 Stacked cards
 Horizontal scrolling for financial tables
 Large touch-friendly controls
-Mobile-friendly forms
-6. PUBLIC LANDING PAGE
+Mobile-friendly forms 6. PUBLIC LANDING PAGE
 Create a professional public homepage.
 
 Sections:
@@ -271,8 +270,7 @@ Terms
 Privacy
 Contact
 Login
-Create Account
-7. KOCEL ACCOUNT REGISTRATION
+Create Account 7. KOCEL ACCOUNT REGISTRATION
 Create a dedicated registration page.
 
 Fields:
@@ -302,7 +300,7 @@ Redirect to onboarding.
 Do not request broker login credentials during registration.
 
 8. LOGIN PAGE
-Create a dedicated Kocel login page.
+   Create a dedicated Kocel login page.
 
 Fields:
 
@@ -327,7 +325,7 @@ The login must authenticate against the Kocel account system.
 It must NOT redirect the user to Deriv or another broker for authentication.
 
 9. FORGOT PASSWORD
-Create:
+   Create:
 
 Enter Email
 User enters their Kocel account email.
@@ -341,7 +339,7 @@ Include a secure password-reset workflow placeholder.
 Do not expose whether an email exists in a way that leaks account information.
 
 10. USER ONBOARDING
-After first login, show a clean onboarding wizard.
+    After first login, show a clean onboarding wizard.
 
 Step 1 — Welcome
 Welcome to Kocel Forex Hub
@@ -382,7 +380,7 @@ Go to Dashboard
 Allow users to skip onboarding and return later.
 
 11. MAIN APPLICATION LAYOUT
-After login, use the main Kocel application shell.
+    After login, use the main Kocel application shell.
 
 Desktop:
 
@@ -411,7 +409,7 @@ Bottom:
 User profile.
 
 12. TOP BAR
-Top navigation should display:
+    Top navigation should display:
 
 Left:
 
@@ -443,7 +441,7 @@ Button:
 Connect Account
 
 13. DASHBOARD
-Create a professional trading dashboard.
+    Create a professional trading dashboard.
 
 Top section:
 
@@ -469,7 +467,7 @@ Do not display fake financial data.
 Use skeleton/loading states while data is loading.
 
 14. CONNECTION STATUS
-Create a persistent connection indicator.
+    Create a persistent connection indicator.
 
 Possible states:
 
@@ -496,7 +494,7 @@ Not Connected
 Clicking the indicator opens connection details.
 
 15. RECENT TRADES
-Dashboard section:
+    Dashboard section:
 
 Recent Trades
 
@@ -519,7 +517,7 @@ No trades yet
 Do not populate fake trades.
 
 16. MARKET WATCH
-Create a market-watch component.
+    Create a market-watch component.
 
 Columns:
 
@@ -543,7 +541,7 @@ These should be UI placeholders in Phase 1 unless real market data is explicitly
 Never simulate fake live prices and present them as real.
 
 17. PERFORMANCE AREA
-Create a dashboard performance section.
+    Create a dashboard performance section.
 
 Charts/placeholders:
 
@@ -556,7 +554,7 @@ When no trading data exists:
 Performance data will appear after your connected MT5 account begins providing trading history.
 
 18. BOT OVERVIEW
-Dashboard card:
+    Dashboard card:
 
 Active Bots
 
@@ -583,7 +581,7 @@ Create Bot
 The actual bot engine will be implemented in later phases.
 
 19. BROKER CONNECTION SYSTEM
-This is one of the most important Phase 1 components.
+    This is one of the most important Phase 1 components.
 
 Create:
 
@@ -599,10 +597,10 @@ Connect and manage your MT5 trading accounts from one Kocel workspace.
 
 Button:
 
-+ Connect MT5 Account
+- Connect MT5 Account
 
 20. BROKER SELECTION
-When connecting an account, show:
+    When connecting an account, show:
 
 Select Broker
 Cards:
@@ -628,7 +626,7 @@ Coming Soon / Manual configuration
 Architecture must allow future brokers to be added without redesigning the database.
 
 21. MT5 ACCOUNT CONFIGURATION
-After selecting a broker, display:
+    After selecting a broker, display:
 
 MT5 Account Details
 Fields:
@@ -655,7 +653,7 @@ MT5 account credentials remain in the user’s MT5 terminal.
 Kocel communicates through the Kocel Bridge EA.
 
 22. CONNECTION METHOD
-Display:
+    Display:
 
 Kocel Bridge EA
 Explain:
@@ -668,27 +666,18 @@ Download Kocel Bridge EA
 Open MetaTrader 5
 Install the EA
 Attach Kocel Bridge EA to a chart
-Enter your Kocel connection code
+Click Connect to Kocel inside the EA
 Enable required permissions
 Start the EA
 Return to Kocel
-Verify connection
-23. CONNECTION CODE
-When the user creates a connection:
+Verify connection 23. BROWSER AUTHORIZATION
+When the EA starts a connection:
 
-Generate a temporary connection code.
+Create a short-lived browser authorization request and open its URL.
 
-Example UI:
+Show the user the masked MT5 account, broker, server, and EA identity.
 
-Connection Code
-
-KCL-XXXX-XXXX
-
-Include:
-
-Waiting for MT5 terminal…
-
-Status indicator.
+The user approves the connection in Kocel. The EA then polls for a secure Bridge session.
 
 Possible states:
 
@@ -716,7 +705,7 @@ Do not hard-code actual connection codes.
 The backend will generate them later.
 
 24. CONNECTED ACCOUNT CARD
-Display:
+    Display:
 
 Exness MT5
 Account:
@@ -743,7 +732,7 @@ Disconnect
 Never display sensitive credentials.
 
 25. MULTIPLE MT5 ACCOUNTS
-Kocel must support multiple accounts.
+    Kocel must support multiple accounts.
 
 Example:
 
@@ -766,7 +755,7 @@ User-defined nickname
 Allow users to select their active trading account.
 
 26. DISCONNECT ACCOUNT
-When disconnecting:
+    When disconnecting:
 
 Show confirmation modal:
 
@@ -787,7 +776,7 @@ This distinction is important.
 Disconnecting Kocel should not automatically close broker positions.
 
 27. SETTINGS
-Create a complete Settings area.
+    Create a complete Settings area.
 
 Sections:
 
@@ -830,8 +819,7 @@ Default currency
 General
 Language
 Time zone
-Date format
-28. BOTS PAGE
+Date format 28. BOTS PAGE
 Create the UI foundation for:
 
 Bots
@@ -865,7 +853,7 @@ Trading engine not configured
 Use clear states rather than fake execution.
 
 29. STRATEGIES PAGE
-Create:
+    Create:
 
 Strategies
 
@@ -895,7 +883,7 @@ Create Bot
 The actual strategy engine will be implemented later.
 
 30. TRADES PAGE
-Create:
+    Create:
 
 Open Trades
 Columns:
@@ -923,7 +911,7 @@ Strategy
 Phase 1 must use empty states when no data exists.
 
 31. ANALYSIS PAGE
-Create the future analysis workspace.
+    Create the future analysis workspace.
 
 Include UI placeholders for:
 
@@ -942,7 +930,7 @@ Analysis engine will become available when market data and strategy services are
 Do not create fake analysis results.
 
 32. MARKETS PAGE
-Create a professional market browser.
+    Create a professional market browser.
 
 Categories:
 
@@ -975,7 +963,7 @@ Important:
 The available symbols must ultimately come from the connected broker rather than assuming every broker supports every symbol.
 
 33. GLOBAL COMPONENTS
-Create reusable components for:
+    Create reusable components for:
 
 Buttons
 Cards
@@ -996,8 +984,7 @@ Pagination
 Empty states
 Loading skeletons
 Error states
-Confirmation dialogs
-34. EMPTY STATES
+Confirmation dialogs 34. EMPTY STATES
 Never show broken-looking screens.
 
 Examples:
@@ -1028,7 +1015,7 @@ No Notifications
 You’re all caught up.
 
 35. LOADING STATES
-Every asynchronous section must have a skeleton/loading state.
+    Every asynchronous section must have a skeleton/loading state.
 
 Examples:
 
@@ -1040,7 +1027,7 @@ Market skeleton
 Do not freeze the entire application while one component loads.
 
 36. ERROR STATES
-Create professional errors.
+    Create professional errors.
 
 Example:
 
@@ -1062,8 +1049,7 @@ Show:
 
 Last connection
 Retry
-Connection instructions
-37. NOTIFICATION SYSTEM
+Connection instructions 37. NOTIFICATION SYSTEM
 Create a global notification center.
 
 Notification types:
@@ -1080,7 +1066,7 @@ System notification
 Phase 1 can use frontend/mock notification states, but structure them for backend integration.
 
 38. USER PROFILE MENU
-Top-right profile menu:
+    Top-right profile menu:
 
 Display:
 
@@ -1094,8 +1080,7 @@ Profile
 Settings
 Security
 Help
-Logout
-39. SECURITY UX
+Logout 39. SECURITY UX
 Security should be treated seriously.
 
 Never expose:
@@ -1115,8 +1100,7 @@ Use confirmation dialogs for:
 Disconnect account
 Delete account
 Logout all sessions
-Security changes
-40. DATABASE-READY ARCHITECTURE
+Security changes 40. DATABASE-READY ARCHITECTURE
 Design the frontend/backend contracts around entities such as:
 
 users
@@ -1189,22 +1173,22 @@ closed_at
 Do not necessarily implement all trading tables in Phase 1, but design the application around these relationships.
 
 41. API-READY FRONTEND
-Create an API service layer.
+    Create an API service layer.
 
 Do not scatter API calls throughout components.
 
 Use a structure similar to:
 
 /services
-    auth
-    users
-    brokers
-    mt5
-    bots
-    strategies
-    trades
-    markets
-    notifications
+auth
+users
+brokers
+mt5
+bots
+strategies
+trades
+markets
+notifications
 Create clean functions such as:
 
 login()
@@ -1224,7 +1208,7 @@ For Phase 1, use controlled mock services where backend endpoints are not yet im
 Make it easy to replace mocks with real APIs later.
 
 42. STATE MANAGEMENT
-Implement centralized application state where appropriate.
+    Implement centralized application state where appropriate.
 
 State should include:
 
@@ -1239,34 +1223,34 @@ UI preferences
 Do not store sensitive credentials in localStorage.
 
 43. ROUTING
-Create routes similar to:
+    Create routes similar to:
 
 /
- /login
- /register
- /forgot-password
- /onboarding
+/login
+/register
+/forgot-password
+/onboarding
 
- /dashboard
- /bots
- /bots/create
- /strategies
- /trades
- /analysis
- /markets
+/dashboard
+/bots
+/bots/create
+/strategies
+/trades
+/analysis
+/markets
 
- /settings
- /settings/profile
- /settings/security
- /settings/mt5
- /settings/notifications
- /settings/appearance
+/settings
+/settings/profile
+/settings/security
+/settings/mt5
+/settings/notifications
+/settings/appearance
 Protected application routes must require Kocel authentication.
 
 Public pages must remain accessible without authentication.
 
 44. AUTHENTICATION UX
-Implement the frontend authentication flow properly.
+    Implement the frontend authentication flow properly.
 
 Unauthenticated user:
 
@@ -1291,7 +1275,7 @@ Session expiration:
 Your session has expired. Please sign in again.
 
 45. DEMO DATA RULE
-Do NOT fabricate live financial information.
+    Do NOT fabricate live financial information.
 
 If demonstration data is required for UI development, clearly label it:
 
@@ -1304,7 +1288,7 @@ Live
 Never show simulated account balance as actual balance.
 
 46. MT5 BRIDGE STATUS MODEL
-Prepare the frontend for these states:
+    Prepare the frontend for these states:
 
 NOT_CONNECTED
 WAITING_FOR_BRIDGE
@@ -1320,8 +1304,7 @@ Label
 Color
 Icon
 Explanation
-Appropriate action
-47. BROKER-AGNOSTIC ARCHITECTURE
+Appropriate action 47. BROKER-AGNOSTIC ARCHITECTURE
 Do not create code such as:
 
 if broker === "deriv"
@@ -1332,16 +1315,16 @@ Instead use broker adapters/configuration.
 Conceptually:
 
 Broker
- ├── id
- ├── name
- ├── logo
- ├── supported
- ├── capabilities
- └── connection_config
+├── id
+├── name
+├── logo
+├── supported
+├── capabilities
+└── connection_config
 This allows future support for additional MT5 brokers.
 
 48. MT5 ACCOUNT CAPABILITIES
-The UI should eventually be capable of displaying broker-specific capabilities such as:
+    The UI should eventually be capable of displaying broker-specific capabilities such as:
 
 Forex
 Metals
@@ -1355,7 +1338,7 @@ Automated trading
 Phase 1 should only prepare the UI/data structures.
 
 49. ACCESSIBILITY
-Implement:
+    Implement:
 
 Proper labels
 Keyboard navigation
@@ -1364,8 +1347,7 @@ Accessible buttons
 Accessible forms
 ARIA where necessary
 Good color contrast
-Touch-friendly controls
-50. PERFORMANCE
+Touch-friendly controls 50. PERFORMANCE
 Optimize for:
 
 Fast first load
@@ -1377,7 +1359,7 @@ Minimal unnecessary network requests
 Avoid heavy animations.
 
 51. SECURITY REQUIREMENTS
-Implement basic security best practices from the beginning.
+    Implement basic security best practices from the beginning.
 
 Never:
 
@@ -1395,8 +1377,7 @@ session
 resource ownership
 broker account ownership
 bot ownership
-trade ownership
-52. DESIGN DETAILS
+trade ownership 52. DESIGN DETAILS
 Use:
 
 Rounded but not excessively rounded cards
@@ -1429,7 +1410,7 @@ Warning:
 Reconnect
 
 53. MOBILE NAVIGATION
-On mobile, provide a bottom navigation or compact navigation system containing:
+    On mobile, provide a bottom navigation or compact navigation system containing:
 
 Dashboard
 Bots
@@ -1446,7 +1427,7 @@ Logout
 Ensure every major section remains accessible.
 
 54. RESPONSIVE MT5 CONNECTION FLOW
-The broker connection wizard must work perfectly on mobile.
+    The broker connection wizard must work perfectly on mobile.
 
 Do not create a desktop-only connection form.
 
@@ -1461,7 +1442,7 @@ Complete setup
 from a phone.
 
 55. HELP / DOCUMENTATION
-Create a basic Help page.
+    Create a basic Help page.
 
 Categories:
 
@@ -1477,7 +1458,7 @@ Troubleshooting
 Create placeholder documentation cards for Phase 1.
 
 56. FINAL UI QUALITY STANDARD
-The completed Phase 1 should look like a real production SaaS product.
+    The completed Phase 1 should look like a real production SaaS product.
 
 Do NOT deliver:
 
@@ -1498,8 +1479,7 @@ Clear primary action
 Loading state
 Empty state
 Error state where applicable
-Responsive layout
-57. IMPORTANT PHASE BOUNDARY
+Responsive layout 57. IMPORTANT PHASE BOUNDARY
 Phase 1 is the foundation.
 
 Do NOT implement the full trading engine yet.
@@ -1520,7 +1500,7 @@ Those belong to later phases.
 However, the UI must be fully prepared for them.
 
 58. PHASE 1 SUCCESS CRITERIA
-Phase 1 is complete only when:
+    Phase 1 is complete only when:
 
 User can create a Kocel account.
 User can log into Kocel.
@@ -1552,8 +1532,7 @@ Mobile UI works correctly.
 Desktop UI works correctly.
 No fake live financial data is presented as real.
 The architecture is broker-independent.
-The UI is ready for the Phase 2 MT5 Bridge backend.
-59. MOST IMPORTANT ARCHITECTURAL PRINCIPLE
+The UI is ready for the Phase 2 MT5 Bridge backend. 59. MOST IMPORTANT ARCHITECTURAL PRINCIPLE
 Build Kocel Forex Hub around this concept:
 
 Kocel Account ≠ Broker Account
@@ -1567,20 +1546,20 @@ Example:
 Kocel User
 │
 ├── Deriv MT5 Demo
-│      └── Kocel Bridge EA
+│ └── Kocel Bridge EA
 │
 ├── Deriv MT5 Real
-│      └── Kocel Bridge EA
+│ └── Kocel Bridge EA
 │
 ├── Exness MT5 Demo
-│      └── Kocel Bridge EA
+│ └── Kocel Bridge EA
 │
 └── Future Broker
-       └── Kocel Bridge EA
+└── Kocel Bridge EA
 The platform must be designed around this relationship from the beginning.
 
 60. PHASE 1 DELIVERABLE
-Deliver a polished, fully responsive Kocel Forex Hub Phase 1 application foundation with:
+    Deliver a polished, fully responsive Kocel Forex Hub Phase 1 application foundation with:
 
 Complete UI
 Complete navigation

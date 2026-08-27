@@ -7,6 +7,8 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "test": "vitest run",
+    "test:integration": "node scripts/require-integration-env.mjs && vitest run src/lib/server/bridge.integration.test.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."

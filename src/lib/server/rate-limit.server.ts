@@ -25,6 +25,7 @@ export const RATE_LIMITS = {
   bridge: { limit: 240, windowSeconds: 60 },
   /** Bridge registration attempts, per caller. */
   bridgeRegister: { limit: 20, windowSeconds: 600 },
+  bridgePoll: { limit: 120, windowSeconds: 600 },
   /** Everything else. */
   general: { limit: 300, windowSeconds: 60 },
 } satisfies Record<string, RateLimitRule>;

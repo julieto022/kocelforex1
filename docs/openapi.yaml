@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: Kocel Forex Hub — Bridge & Public API
-  version: 2.0.0
+  version: 1.0.0
   description: >
     Public HTTP contract consumed by the Kocel Bridge EA running inside the
     user's own MetaTrader 5 terminal. Kocel never receives MT5 credentials:
     the EA requests browser authorization, then receives a signed, short-lived
-    bridge token. Application features use typed server functions
+    bridge token. This document freezes the Bridge API at Version 1.0.
+    Application features use typed server functions
     instead of HTTP and are therefore not described here.
 servers:
   - url: https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8.lovable.app

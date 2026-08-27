@@ -105,7 +105,7 @@ export const listSessions = createServerFn({ method: "GET" })
 
 export const revokeSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ sessionId: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ sessionId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase

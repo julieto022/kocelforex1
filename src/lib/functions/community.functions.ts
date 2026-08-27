@@ -10,7 +10,7 @@ const postSchema = z.object({ postId: z.string().uuid() });
 
 export const savePost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => postSchema.parse(data))
+  .validator((data: unknown) => postSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase
@@ -23,7 +23,7 @@ export const savePost = createServerFn({ method: "POST" })
 
 export const unsavePost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => postSchema.parse(data))
+  .validator((data: unknown) => postSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase
@@ -61,7 +61,7 @@ const reportSchema = z
 
 export const reportContent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => reportSchema.parse(data))
+  .validator((data: unknown) => reportSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await enforceRateLimit("communityReport", userId);

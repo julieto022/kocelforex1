@@ -16,7 +16,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt5.$requestId'
 import { Route as AppAnalysisRouteImport } from './routes/_app.analysis'
 import { Route as AppBotsRouteImport } from './routes/_app.bots'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -41,6 +40,7 @@ import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.p
 import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
 import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt5.$requestId'
 import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/public/bridge/authenticate'
 import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/public/bridge/disconnect'
 import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
@@ -79,11 +79,6 @@ const RegisterRoute = RegisterRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthorizeMt5RequestIdRoute = AuthorizeMt5RequestIdRouteImport.update({
-  id: '/authorize/mt5/$requestId',
-  path: '/authorize/mt5/$requestId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAnalysisRoute = AppAnalysisRouteImport.update({
@@ -207,6 +202,11 @@ const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthorizeMt5RequestIdRoute = AuthorizeMt5RequestIdRouteImport.update({
+  id: '/authorize/mt5/$requestId',
+  path: '/authorize/mt5/$requestId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBridgeAuthenticateRoute =
   ApiPublicBridgeAuthenticateRouteImport.update({
     id: '/api/public/bridge/authenticate',
@@ -265,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
@@ -301,6 +302,7 @@ export interface FileRoutesByTo {
   '/settings/security': typeof AppSettingsSecurityRoute
   '/settings/trading': typeof AppSettingsTradingRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
@@ -340,6 +342,7 @@ export interface FileRoutesById {
   '/_app/settings/security': typeof AppSettingsSecurityRoute
   '/_app/settings/trading': typeof AppSettingsTradingRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
@@ -379,6 +382,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/settings/trading'
     | '/api/public/health'
+    | '/authorize/mt5/$requestId'
     | '/community/'
     | '/settings/'
     | '/api/public/bridge/authenticate'
@@ -415,6 +419,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/settings/trading'
     | '/api/public/health'
+    | '/authorize/mt5/$requestId'
     | '/community'
     | '/settings'
     | '/api/public/bridge/authenticate'
@@ -453,6 +458,7 @@ export interface FileRouteTypes {
     | '/_app/settings/security'
     | '/_app/settings/trading'
     | '/api/public/health'
+    | '/authorize/mt5/$requestId'
     | '/_app/community/'
     | '/_app/settings/'
     | '/api/public/bridge/authenticate'
@@ -470,8 +476,8 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  AuthorizeMt5RequestIdRoute: typeof AuthorizeMt5RequestIdRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  AuthorizeMt5RequestIdRoute: typeof AuthorizeMt5RequestIdRoute
   ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
   ApiPublicBridgeDisconnectRoute: typeof ApiPublicBridgeDisconnectRoute
   ApiPublicBridgeHeartbeatRoute: typeof ApiPublicBridgeHeartbeatRoute
@@ -698,6 +704,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/authorize/mt5/$requestId': {
+      id: '/authorize/mt5/$requestId'
+      path: '/authorize/mt5/$requestId'
+      fullPath: '/authorize/mt5/$requestId'
+      preLoaderRoute: typeof AuthorizeMt5RequestIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bridge/authenticate': {
       id: '/api/public/bridge/authenticate'
       path: '/api/public/bridge/authenticate'
@@ -817,8 +830,8 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  AuthorizeMt5RequestIdRoute: AuthorizeMt5RequestIdRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  AuthorizeMt5RequestIdRoute: AuthorizeMt5RequestIdRoute,
   ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,
   ApiPublicBridgeDisconnectRoute: ApiPublicBridgeDisconnectRoute,
   ApiPublicBridgeHeartbeatRoute: ApiPublicBridgeHeartbeatRoute,

@@ -23,7 +23,6 @@ export type BrokerConnectionRequest = {
   accountName: string;
   mt5Login: string;
   server: string;
-  environment?: ConnectionEnvironment | null;
   environment: ConnectionEnvironment;
   accountType?: string | null;
 };
@@ -51,11 +50,11 @@ export type BridgeIdentity = {
 export type BridgeRegisterRequest = {
   mt5Login: string;
   server: string;
+  environment?: ConnectionEnvironment | null;
   broker?: string | null;
   accountName?: string | null;
   eaVersion: string;
   terminalBuild?: string | null;
-  authorizationOrigin?: string | null;
 };
 
 export type BridgeRegisterResult = {

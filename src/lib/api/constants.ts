@@ -35,14 +35,7 @@ export const AUTHORIZATION_REQUEST_STATES = [
 ] as const;
 export type AuthorizationRequestState = (typeof AUTHORIZATION_REQUEST_STATES)[number];
 
-export const BOT_STATUSES = [
-  "DRAFT",
-  "STOPPED",
-  "RUNNING",
-  "PAUSED",
-  "WAITING",
-  "ERROR",
-] as const;
+export const BOT_STATUSES = ["DRAFT", "STOPPED", "RUNNING", "PAUSED", "WAITING", "ERROR"] as const;
 export type BotStatus = (typeof BOT_STATUSES)[number];
 
 export const TRADE_STATUSES = ["OPEN", "CLOSED", "CANCELLED", "REJECTED"] as const;
@@ -132,6 +125,9 @@ export const AUTHORIZATION_REQUEST_TTL_MINUTES = 10;
 
 /** How long a Bridge session token stays valid before the EA must re-authorize. */
 export const BRIDGE_TOKEN_TTL_SECONDS = 60 * 60 * 12;
+
+/** Maximum age of a server-side Bridge session record. */
+export const BRIDGE_SESSION_TTL_SECONDS = BRIDGE_TOKEN_TTL_SECONDS;
 
 /** A connection is considered offline when no heartbeat arrives in this window. */
 export const BRIDGE_HEARTBEAT_TIMEOUT_SECONDS = 90;

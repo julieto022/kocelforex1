@@ -20,7 +20,7 @@ export const listNotifications = createServerFn({ method: "GET" })
 
 export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ notificationId: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ notificationId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase

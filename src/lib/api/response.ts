@@ -39,6 +39,9 @@ export type ErrorCode = keyof typeof ERROR_CODES;
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
 };
 
 export function ok<T>(data: T, message = "Success", status = 200): Response {

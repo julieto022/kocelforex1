@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { BridgeDownloadActions, BridgeExplainer, BridgeStepList } from "@/components/kocel/bridge-steps";
+import {
+  BridgeDownloadActions,
+  BridgeExplainer,
+  BridgeStepList,
+} from "@/components/kocel/bridge-steps";
 import { PageHeader } from "@/components/kocel/page-header";
 import { SectionCard } from "@/components/kocel/states";
 import {
@@ -28,7 +32,7 @@ const faqs = [
   {
     question: "Does Kocel need my broker password?",
     answer:
-      "No. Kocel never asks for your MT5 trading password. Connectivity is established by the Bridge EA running inside your own terminal using a Kocel connection code.",
+      "No. Kocel never asks for your MT5 trading password. Connectivity is established by the Bridge EA running inside your own terminal and approved in your Kocel browser.",
   },
   {
     question: "Why is my account showing no balance?",

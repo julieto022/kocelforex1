@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { login } from "@/services/auth";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: z.object({ redirectTo: z.string().optional() }),
   head: () => ({
     meta: [
       { title: "Sign in — Kocel Forex Hub" },
@@ -37,19 +38,23 @@ const schema = z.object({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const redirectTo = search.redirectTo?.startsWith("/authorize/mt5/")
+    ? search.redirectTo
+    : "/dashboard";
   const { session } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (session) void navigate({ to: "/dashboard", replace: true });
-  }, [session, navigate]);
+    if (session) void navigate({ to: redirectTo as "/dashboard", replace: true });
+  }, [session, navigate, redirectTo]);
 
   const mutation = useMutation({
     mutationFn: () => login(form.email.trim(), form.password),
     onSuccess: () => {
       toast.success("Welcome back to Kocel");
-      void navigate({ to: "/dashboard", replace: true });
+      void navigate({ to: redirectTo as "/dashboard", replace: true });
     },
     onError: (error: Error) => {
       toast.error(error.message || "We couldn't sign you in");
@@ -123,8 +128,8 @@ function LoginPage() {
         </Button>
 
         <p className="text-xs text-muted-foreground">
-          Never enter your MT5 broker password here. Kocel connects to brokers through the Bridge
-          EA only.
+          Never enter your MT5 broker password here. Kocel connects to brokers through the Bridge EA
+          only.
         </p>
       </form>
     </AuthLayout>

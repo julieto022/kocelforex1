@@ -7,7 +7,10 @@ import { preflight, readJson, toErrorResponse } from "@/lib/server/bridge-http.s
 import { enforceRateLimit } from "@/lib/server/rate-limit.server";
 
 const schema = z.object({
-  mt5Login: z.string().trim().regex(/^[0-9]{4,20}$/),
+  mt5Login: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{4,20}$/),
   server: z.string().trim().min(2).max(120),
   environment: z.enum(["DEMO", "REAL"]).nullish(),
   broker: z.string().trim().max(120).nullish(),
@@ -33,7 +36,6 @@ export const Route = createFileRoute("/api/public/bridge/register")({
             accountName: body.accountName ?? null,
             eaVersion: body.eaVersion,
             terminalBuild: body.terminalBuild ?? null,
-            authorizationOrigin: new URL(request.url).origin,
           });
           return ok(result, "Bridge registered");
         } catch (error) {

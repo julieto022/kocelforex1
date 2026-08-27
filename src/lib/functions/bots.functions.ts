@@ -20,7 +20,7 @@ const createSchema = z.object({
 
 export const createBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => createSchema.parse(data))
+  .validator((data: unknown) => createSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await requireConnectionOwnership(supabase, data.brokerConnectionId, userId);
@@ -56,7 +56,7 @@ const updateSchema = z.object({
 
 export const updateBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => updateSchema.parse(data))
+  .validator((data: unknown) => updateSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await requireOwnership(supabase, "bots", data.botId, userId);
@@ -86,7 +86,7 @@ const statusSchema = z.object({
  */
 export const setBotStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => statusSchema.parse(data))
+  .validator((data: unknown) => statusSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await requireOwnership(supabase, "bots", data.botId, userId);
@@ -125,7 +125,7 @@ export const setBotStatus = createServerFn({ method: "POST" })
 
 export const deleteBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ botId: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ botId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await requireOwnership(supabase, "bots", data.botId, userId);

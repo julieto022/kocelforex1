@@ -66,6 +66,12 @@ export type BridgeTokenClaims = {
   uid: string;
   /** MT5 login the EA reported; every later call must match it. */
   login: string;
+  /** Server-side Bridge session id. */
+  sid: string;
+  /** Issued-at timestamp, seconds since epoch. */
+  iat: number;
+  /** Unique token id for replay and audit correlation. */
+  jti: string;
   /** Expiry, seconds since epoch. */
   exp: number;
 };
@@ -79,7 +85,7 @@ function bridgeSecret(): string {
 /**
  * Signs a short-lived Bridge session token. The EA never sends a bare user id —
  * it must present this signed token, which the backend issued after a valid
- * single-use connection code was claimed.
+ * single-use browser authorization was approved.
  */
 export async function signBridgeToken(claims: BridgeTokenClaims): Promise<string> {
   const payload = toBase64Url(new TextEncoder().encode(JSON.stringify(claims)));
@@ -106,9 +112,19 @@ export async function verifyBridgeToken(token: string): Promise<BridgeTokenClaim
   }
   if (!valid) return null;
   try {
-    const claims = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as BridgeTokenClaims;
+    const claims = JSON.parse(
+      new TextDecoder().decode(fromBase64Url(payload)),
+    ) as BridgeTokenClaims;
     if (typeof claims.exp !== "number" || claims.exp * 1000 < Date.now()) return null;
-    if (!claims.cid || !claims.uid || !claims.login) return null;
+    if (
+      !claims.cid ||
+      !claims.uid ||
+      !claims.login ||
+      !claims.sid ||
+      !claims.jti ||
+      typeof claims.iat !== "number"
+    )
+      return null;
     return claims;
   } catch {
     return null;
