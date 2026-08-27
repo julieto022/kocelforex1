@@ -110,6 +110,60 @@ export type Database = {
           },
         ]
       }
+      bridge_sessions: {
+        Row: {
+          connection_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          last_seen_at: string | null
+          request_id: string | null
+          revoked_at: string | null
+          token_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          expires_at: string
+          id: string
+          last_seen_at?: string | null
+          request_id?: string | null
+          revoked_at?: string | null
+          token_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_seen_at?: string | null
+          request_id?: string | null
+          revoked_at?: string | null
+          token_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_sessions_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_sessions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mt5_authorization_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broker_connections: {
         Row: {
           account_name: string
@@ -594,10 +648,12 @@ export type Database = {
           created_at: string
           decided_at: string | null
           ea_version: string
+          environment: string | null
           expires_at: string
           id: string
           mt5_login: string
           poll_token_hash: string
+          poll_token_used_at: string | null
           server: string
           status: string
           terminal_build: string | null
@@ -611,10 +667,12 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           ea_version: string
+          environment?: string | null
           expires_at: string
           id?: string
           mt5_login: string
           poll_token_hash: string
+          poll_token_used_at?: string | null
           server: string
           status?: string
           terminal_build?: string | null
@@ -628,10 +686,12 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           ea_version?: string
+          environment?: string | null
           expires_at?: string
           id?: string
           mt5_login?: string
           poll_token_hash?: string
+          poll_token_used_at?: string | null
           server?: string
           status?: string
           terminal_build?: string | null
@@ -1251,6 +1311,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_mt5_authorization_request: {
+        Args: {
+          _account_name: string
+          _account_type: string
+          _broker_id: string
+          _environment: string
+          _nickname: string
+          _request_id: string
+          _user_id: string
+        }
+        Returns: string
+      }
       bump_rate_limit: {
         Args: {
           _bucket_key: string
@@ -1258,6 +1330,18 @@ export type Database = {
           _window_start: string
         }
         Returns: number
+      }
+      issue_bridge_session: {
+        Args: {
+          _connection_id: string
+          _expires_at: string
+          _poll_token_hash: string
+          _request_id: string
+          _session_id: string
+          _token_hash: string
+          _user_id: string
+        }
+        Returns: undefined
       }
       soft_delete_account: { Args: { _user_id: string }; Returns: undefined }
     }
