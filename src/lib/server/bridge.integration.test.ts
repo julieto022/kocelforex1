@@ -46,6 +46,7 @@ describe.skipIf(!integrationEnabled)("Bridge API integration", () => {
     );
     results.forEach((result) => createdRequestIds.push(result.requestId));
     const result = results[0];
+    if (!result) throw new Error("Bridge registration returned no result.");
     createdPollToken = result.pollToken;
     expect(result.authorizationUrl).toBe(
       `${process.env["PUBLIC_APP_URL"]}/authorize/mt5/${result.requestId}`,
@@ -79,8 +80,8 @@ describe.skipIf(!integrationEnabled)("Bridge API integration", () => {
   });
 
   it("returns pending status and rejects malformed or unknown poll handles", async () => {
-    expect(createdPollToken).toBeTruthy();
-    await expect(bridgeService.pollAuthorization(createdPollToken!)).resolves.toEqual({
+    if (!createdPollToken) throw new Error("Bridge registration did not create a poll token.");
+    await expect(bridgeService.pollAuthorization(createdPollToken)).resolves.toEqual({
       status: "WAITING_FOR_USER",
     });
     await expect(bridgeService.pollAuthorization("not-a-real-poll-token")).rejects.toThrow();

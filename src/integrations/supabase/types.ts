@@ -169,10 +169,9 @@ export type Database = {
           account_name: string
           account_type: string | null
           authorized_at: string | null
-          broker_id: string | null
-          broker_name: string | null
-          currency: string | null
+          broker_id: string
           created_at: string
+          currency: string | null
           ea_version: string | null
           environment: string
           id: string
@@ -194,10 +193,9 @@ export type Database = {
           account_name: string
           account_type?: string | null
           authorized_at?: string | null
-          broker_id?: string | null
-          broker_name?: string | null
-          currency?: string | null
+          broker_id: string
           created_at?: string
+          currency?: string | null
           ea_version?: string | null
           environment?: string
           id?: string
@@ -219,10 +217,9 @@ export type Database = {
           account_name?: string
           account_type?: string | null
           authorized_at?: string | null
-          broker_id?: string | null
-          broker_name?: string | null
-          currency?: string | null
+          broker_id?: string
           created_at?: string
+          currency?: string | null
           ea_version?: string | null
           environment?: string
           id?: string
@@ -659,9 +656,9 @@ export type Database = {
         Row: {
           account_name: string | null
           broker_hint: string | null
-          currency: string | null
           connection_id: string | null
           created_at: string
+          currency: string | null
           decided_at: string | null
           ea_version: string
           environment: string | null
@@ -682,9 +679,9 @@ export type Database = {
         Insert: {
           account_name?: string | null
           broker_hint?: string | null
-          currency?: string | null
           connection_id?: string | null
           created_at?: string
+          currency?: string | null
           decided_at?: string | null
           ea_version: string
           environment?: string | null
@@ -705,9 +702,9 @@ export type Database = {
         Update: {
           account_name?: string | null
           broker_hint?: string | null
-          currency?: string | null
           connection_id?: string | null
           created_at?: string
+          currency?: string | null
           decided_at?: string | null
           ea_version?: string
           environment?: string | null
