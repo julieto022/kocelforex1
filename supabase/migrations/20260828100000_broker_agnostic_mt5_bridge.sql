@@ -31,7 +31,6 @@ SET search_path = public
 AS $$
 DECLARE
   request_row public.mt5_authorization_requests%ROWTYPE;
-  catalog_broker_id uuid;
   v_connection_id uuid;
 BEGIN
   SELECT * INTO request_row
@@ -60,18 +59,12 @@ BEGIN
     RAISE EXCEPTION 'ENVIRONMENT_MISMATCH';
   END IF;
 
-  SELECT id INTO catalog_broker_id
-  FROM public.brokers
-  WHERE lower(name) = lower(trim(request_row.broker_hint))
-     OR lower(slug) = lower(trim(request_row.broker_hint))
-  LIMIT 1;
-
   INSERT INTO public.broker_connections (
     user_id, broker_id, broker_name, account_name, nickname, mt5_login, server,
     account_type, environment, currency, leverage, terminal_name, terminal_company,
     status, ea_version, terminal_build, authorized_at
   ) VALUES (
-    _user_id, catalog_broker_id, trim(request_row.broker_hint),
+    _user_id, NULL, trim(request_row.broker_hint),
     coalesce(request_row.account_name, 'MT5 account'), NULL, request_row.mt5_login,
     request_row.server, NULL, request_row.environment, request_row.currency,
     request_row.leverage, request_row.terminal_name, request_row.terminal_company,

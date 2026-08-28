@@ -81,15 +81,17 @@ paths:
           application/json:
             schema:
               type: object
-              required: [mt5Login, server, eaVersion]
+              required: [mt5Login, server, environment, broker, eaVersion]
               properties:
                 mt5Login: { type: string, example: "51234567" }
                 server: { type: string, example: "ICMarketsSC-Demo" }
-                broker: { type: [string, "null"], example: "Exness" }
+                broker: { type: string, example: "Exness Technologies Ltd" }
                 accountName: { type: [string, "null"], example: "Main account" }
-                environment: { type: [string, "null"], enum: [DEMO, REAL] }
+                environment: { type: string, enum: [DEMO, REAL] }
                 eaVersion: { type: string, example: "1.0.0" }
                 terminalBuild: { type: [string, "null"] }
+                terminalName: { type: [string, "null"], example: "MetaTrader 5" }
+                terminalCompany: { type: [string, "null"], example: "MetaQuotes Ltd." }
       responses:
         "200":
           description: Authorization URL and opaque polling handle returned
