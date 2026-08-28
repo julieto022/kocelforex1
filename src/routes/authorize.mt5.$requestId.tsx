@@ -79,7 +79,7 @@ function MT5AuthorizationPage() {
         <dl className="space-y-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Broker</dt>
-            <dd>{request.data.broker_hint ?? "MT5 broker"}</dd>
+            <dd>{request.data.broker_hint ?? "Unavailable"}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">MT5 account</dt>
@@ -95,7 +95,15 @@ function MT5AuthorizationPage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Account</dt>
-            <dd>{request.data.account_name ?? "MT5 account"}</dd>
+            <dd>{request.data.account_name ?? "Unavailable"}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Currency</dt>
+            <dd>{request.data.currency ?? "Unavailable"}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Leverage</dt>
+            <dd>{request.data.leverage ? `1:${request.data.leverage}` : "Unavailable"}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">EA</dt>
@@ -107,12 +115,22 @@ function MT5AuthorizationPage() {
               <dd>{request.data.terminal_build}</dd>
             </div>
           )}
+          {(request.data.terminal_name || request.data.terminal_company) && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Terminal</dt>
+              <dd>
+                {[request.data.terminal_name, request.data.terminal_company]
+                  .filter(Boolean)
+                  .join(" — ")}
+              </dd>
+            </div>
+          )}
         </dl>
         {!expired && !decided && (
           <>
-            {validation && !validation.ok && (
-              <p className="text-sm text-destructive">{validation.message}</p>
-            )}
+            <p className={validation.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>
+              {validation.message}
+            </p>
             <p className="text-xs text-muted-foreground">
               Kocel never receives your broker password. Credentials remain inside MetaTrader 5.
             </p>

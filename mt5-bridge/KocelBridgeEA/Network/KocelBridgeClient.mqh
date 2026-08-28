@@ -84,8 +84,12 @@ private:
       payload += "\"environment\":" + KocelJsonStringOrNull(account.environment) + ",";
       payload += "\"broker\":" + KocelJsonStringOrNull(account.broker) + ",";
       payload += "\"accountName\":" + KocelJsonStringOrNull(account.account_name) + ",";
+      payload += "\"currency\":" + KocelJsonStringOrNull(account.currency) + ",";
+      payload += "\"leverage\":" + IntegerToString(account.leverage) + ",";
       payload += "\"eaVersion\":" + KocelJsonString(KOCEL_EA_VERSION) + ",";
-      payload += "\"terminalBuild\":" + KocelJsonString(IntegerToString(account.terminal_build));
+      payload += "\"terminalBuild\":" + KocelJsonString(IntegerToString(account.terminal_build)) + ",";
+      payload += "\"terminalName\":" + KocelJsonStringOrNull(account.terminal_name) + ",";
+      payload += "\"terminalCompany\":" + KocelJsonStringOrNull(account.terminal_company);
       payload += "}";
       return payload;
    }

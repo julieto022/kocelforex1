@@ -55,8 +55,12 @@ export const bridgeService: BridgeService = {
         environment: request.environment ?? null,
         broker_hint: request.broker ?? null,
         account_name: request.accountName ?? null,
+        currency: request.currency ?? null,
+        leverage: request.leverage ?? null,
         ea_version: request.eaVersion,
         terminal_build: request.terminalBuild ?? null,
+        terminal_name: request.terminalName ?? null,
+        terminal_company: request.terminalCompany ?? null,
         poll_token_hash: await hashSecretValue(pollToken),
         expires_at: expiresAt,
         status: "WAITING_FOR_USER",
@@ -101,7 +105,11 @@ export const bridgeService: BridgeService = {
       new Date(data.expires_at).getTime() < Date.now() &&
       ["WAITING_FOR_USER", "AUTHORIZATION_REQUESTED"].includes(data.status)
     ) {
-      await db.from("mt5_authorization_requests").update({ status: "EXPIRED" }).eq("id", data.id);
+      await db
+        .from("mt5_authorization_requests")
+        .update({ status: "EXPIRED" })
+        .eq("id", data.id)
+        .eq("status", "WAITING_FOR_USER");
       return { status: "EXPIRED" as const };
     }
     if (data.status !== "AUTHORIZED" || !data.connection_id) {
@@ -201,6 +209,9 @@ export const bridgeService: BridgeService = {
       .update({
         status,
         last_seen_at: now,
+        ...(payload.account
+          ? { currency: payload.account.currency, leverage: payload.account.leverage }
+          : {}),
         ...(status === "CONNECTED" ? { last_connected_at: now } : {}),
       })
       .eq("id", identity.connectionId);

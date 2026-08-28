@@ -27,7 +27,7 @@ const faqs = [
   {
     question: "Which MT5 brokers are supported?",
     answer:
-      "Support is added broker by broker. The Settings → MT5 Accounts screen shows each broker's current status, and unsupported brokers are clearly marked.",
+      "Kocel Bridge works with any broker that provides an MT5 account. The Settings → MT5 Accounts screen shows each connected terminal.",
   },
   {
     question: "Does Kocel need my broker password?",

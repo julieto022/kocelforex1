@@ -71,7 +71,7 @@ function DashboardPage() {
             title={active ? `${active.account_name}` : "Account"}
             description={
               active
-                ? `${active.broker?.name ?? "MT5 broker"} · ${maskLogin(active.mt5_login)} · ${active.server}`
+                ? `${active.broker_name ?? active.broker?.name ?? "MT5 broker"} · ${maskLogin(active.mt5_login)} · ${active.server}`
                 : undefined
             }
             action={active ? <BridgeStatusBadge status={active.status} /> : undefined}

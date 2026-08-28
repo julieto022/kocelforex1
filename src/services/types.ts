@@ -90,15 +90,20 @@ export type Broker = {
 export type BrokerConnection = {
   id: string;
   user_id: string;
-  broker_id: string;
+  broker_id: string | null;
+  broker_name: string | null;
   account_name: string;
   nickname: string | null;
   mt5_login: string;
   server: string;
   account_type: string | null;
   environment: "demo" | "real" | string;
+  currency: string | null;
+  leverage: number | null;
   status: BridgeStatus;
   terminal_build: string | null;
+  terminal_name: string | null;
+  terminal_company: string | null;
   authorized_at: string | null;
   revoked_at: string | null;
   last_seen_at: string | null;

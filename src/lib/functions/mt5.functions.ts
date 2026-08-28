@@ -10,76 +10,28 @@ const idSchema = z.object({ connectionId: z.string().uuid() });
 
 const requestSchema = z.object({ requestId: z.string().uuid() });
 
-type AuthorizationBroker = {
-  id: string;
-  name: string;
-  slug: string;
-  status: string;
-  supported: boolean;
-  connection_config: unknown;
-};
-
-type AuthorizationValidation =
-  | { ok: true; brokerId: string }
-  | { ok: false; code: "UNSUPPORTED_BROKER" | "INVALID_ENVIRONMENT" | "INVALID_BROKER_SERVER"; message: string };
-
-function normalized(value: string | null | undefined) {
-  return value?.trim().toLowerCase() ?? "";
-}
-
-function matchesServerPattern(server: string, pattern: string) {
-  const escaped = pattern.replace(/[.+^${}()|[\\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replaceAll("%", ".*").replaceAll("_", ".")}$`, "i").test(server);
-}
-
-function validateAuthorizationBroker(
-  request: { broker_hint: string | null; server: string; environment: string | null },
-  brokers: AuthorizationBroker[],
-): AuthorizationValidation {
+function validateAuthorizationRequest(request: {
+  broker_hint: string | null;
+  server: string;
+  environment: string | null;
+}) {
+  if (!request.broker_hint?.trim()) {
+    return { ok: false as const, message: "The MT5 terminal did not provide a broker name." };
+  }
+  if (
+    request.server.length < 2 ||
+    request.server.length > 120 ||
+    /[\u0000-\u001F\u007F]/.test(request.server)
+  ) {
+    return { ok: false as const, message: "The MT5 terminal server value is invalid." };
+  }
   if (request.environment !== "DEMO" && request.environment !== "REAL") {
     return {
-      ok: false,
-      code: "INVALID_ENVIRONMENT",
+      ok: false as const,
       message: "The MT5 terminal environment is missing or invalid.",
     };
   }
-
-  const brokerHint = normalized(request.broker_hint);
-  const broker = brokers.find((candidate) => {
-    const config = candidate.connection_config;
-    const hints =
-      config && typeof config === "object" && "broker_hints" in config && Array.isArray(config.broker_hints)
-        ? config.broker_hints.filter((hint): hint is string => typeof hint === "string")
-        : [];
-    return (
-      normalized(candidate.slug) === brokerHint ||
-      normalized(candidate.name) === brokerHint ||
-      hints.some((hint) => normalized(hint) === brokerHint)
-    );
-  });
-
-  if (!broker || !broker.supported || !["supported", "active"].includes(broker.status)) {
-    return {
-      ok: false,
-      code: "UNSUPPORTED_BROKER",
-      message: "Unsupported Broker. Kocel Bridge currently supports Exness and Deriv.",
-    };
-  }
-
-  const config = broker.connection_config;
-  const patterns =
-    config && typeof config === "object" && "server_patterns" in config && Array.isArray(config.server_patterns)
-      ? config.server_patterns.filter((pattern): pattern is string => typeof pattern === "string")
-      : [];
-  if (!patterns.some((pattern) => matchesServerPattern(request.server, pattern))) {
-    return {
-      ok: false,
-      code: "INVALID_BROKER_SERVER",
-      message: "The detected broker and MT5 server do not match a supported Kocel configuration.",
-    };
-  }
-
-  return { ok: true, brokerId: broker.id };
+  return { ok: true as const, message: "MT5 broker detected." };
 }
 
 export const getAuthorizationRequest = createServerFn({ method: "POST" })
@@ -90,7 +42,7 @@ export const getAuthorizationRequest = createServerFn({ method: "POST" })
     const { data: request, error } = await supabaseAdmin
       .from("mt5_authorization_requests")
       .select(
-        "id, mt5_login, server, environment, account_name, broker_hint, ea_version, terminal_build, status, expires_at",
+        "id, mt5_login, server, environment, account_name, broker_hint, currency, leverage, ea_version, terminal_build, terminal_name, terminal_company, status, expires_at",
       )
       .eq("id", data.requestId)
       .maybeSingle();
@@ -103,16 +55,13 @@ export const getAuthorizationRequest = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("mt5_authorization_requests")
         .update({ status: "EXPIRED" })
-        .eq("id", request.id);
-      return { ...request, status: "EXPIRED" };
+        .eq("id", request.id)
+        .eq("status", "WAITING_FOR_USER");
+      return { ...request, status: "EXPIRED", validation: validateAuthorizationRequest(request) };
     }
-    const { data: brokers, error: brokersError } = await supabaseAdmin
-      .from("brokers")
-      .select("id, name, slug, status, supported, connection_config");
-    if (brokersError) throw toApiError(brokersError);
     return {
       ...request,
-      validation: validateAuthorizationBroker(request, (brokers ?? []) as AuthorizationBroker[]),
+      validation: validateAuthorizationRequest(request),
     };
   });
 
@@ -134,18 +83,14 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
     ) {
       throw conflict("This authorization request is no longer available.");
     }
-    const { data: brokers, error: brokersError } = await supabaseAdmin
-      .from("brokers")
-      .select("id, name, slug, status, supported, connection_config");
-    if (brokersError) throw toApiError(brokersError);
-    const validation = validateAuthorizationBroker(request, (brokers ?? []) as AuthorizationBroker[]);
+    const validation = validateAuthorizationRequest(request);
     if (!validation.ok) throw conflict(validation.message);
     const { data: connectionId, error } = await supabaseAdmin.rpc(
       "approve_mt5_authorization_request",
       {
         _request_id: data.requestId,
         _user_id: userId,
-        _broker_id: validation.brokerId,
+        _broker_id: null as unknown as string,
         // Identity fields are read from the locked EA request by the SQL function.
         _account_name: null as unknown as string,
         _nickname: null as unknown as string,
@@ -163,10 +108,8 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
         throw conflict("This authorization request has already been decided.");
       if (message.includes("INVALID_ENVIRONMENT") || message.includes("ENVIRONMENT_MISMATCH"))
         throw conflict("The MT5 terminal environment is missing or invalid.");
-      if (message.includes("BROKER_NOT_SUPPORTED"))
-        throw conflict("That broker is not available for MT5 connections.");
-      if (message.includes("SERVER_MISMATCH"))
-        throw conflict("The broker server does not match the MT5 terminal.");
+      if (message.includes("INVALID_BROKER_IDENTITY"))
+        throw conflict("The detected MT5 broker identity is invalid.");
       throw toApiError(error);
     }
     await recordAudit({
@@ -183,7 +126,7 @@ export const rejectAuthorizationRequest = createServerFn({ method: "POST" })
   .validator((data: unknown) => requestSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
+    const { data: rejected, error } = await supabaseAdmin
       .from("mt5_authorization_requests")
       .update({
         status: "REJECTED",
@@ -191,8 +134,11 @@ export const rejectAuthorizationRequest = createServerFn({ method: "POST" })
         decided_at: new Date().toISOString(),
       })
       .eq("id", data.requestId)
-      .eq("status", "WAITING_FOR_USER");
+      .eq("status", "WAITING_FOR_USER")
+      .select("id")
+      .maybeSingle();
     if (error) throw toApiError(error);
+    if (!rejected) throw conflict("This authorization request is no longer available.");
     await recordAudit({
       userId: context.userId,
       action: "CONNECTION_REJECTED",

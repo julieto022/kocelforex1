@@ -50,11 +50,15 @@ export type BridgeIdentity = {
 export type BridgeRegisterRequest = {
   mt5Login: string;
   server: string;
-  environment?: ConnectionEnvironment | null;
-  broker?: string | null;
+  environment: ConnectionEnvironment;
+  broker: string;
   accountName?: string | null;
+  currency?: string | null;
+  leverage?: number | null;
   eaVersion: string;
   terminalBuild?: string | null;
+  terminalName?: string | null;
+  terminalCompany?: string | null;
 };
 
 export type BridgeRegisterResult = {

@@ -20,8 +20,12 @@ describe.skipIf(!integrationEnabled)("Bridge API integration", () => {
       environment: "DEMO",
       broker: "Kocel Test Broker",
       accountName: "Integration test account",
+      currency: "USD",
+      leverage: 100,
       eaVersion: "test-1.0.0",
       terminalBuild: "test-build",
+      terminalName: "MetaTrader 5",
+      terminalCompany: "MetaQuotes Ltd.",
     });
     createdRequestIds.push(result.requestId);
     createdPollToken = result.pollToken;

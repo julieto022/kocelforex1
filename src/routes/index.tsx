@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Kocel Forex Hub gives traders one platform to monitor, analyze and automate MT5 trading across supported brokers such as Deriv MT5 and Exness MT5.",
+          "Kocel Forex Hub gives traders one platform to monitor, analyze and automate MT5 trading across any broker supported by MetaTrader 5.",
       },
       { property: "og:title", content: "Kocel Forex Hub — One Hub. Any MT5 Broker." },
       {
