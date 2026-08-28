@@ -1,17 +1,13 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import { isApiError } from "./lib/api/errors";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
     return await next();
   } catch (error) {
-    if (
-      isApiError(error) ||
-      (error != null && typeof error === "object" && "statusCode" in error)
-    ) {
+    if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
     console.error(error);
