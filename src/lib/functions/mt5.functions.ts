@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { conflict, notFound, toApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/api/logger";
 import { recordAudit } from "@/lib/server/audit.server";
 import { requireOwnership } from "@/lib/server/ownership.server";
 
@@ -77,6 +78,12 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
       .eq("id", data.requestId)
       .maybeSingle();
     if (!request) throw notFound();
+    if (request.status === "AUTHORIZED") {
+      if (request.user_id !== userId || !request.connection_id) {
+        throw conflict("This authorization request is not available for your account.");
+      }
+      return { connectionId: request.connection_id };
+    }
     if (
       request.status !== "WAITING_FOR_USER" ||
       new Date(request.expires_at).getTime() < Date.now()
@@ -100,12 +107,24 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
     );
     if (error || !connectionId) {
       const message = error?.message ?? "";
+      logger.error("bridge", "approval failed", {
+        requestId: data.requestId,
+        userId,
+        errorCode: error?.code,
+        errorMessage: error?.message,
+        errorDetails: error?.details,
+        errorHint: error?.hint,
+      });
       if (message.includes("DUPLICATE_CONNECTION"))
         throw conflict("That MT5 account is already connected to your workspace.");
+      if (message.includes("AUTHORIZATION_NOT_FOUND"))
+        throw notFound("This authorization request no longer exists.");
       if (message.includes("AUTHORIZATION_EXPIRED"))
         throw conflict("This authorization request has expired.");
       if (message.includes("AUTHORIZATION_ALREADY_DECIDED"))
         throw conflict("This authorization request has already been decided.");
+      if (message.includes("AUTHORIZATION_OWNERSHIP_MISMATCH"))
+        throw conflict("This authorization request is not available for your account.");
       if (message.includes("INVALID_ENVIRONMENT") || message.includes("ENVIRONMENT_MISMATCH"))
         throw conflict("The MT5 terminal environment is missing or invalid.");
       if (message.includes("INVALID_BROKER_IDENTITY"))
