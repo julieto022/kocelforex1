@@ -100,11 +100,6 @@ export type BrokerConnection = {
   environment: "demo" | "real" | string;
   currency: string | null;
   leverage: number | null;
-  balance: number | null;
-  equity: number | null;
-  margin: number | null;
-  free_margin: number | null;
-  margin_level: number | null;
   status: BridgeStatus;
   terminal_build: string | null;
   terminal_name: string | null;

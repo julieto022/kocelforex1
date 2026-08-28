@@ -8,7 +8,7 @@ export type DashboardData = {
 
 /**
  * Account figures are only ever real values reported by the Kocel Bridge EA.
- * Values are populated by authenticated Bridge EA heartbeats.
+ * Until the Phase 2 bridge backend is connected this returns no figures at all.
  */
 export async function getDashboard(connection: BrokerConnection | null): Promise<DashboardData> {
   if (!connection) {
@@ -25,22 +25,8 @@ export async function getDashboard(connection: BrokerConnection | null): Promise
       message: "Account information appears once the Kocel Bridge EA reports this account.",
     };
   }
-  if (connection.balance !== null && connection.equity !== null) {
-    return {
-      live: true,
-      summary: {
-        balance: connection.balance,
-        equity: connection.equity,
-        free_margin: connection.free_margin,
-        margin_level: connection.margin_level,
-        today_pl: null,
-        total_pl: null,
-        currency: connection.currency ?? "",
-      },
-    };
-  }
   return {
-    live: true,
+    live: false,
     summary: null,
     message: "Waiting for the Kocel Bridge EA to deliver account figures.",
   };

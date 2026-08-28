@@ -26,7 +26,6 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
     queryKey: ["connections", user?.id],
     queryFn: () => getMT5Connections(user!.id),
     enabled: Boolean(user?.id),
-    refetchInterval: 5_000,
   });
 
   useEffect(() => {

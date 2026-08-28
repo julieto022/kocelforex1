@@ -168,25 +168,20 @@ export type Database = {
         Row: {
           account_name: string
           account_type: string | null
-          balance: number | null
           authorized_at: string | null
           broker_id: string
           created_at: string
           currency: string | null
           ea_version: string | null
-          equity: number | null
           environment: string
           id: string
           last_connected_at: string | null
           last_seen_at: string | null
           leverage: number | null
-          margin: number | null
-          margin_level: number | null
           mt5_login: string
           nickname: string | null
           revoked_at: string | null
           server: string
-          free_margin: number | null
           status: string
           terminal_build: string | null
           terminal_company: string | null
@@ -197,25 +192,20 @@ export type Database = {
         Insert: {
           account_name: string
           account_type?: string | null
-          balance?: number | null
           authorized_at?: string | null
           broker_id: string
           created_at?: string
           currency?: string | null
           ea_version?: string | null
-          equity?: number | null
           environment?: string
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
           leverage?: number | null
-          margin?: number | null
-          margin_level?: number | null
           mt5_login: string
           nickname?: string | null
           revoked_at?: string | null
           server: string
-          free_margin?: number | null
           status?: string
           terminal_build?: string | null
           terminal_company?: string | null
@@ -226,25 +216,20 @@ export type Database = {
         Update: {
           account_name?: string
           account_type?: string | null
-          balance?: number | null
           authorized_at?: string | null
           broker_id?: string
           created_at?: string
           currency?: string | null
           ea_version?: string | null
-          equity?: number | null
           environment?: string
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
           leverage?: number | null
-          margin?: number | null
-          margin_level?: number | null
           mt5_login?: string
           nickname?: string | null
           revoked_at?: string | null
           server?: string
-          free_margin?: number | null
           status?: string
           terminal_build?: string | null
           terminal_company?: string | null
@@ -1380,7 +1365,7 @@ export type Database = {
           _token_hash: string
           _user_id: string
         }
-        Returns: boolean
+        Returns: undefined
       }
       soft_delete_account: { Args: { _user_id: string }; Returns: undefined }
     }

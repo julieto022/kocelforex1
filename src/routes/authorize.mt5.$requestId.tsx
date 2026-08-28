@@ -28,14 +28,8 @@ function MT5AuthorizationPage() {
   const approve = useMutation({
     mutationFn: () =>
       approveAuthorizationRequest({ data: { requestId } }),
+    onSuccess: () => toast.success("MT5 successfully connected to Kocel."),
     onError: (error: Error) => toast.error(error.message),
-  });
-  const connectionState = useQuery({
-    queryKey: ["mt5-connection-state", approve.data?.connectionId],
-    queryFn: () => getConnectionState({ data: { connectionId: approve.data!.connectionId } }),
-    enabled: Boolean(approve.data?.connectionId),
-    refetchInterval: (query) =>
-      query.state.data?.status === "CONNECTED" ? false : 2_000,
   });
   const reject = useMutation({
     mutationFn: () => rejectAuthorizationRequest({ data: { requestId } }),
@@ -75,8 +69,6 @@ function MT5AuthorizationPage() {
   const expired = request.data.status === "EXPIRED";
   const decided = request.data.status !== "WAITING_FOR_USER";
   const validation = request.data.validation;
-  const bridgeReady =
-    connectionState.data?.status === "CONNECTED" && Boolean(connectionState.data.last_seen_at);
 
   return (
     <AuthLayout
@@ -134,17 +126,7 @@ function MT5AuthorizationPage() {
             </div>
           )}
         </dl>
-        {approve.data && !bridgeReady && (
-          <p className="text-sm text-muted-foreground">
-            Connection approved. Waiting for the Kocel Bridge EA to authenticate and send its first heartbeat…
-          </p>
-        )}
-        {bridgeReady && (
-          <p className="text-sm text-muted-foreground">
-            MT5 connected successfully. The Bridge EA is synchronizing your account.
-          </p>
-        )}
-        {!expired && !decided && !approve.data && (
+        {!expired && !decided && (
           <>
             <p className={validation.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>
               {validation.message}
@@ -159,7 +141,7 @@ function MT5AuthorizationPage() {
                 onClick={() => approve.mutate()}
               >
                 <Check className="mr-2 size-4" />
-                {approve.isPending ? "Approving connection…" : "Approve connection"}
+                Approve connection
               </Button>
               <Button variant="outline" disabled={reject.isPending} onClick={() => reject.mutate()}>
                 <X className="mr-2 size-4" />

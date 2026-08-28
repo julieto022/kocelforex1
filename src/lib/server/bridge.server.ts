@@ -210,15 +210,7 @@ export const bridgeService: BridgeService = {
         status,
         last_seen_at: now,
         ...(payload.account
-          ? {
-              balance: payload.account.balance,
-              equity: payload.account.equity,
-              margin: payload.account.margin,
-              free_margin: payload.account.freeMargin,
-              margin_level: payload.account.marginLevel,
-              currency: payload.account.currency,
-              leverage: payload.account.leverage,
-            }
+          ? { currency: payload.account.currency, leverage: payload.account.leverage }
           : {}),
         ...(status === "CONNECTED" ? { last_connected_at: now } : {}),
       })
