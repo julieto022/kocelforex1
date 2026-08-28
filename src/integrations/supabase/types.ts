@@ -169,24 +169,19 @@ export type Database = {
           account_name: string
           account_type: string | null
           authorized_at: string | null
-          broker_id: string | null
-          broker_name: string | null
-          currency: string | null
+          broker_id: string
           created_at: string
           ea_version: string | null
           environment: string
           id: string
           last_connected_at: string | null
           last_seen_at: string | null
-          leverage: number | null
           mt5_login: string
           nickname: string | null
           revoked_at: string | null
           server: string
           status: string
           terminal_build: string | null
-          terminal_company: string | null
-          terminal_name: string | null
           updated_at: string
           user_id: string
         }
@@ -194,24 +189,19 @@ export type Database = {
           account_name: string
           account_type?: string | null
           authorized_at?: string | null
-          broker_id?: string | null
-          broker_name?: string | null
-          currency?: string | null
+          broker_id: string
           created_at?: string
           ea_version?: string | null
           environment?: string
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
-          leverage?: number | null
           mt5_login: string
           nickname?: string | null
           revoked_at?: string | null
           server: string
           status?: string
           terminal_build?: string | null
-          terminal_company?: string | null
-          terminal_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -219,24 +209,19 @@ export type Database = {
           account_name?: string
           account_type?: string | null
           authorized_at?: string | null
-          broker_id?: string | null
-          broker_name?: string | null
-          currency?: string | null
+          broker_id?: string
           created_at?: string
           ea_version?: string | null
           environment?: string
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
-          leverage?: number | null
           mt5_login?: string
           nickname?: string | null
           revoked_at?: string | null
           server?: string
           status?: string
           terminal_build?: string | null
-          terminal_company?: string | null
-          terminal_name?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -659,7 +644,6 @@ export type Database = {
         Row: {
           account_name: string | null
           broker_hint: string | null
-          currency: string | null
           connection_id: string | null
           created_at: string
           decided_at: string | null
@@ -667,22 +651,18 @@ export type Database = {
           environment: string | null
           expires_at: string
           id: string
-          leverage: number | null
           mt5_login: string
           poll_token_hash: string
           poll_token_used_at: string | null
           server: string
           status: string
           terminal_build: string | null
-          terminal_company: string | null
-          terminal_name: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
           account_name?: string | null
           broker_hint?: string | null
-          currency?: string | null
           connection_id?: string | null
           created_at?: string
           decided_at?: string | null
@@ -690,22 +670,18 @@ export type Database = {
           environment?: string | null
           expires_at: string
           id?: string
-          leverage?: number | null
           mt5_login: string
           poll_token_hash: string
           poll_token_used_at?: string | null
           server: string
           status?: string
           terminal_build?: string | null
-          terminal_company?: string | null
-          terminal_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           account_name?: string | null
           broker_hint?: string | null
-          currency?: string | null
           connection_id?: string | null
           created_at?: string
           decided_at?: string | null
@@ -713,15 +689,12 @@ export type Database = {
           environment?: string | null
           expires_at?: string
           id?: string
-          leverage?: number | null
           mt5_login?: string
           poll_token_hash?: string
           poll_token_used_at?: string | null
           server?: string
           status?: string
           terminal_build?: string | null
-          terminal_company?: string | null
-          terminal_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
