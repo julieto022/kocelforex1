@@ -1,20 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Loader2, X } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 
 import { AuthLayout } from "@/components/kocel/auth-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import {
   approveAuthorizationRequest,
   getAuthorizationRequest,
   rejectAuthorizationRequest,
 } from "@/lib/functions/mt5.functions";
-import { getBrokerList } from "@/services/brokers";
 
 export const Route = createFileRoute("/authorize/mt5/$requestId")({
   component: MT5AuthorizationPage,
@@ -23,38 +19,16 @@ export const Route = createFileRoute("/authorize/mt5/$requestId")({
 function MT5AuthorizationPage() {
   const { requestId } = Route.useParams();
   const { session } = useAuth();
-  const [accountName, setAccountName] = useState("");
-  const [nickname, setNickname] = useState("");
-  const [brokerId, setBrokerId] = useState("");
-  const [environment, setEnvironment] = useState<"DEMO" | "REAL">("REAL");
 
   const request = useQuery({
     queryKey: ["mt5-authorization", requestId],
     queryFn: () => getAuthorizationRequest({ data: { requestId } }),
     enabled: Boolean(session),
   });
-  const brokers = useQuery({
-    queryKey: ["brokers"],
-    queryFn: getBrokerList,
-    enabled: Boolean(session),
-  });
-  const requestedEnvironment =
-    request.data?.environment === "DEMO" || request.data?.environment === "REAL"
-      ? request.data.environment
-      : null;
   const approve = useMutation({
     mutationFn: () =>
-      approveAuthorizationRequest({
-        data: {
-          requestId,
-          brokerId,
-          accountName: accountName.trim() || request.data?.account_name || "MT5 account",
-          nickname: nickname.trim() || null,
-          accountType: null,
-          environment: requestedEnvironment ?? environment,
-        },
-      }),
-    onSuccess: () => toast.success("MT5 connection approved"),
+      approveAuthorizationRequest({ data: { requestId } }),
+    onSuccess: () => toast.success("MT5 successfully connected to Kocel."),
     onError: (error: Error) => toast.error(error.message),
   });
   const reject = useMutation({
@@ -94,6 +68,7 @@ function MT5AuthorizationPage() {
     );
   const expired = request.data.status === "EXPIRED";
   const decided = request.data.status !== "WAITING_FOR_USER";
+  const validation = request.data.validation;
 
   return (
     <AuthLayout
@@ -115,65 +90,36 @@ function MT5AuthorizationPage() {
             <dd>{request.data.server}</dd>
           </div>
           <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Environment</dt>
+            <dd>{request.data.environment ?? "Unavailable"}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Account</dt>
+            <dd>{request.data.account_name ?? "MT5 account"}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">EA</dt>
             <dd>Kocel Bridge EA {request.data.ea_version}</dd>
           </div>
+          {request.data.terminal_build && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Terminal build</dt>
+              <dd>{request.data.terminal_build}</dd>
+            </div>
+          )}
         </dl>
         {!expired && !decided && (
           <>
-            <div className="space-y-1.5">
-              <Label htmlFor="broker">Kocel broker record</Label>
-              <select
-                id="broker"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={brokerId}
-                onChange={(event) => setBrokerId(event.target.value)}
-              >
-                <option value="">Select broker</option>
-                {(brokers.data ?? []).map((broker) => (
-                  <option key={broker.id} value={broker.id}>
-                    {broker.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="environment">Environment</Label>
-              <select
-                id="environment"
-                disabled={Boolean(requestedEnvironment)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={requestedEnvironment ?? environment}
-                onChange={(event) => setEnvironment(event.target.value as "DEMO" | "REAL")}
-              >
-                <option value="DEMO">Demo</option>
-                <option value="REAL">Real</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="accountName">Account name</Label>
-              <Input
-                id="accountName"
-                value={accountName}
-                placeholder={request.data.account_name ?? "MT5 account"}
-                onChange={(event) => setAccountName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="nickname">Label (optional)</Label>
-              <Input
-                id="nickname"
-                value={nickname}
-                onChange={(event) => setNickname(event.target.value)}
-              />
-            </div>
+            {validation && !validation.ok && (
+              <p className="text-sm text-destructive">{validation.message}</p>
+            )}
             <p className="text-xs text-muted-foreground">
               Kocel never receives your broker password. Credentials remain inside MetaTrader 5.
             </p>
             <div className="flex gap-2">
               <Button
                 className="flex-1"
-                disabled={!brokerId || approve.isPending}
+                disabled={!validation?.ok || approve.isPending}
                 onClick={() => approve.mutate()}
               >
                 <Check className="mr-2 size-4" />

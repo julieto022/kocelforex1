@@ -9,13 +9,78 @@ import { requireOwnership } from "@/lib/server/ownership.server";
 const idSchema = z.object({ connectionId: z.string().uuid() });
 
 const requestSchema = z.object({ requestId: z.string().uuid() });
-const approveSchema = requestSchema.extend({
-  brokerId: z.string().uuid(),
-  accountName: z.string().trim().min(2).max(80),
-  accountType: z.string().trim().max(40).nullish(),
-  environment: z.enum(["DEMO", "REAL"]),
-  nickname: z.string().trim().max(60).nullish(),
-});
+
+type AuthorizationBroker = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  supported: boolean;
+  connection_config: unknown;
+};
+
+type AuthorizationValidation =
+  | { ok: true; brokerId: string }
+  | { ok: false; code: "UNSUPPORTED_BROKER" | "INVALID_ENVIRONMENT" | "INVALID_BROKER_SERVER"; message: string };
+
+function normalized(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function matchesServerPattern(server: string, pattern: string) {
+  const escaped = pattern.replace(/[.+^${}()|[\\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped.replaceAll("%", ".*").replaceAll("_", ".")}$`, "i").test(server);
+}
+
+function validateAuthorizationBroker(
+  request: { broker_hint: string | null; server: string; environment: string | null },
+  brokers: AuthorizationBroker[],
+): AuthorizationValidation {
+  if (request.environment !== "DEMO" && request.environment !== "REAL") {
+    return {
+      ok: false,
+      code: "INVALID_ENVIRONMENT",
+      message: "The MT5 terminal environment is missing or invalid.",
+    };
+  }
+
+  const brokerHint = normalized(request.broker_hint);
+  const broker = brokers.find((candidate) => {
+    const config = candidate.connection_config;
+    const hints =
+      config && typeof config === "object" && "broker_hints" in config && Array.isArray(config.broker_hints)
+        ? config.broker_hints.filter((hint): hint is string => typeof hint === "string")
+        : [];
+    return (
+      normalized(candidate.slug) === brokerHint ||
+      normalized(candidate.name) === brokerHint ||
+      hints.some((hint) => normalized(hint) === brokerHint)
+    );
+  });
+
+  if (!broker || !broker.supported || !["supported", "active"].includes(broker.status)) {
+    return {
+      ok: false,
+      code: "UNSUPPORTED_BROKER",
+      message: "Unsupported Broker. Kocel Bridge currently supports Exness and Deriv.",
+    };
+  }
+
+  const config = broker.connection_config;
+  const patterns =
+    config && typeof config === "object" && "server_patterns" in config && Array.isArray(config.server_patterns)
+      ? config.server_patterns.filter((pattern): pattern is string => typeof pattern === "string")
+      : [];
+  if (!patterns.some((pattern) => matchesServerPattern(request.server, pattern))) {
+    return {
+      ok: false,
+      code: "INVALID_BROKER_SERVER",
+      message: "The detected broker and MT5 server do not match a supported Kocel configuration.",
+    };
+  }
+
+  return { ok: true, brokerId: broker.id };
+}
 
 export const getAuthorizationRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -41,12 +106,19 @@ export const getAuthorizationRequest = createServerFn({ method: "POST" })
         .eq("id", request.id);
       return { ...request, status: "EXPIRED" };
     }
-    return request;
+    const { data: brokers, error: brokersError } = await supabaseAdmin
+      .from("brokers")
+      .select("id, name, slug, status, supported, connection_config");
+    if (brokersError) throw toApiError(brokersError);
+    return {
+      ...request,
+      validation: validateAuthorizationBroker(request, (brokers ?? []) as AuthorizationBroker[]),
+    };
   });
 
 export const approveAuthorizationRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) => approveSchema.parse(data))
+  .validator((data: unknown) => requestSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -62,17 +134,23 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
     ) {
       throw conflict("This authorization request is no longer available.");
     }
+    const { data: brokers, error: brokersError } = await supabaseAdmin
+      .from("brokers")
+      .select("id, name, slug, status, supported, connection_config");
+    if (brokersError) throw toApiError(brokersError);
+    const validation = validateAuthorizationBroker(request, (brokers ?? []) as AuthorizationBroker[]);
+    if (!validation.ok) throw conflict(validation.message);
     const { data: connectionId, error } = await supabaseAdmin.rpc(
       "approve_mt5_authorization_request",
       {
         _request_id: data.requestId,
         _user_id: userId,
-        _broker_id: data.brokerId,
-        _account_name: data.accountName,
-        // The SQL function accepts NULL for both; generated RPC types widen them to string.
-        _nickname: (data.nickname ?? null) as unknown as string,
-        _account_type: (data.accountType ?? null) as unknown as string,
-        _environment: data.environment,
+        _broker_id: validation.brokerId,
+        // Identity fields are read from the locked EA request by the SQL function.
+        _account_name: null as unknown as string,
+        _nickname: null as unknown as string,
+        _account_type: null as unknown as string,
+        _environment: null as unknown as string,
       },
     );
     if (error || !connectionId) {
@@ -83,8 +161,8 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
         throw conflict("This authorization request has expired.");
       if (message.includes("AUTHORIZATION_ALREADY_DECIDED"))
         throw conflict("This authorization request has already been decided.");
-      if (message.includes("ENVIRONMENT_MISMATCH"))
-        throw conflict("The selected environment does not match the MT5 terminal.");
+      if (message.includes("INVALID_ENVIRONMENT") || message.includes("ENVIRONMENT_MISMATCH"))
+        throw conflict("The MT5 terminal environment is missing or invalid.");
       if (message.includes("BROKER_NOT_SUPPORTED"))
         throw conflict("That broker is not available for MT5 connections.");
       if (message.includes("SERVER_MISMATCH"))
