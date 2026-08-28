@@ -171,17 +171,21 @@ export type Database = {
           authorized_at: string | null
           broker_id: string
           created_at: string
+          currency: string | null
           ea_version: string | null
           environment: string
           id: string
           last_connected_at: string | null
           last_seen_at: string | null
+          leverage: number | null
           mt5_login: string
           nickname: string | null
           revoked_at: string | null
           server: string
           status: string
           terminal_build: string | null
+          terminal_company: string | null
+          terminal_name: string | null
           updated_at: string
           user_id: string
         }
@@ -191,17 +195,21 @@ export type Database = {
           authorized_at?: string | null
           broker_id: string
           created_at?: string
+          currency?: string | null
           ea_version?: string | null
           environment?: string
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
+          leverage?: number | null
           mt5_login: string
           nickname?: string | null
           revoked_at?: string | null
           server: string
           status?: string
           terminal_build?: string | null
+          terminal_company?: string | null
+          terminal_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -211,17 +219,21 @@ export type Database = {
           authorized_at?: string | null
           broker_id?: string
           created_at?: string
+          currency?: string | null
           ea_version?: string | null
           environment?: string
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
+          leverage?: number | null
           mt5_login?: string
           nickname?: string | null
           revoked_at?: string | null
           server?: string
           status?: string
           terminal_build?: string | null
+          terminal_company?: string | null
+          terminal_name?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -646,17 +658,21 @@ export type Database = {
           broker_hint: string | null
           connection_id: string | null
           created_at: string
+          currency: string | null
           decided_at: string | null
           ea_version: string
           environment: string | null
           expires_at: string
           id: string
+          leverage: number | null
           mt5_login: string
           poll_token_hash: string
           poll_token_used_at: string | null
           server: string
           status: string
           terminal_build: string | null
+          terminal_company: string | null
+          terminal_name: string | null
           updated_at: string
           user_id: string | null
         }
@@ -665,17 +681,21 @@ export type Database = {
           broker_hint?: string | null
           connection_id?: string | null
           created_at?: string
+          currency?: string | null
           decided_at?: string | null
           ea_version: string
           environment?: string | null
           expires_at: string
           id?: string
+          leverage?: number | null
           mt5_login: string
           poll_token_hash: string
           poll_token_used_at?: string | null
           server: string
           status?: string
           terminal_build?: string | null
+          terminal_company?: string | null
+          terminal_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -684,17 +704,21 @@ export type Database = {
           broker_hint?: string | null
           connection_id?: string | null
           created_at?: string
+          currency?: string | null
           decided_at?: string | null
           ea_version?: string
           environment?: string | null
           expires_at?: string
           id?: string
+          leverage?: number | null
           mt5_login?: string
           poll_token_hash?: string
           poll_token_used_at?: string | null
           server?: string
           status?: string
           terminal_build?: string | null
+          terminal_company?: string | null
+          terminal_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
