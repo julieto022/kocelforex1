@@ -26,9 +26,12 @@ function MT5AuthorizationPage() {
     enabled: Boolean(session),
   });
   const approve = useMutation({
-    mutationFn: () =>
-      approveAuthorizationRequest({ data: { requestId } }),
-    onSuccess: () => toast.success("MT5 successfully connected to Kocel."),
+    mutationFn: () => approveAuthorizationRequest({ data: { requestId } }),
+    onSuccess: async () => {
+      toast.success("Connection approved. Synchronizing your MT5 account…");
+      await queryClient.invalidateQueries();
+      navigate({ to: "/dashboard", replace: true });
+    },
     onError: (error: Error) => toast.error(error.message),
   });
   const reject = useMutation({
