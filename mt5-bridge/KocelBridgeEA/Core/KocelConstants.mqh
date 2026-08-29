@@ -6,7 +6,7 @@ const string KOCEL_PRODUCT_NAME = "Kocel Forex Hub";
 const string KOCEL_EA_VERSION = "1.0.0";
 const int    KOCEL_PROTOCOL_VERSION = 1;
 
-#define KOCEL_DEFAULT_API_BASE_URL "https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8.lovable.app"
+#define KOCEL_DEFAULT_API_BASE_URL "https://kocelforexhub.lovable.app"
 
 const string KOCEL_ENDPOINT_REGISTER     = "/api/public/bridge/register";
 const string KOCEL_ENDPOINT_AUTHENTICATE = "/api/public/bridge/authenticate";
