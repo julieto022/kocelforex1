@@ -433,10 +433,12 @@ export const bridgeService: BridgeService = {
 };
 
 function canonicalAppUrl(): string {
-  const raw = process.env["PUBLIC_APP_URL"];
-  if (!raw) throw new ApiError("INTERNAL_ERROR", "PUBLIC_APP_URL is not configured.");
+  const preferredAppUrl = "https://kocelforexhub.lovable.app";
+  const raw = (process.env["PUBLIC_APP_URL"] || preferredAppUrl).trim();
+
   try {
-    const url = new URL(raw);
+    const candidate = raw.includes("kocelforex1") ? preferredAppUrl : raw;
+    const url = new URL(candidate);
     if (!url.protocol.startsWith("http")) throw new Error("invalid protocol");
     return url.origin;
   } catch {
