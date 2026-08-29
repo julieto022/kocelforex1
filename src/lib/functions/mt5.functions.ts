@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { conflict, notFound, toApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/api/logger";
 import { recordAudit } from "@/lib/server/audit.server";
 import { requireOwnership } from "@/lib/server/ownership.server";
 
