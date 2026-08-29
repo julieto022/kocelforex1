@@ -1336,15 +1336,7 @@ export type Database = {
     }
     Functions: {
       approve_mt5_authorization_request: {
-        Args: {
-          _account_name: string
-          _account_type: string
-          _broker_id: string
-          _environment: string
-          _nickname: string
-          _request_id: string
-          _user_id: string
-        }
+        Args: { _request_id: string; _user_id: string }
         Returns: string
       }
       bump_rate_limit: {
