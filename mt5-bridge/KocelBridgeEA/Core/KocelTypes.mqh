@@ -59,7 +59,7 @@ struct KocelMt5AccountSnapshot
 
 struct KocelMt5Position
 {
-   long ticket;
+   ulong ticket;
    string symbol;
    string type;
    double volume;
@@ -75,7 +75,7 @@ struct KocelMt5Position
 
 struct KocelMt5Order
 {
-   long ticket;
+   ulong ticket;
    string symbol;
    string type;
    double volume;

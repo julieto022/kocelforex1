@@ -122,7 +122,7 @@ private:
       return payload;
    }
 
-   string HeartbeatPayloadFull(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position *positions, const int pos_count, const KocelMt5Order *orders, const int order_count) const
+   string HeartbeatPayloadFull(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count) const
    {
       string margin_level = "null";
       if(snapshot.margin_level_available)
@@ -146,14 +146,13 @@ private:
       payload += "\"profit\":0";
       payload += "},";
 
-      // Add positions array
       payload += "\"positions\":[";
       for(int i = 0; i < pos_count; i++)
       {
          if(i > 0)
             payload += ",";
          payload += "{";
-         payload += "\"ticket\":" + IntegerToString((int)positions[i].ticket) + ",";
+         payload += "\"ticket\":" + StringFormat("%I64u", positions[i].ticket) + ",";
          payload += "\"symbol\":" + KocelJsonString(positions[i].symbol) + ",";
          payload += "\"type\":" + KocelJsonString(positions[i].type) + ",";
          payload += "\"volume\":" + DoubleToString(positions[i].volume, 2) + ",";
@@ -169,14 +168,13 @@ private:
       }
       payload += "],";
 
-      // Add orders array
       payload += "\"orders\":[";
       for(int i = 0; i < order_count; i++)
       {
          if(i > 0)
             payload += ",";
          payload += "{";
-         payload += "\"ticket\":" + IntegerToString((int)orders[i].ticket) + ",";
+         payload += "\"ticket\":" + StringFormat("%I64u", orders[i].ticket) + ",";
          payload += "\"symbol\":" + KocelJsonString(orders[i].symbol) + ",";
          payload += "\"type\":" + KocelJsonString(orders[i].type) + ",";
          payload += "\"volume\":" + DoubleToString(orders[i].volume, 2) + ",";
@@ -189,14 +187,43 @@ private:
          payload += "}";
       }
       payload += "],";
-      payload += "\"openTrades\":" + IntegerToString(pos_count + order_count);
+      payload += "\"openTrades\":" + IntegerToString(pos_count);
       payload += "}";
       return payload;
    }
 
-   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position *positions, const int pos_count, const KocelMt5Order *orders, const int order_count, string &message)
-
 public:
+   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, string &message)
+   {
+      message = "";
+      if(m_bridge_token == "")
+      {
+         message = "No Bridge session token is active.";
+         return false;
+      }
+
+      KocelHttpResponse response;
+      const string payload = HeartbeatPayloadFull(snapshot, positions, pos_count, orders, order_count);
+      const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_HEARTBEAT, payload, m_bridge_token, response);
+      m_last_response = response;
+      if(!http_ok)
+      {
+         message = response.error_message;
+         return false;
+      }
+
+      string data = "";
+      if(!ParseEnvelope(response, data, message))
+         return false;
+
+      KocelJsonGetString(data, "connectionId", m_connection_id);
+      KocelJsonGetString(data, "status", m_last_server_status);
+      KocelJsonGetString(data, "lastSeenAt", m_last_seen_at);
+      KocelJsonGetBool(data, "online", m_online);
+      message = "Heartbeat received.";
+      return true;
+   }
+
    CKocelBridgeClient()
    {
       Clear();
@@ -319,37 +346,6 @@ public:
       }
 
       message = "Authorization status: " + status + ".";
-      return true;
-   }
-
-   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position *positions, const int pos_count, const KocelMt5Order *orders, const int order_count, string &message)
-   {
-      message = "";
-      if(m_bridge_token == "")
-      {
-         message = "No Bridge session token is active.";
-         return false;
-      }
-
-      KocelHttpResponse response;
-      const string payload = HeartbeatPayloadFull(snapshot, positions, pos_count, orders, order_count);
-      const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_HEARTBEAT, payload, m_bridge_token, response);
-      m_last_response = response;
-      if(!http_ok)
-      {
-         message = response.error_message;
-         return false;
-      }
-
-      string data = "";
-      if(!ParseEnvelope(response, data, message))
-         return false;
-
-      KocelJsonGetString(data, "connectionId", m_connection_id);
-      KocelJsonGetString(data, "status", m_last_server_status);
-      KocelJsonGetString(data, "lastSeenAt", m_last_seen_at);
-      KocelJsonGetBool(data, "online", m_online);
-      message = "Heartbeat received.";
       return true;
    }
 

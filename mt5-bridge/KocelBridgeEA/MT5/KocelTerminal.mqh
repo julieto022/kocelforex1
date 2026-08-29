@@ -62,31 +62,35 @@ public:
       return PositionsTotal() + OrdersTotal();
    }
 
-   bool ReadOpenPositions(KocelMt5Position *&positions, int &count) const
+   bool ReadOpenPositions(KocelMt5Position &positions[], int &count) const
    {
+      ArrayFree(positions);
       count = PositionsTotal();
-      if(count == 0)
+      if(count <= 0)
          return true;
 
       if(ArrayResize(positions, count) != count)
       {
          ArrayFree(positions);
+         count = 0;
          return false;
       }
 
       for(int i = 0; i < count; i++)
       {
          ulong pos_ticket = PositionGetTicket(i);
-         if(!PositionSelectByTicket(pos_ticket))
+         if(pos_ticket == 0 || !PositionSelectByTicket(pos_ticket))
          {
             ArrayFree(positions);
+            count = 0;
             return false;
          }
 
          KocelResetPosition(positions[i]);
          positions[i].ticket = pos_ticket;
          positions[i].symbol = SafeString(PositionGetString(POSITION_SYMBOL));
-         positions[i].type = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ? "BUY" : "SELL";
+         const int position_type = (int)PositionGetInteger(POSITION_TYPE);
+         positions[i].type = (position_type == POSITION_TYPE_BUY) ? "BUY" : "SELL";
          positions[i].volume = PositionGetDouble(POSITION_VOLUME);
          positions[i].open_price = PositionGetDouble(POSITION_PRICE_OPEN);
          positions[i].current_price = PositionGetDouble(POSITION_PRICE_CURRENT);
@@ -94,48 +98,50 @@ public:
          positions[i].take_profit = PositionGetDouble(POSITION_TP);
          positions[i].current_profit = PositionGetDouble(POSITION_PROFIT);
          positions[i].swap = PositionGetDouble(POSITION_SWAP);
-         positions[i].magic = PositionGetInteger(POSITION_MAGIC);
-         positions[i].open_time = TimeToString(PositionGetInteger(POSITION_TIME), TIME_DATE|TIME_MINUTES);
+         positions[i].magic = (long)PositionGetInteger(POSITION_MAGIC);
+         const datetime open_time = (datetime)PositionGetInteger(POSITION_TIME);
+         positions[i].open_time = TimeToString(open_time, TIME_DATE | TIME_SECONDS);
       }
       return true;
    }
 
-   bool ReadPendingOrders(KocelMt5Order *&orders, int &count) const
+   bool ReadPendingOrders(KocelMt5Order &orders[], int &count) const
    {
+      ArrayFree(orders);
       count = OrdersTotal();
-      if(count == 0)
+      if(count <= 0)
          return true;
 
       if(ArrayResize(orders, count) != count)
       {
          ArrayFree(orders);
+         count = 0;
          return false;
       }
 
       for(int i = 0; i < count; i++)
       {
          ulong order_ticket = OrderGetTicket(i);
-         if(!OrderSelectByTicket(order_ticket))
+         if(order_ticket == 0 || !OrderSelect(order_ticket))
          {
             ArrayFree(orders);
+            count = 0;
             return false;
          }
 
          KocelResetOrder(orders[i]);
          orders[i].ticket = order_ticket;
          orders[i].symbol = SafeString(OrderGetString(ORDER_SYMBOL));
-         ENUM_ORDER_TYPE order_type = (ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE);
-         if(order_type == ORDER_TYPE_BUY || order_type == ORDER_TYPE_BUY_LIMIT || order_type == ORDER_TYPE_BUY_STOP)
-            orders[i].type = "BUY_" + IntegerToString((int)order_type);
-         else
-            orders[i].type = "SELL_" + IntegerToString((int)order_type);
+         const ENUM_ORDER_TYPE order_type = (ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE);
+         orders[i].type = EnumToString(order_type);
          orders[i].volume = OrderGetDouble(ORDER_VOLUME_CURRENT);
          orders[i].price = OrderGetDouble(ORDER_PRICE_OPEN);
          orders[i].stop_loss = OrderGetDouble(ORDER_SL);
          orders[i].take_profit = OrderGetDouble(ORDER_TP);
-         orders[i].current_state = OrderGetString(ORDER_STATE);
-         orders[i].magic = OrderGetInteger(ORDER_MAGIC);
-         orders[i].created_at = TimeToString(OrderGetInteger(ORDER_TIME_SETUP), TIME_DATE|TIME_MINUTES);
+         orders[i].current_state = EnumToString((ENUM_ORDER_STATE)OrderGetInteger(ORDER_STATE));
+         orders[i].magic = (long)OrderGetInteger(ORDER_MAGIC);
+         const datetime created_at = (datetime)OrderGetInteger(ORDER_TIME_SETUP);
+         orders[i].created_at = TimeToString(created_at, TIME_DATE | TIME_SECONDS);
       }
       return true;
    }
