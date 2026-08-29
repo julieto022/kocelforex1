@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +19,8 @@ export const Route = createFileRoute("/authorize/mt5/$requestId")({
 function MT5AuthorizationPage() {
   const { requestId } = Route.useParams();
   const { session } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const request = useQuery({
     queryKey: ["mt5-authorization", requestId],
@@ -26,9 +28,12 @@ function MT5AuthorizationPage() {
     enabled: Boolean(session),
   });
   const approve = useMutation({
-    mutationFn: () =>
-      approveAuthorizationRequest({ data: { requestId } }),
-    onSuccess: () => toast.success("MT5 successfully connected to Kocel."),
+    mutationFn: () => approveAuthorizationRequest({ data: { requestId } }),
+    onSuccess: async () => {
+      toast.success("Connection approved. Synchronizing your MT5 account…");
+      await queryClient.invalidateQueries();
+      navigate({ to: "/dashboard", replace: true });
+    },
     onError: (error: Error) => toast.error(error.message),
   });
   const reject = useMutation({
