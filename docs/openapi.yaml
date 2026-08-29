@@ -10,9 +10,9 @@ info:
     Application features use typed server functions
     instead of HTTP and are therefore not described here.
 servers:
-  - url: https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8.lovable.app
+  - url: https://kocelforexhub.lovable.app
     description: Production
-  - url: https://project--e8736da1-1a21-43a7-aec9-9a3211dbace8-dev.lovable.app
+  - url: https://kocelforexhub-dev.lovable.app
     description: Preview
 
 components:
