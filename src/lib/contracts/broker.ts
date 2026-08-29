@@ -83,13 +83,45 @@ export type BridgeAccountSnapshot = {
   margin: number;
   freeMargin: number;
   marginLevel: number | null;
+  credit: number;
+  profit: number;
   currency: string;
   leverage: number | null;
+};
+
+export type BridgePosition = {
+  ticket: number;
+  symbol: string;
+  type: "BUY" | "SELL" | "BUY_LIMIT" | "SELL_LIMIT" | "BUY_STOP" | "SELL_STOP" | string;
+  volume: number;
+  openPrice: number;
+  currentPrice: number;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  currentProfit: number;
+  swap: number;
+  magic: number | null;
+  openTime: string;
+};
+
+export type BridgeOrder = {
+  ticket: number;
+  symbol: string;
+  type: "BUY_LIMIT" | "SELL_LIMIT" | "BUY_STOP" | "SELL_STOP" | "BUY_STOP_LIMIT" | "SELL_STOP_LIMIT" | string;
+  volume: number;
+  price: number;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  currentState: string;
+  magic: number | null;
+  createdAt: string;
 };
 
 export type BridgeHeartbeat = {
   status: Extract<ConnectionStatus, "CONNECTED" | "ERROR">;
   account?: BridgeAccountSnapshot | undefined;
+  positions?: BridgePosition[] | undefined;
+  orders?: BridgeOrder[] | undefined;
   openTrades?: number | undefined;
   message?: string | null | undefined;
 };

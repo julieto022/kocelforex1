@@ -8,6 +8,7 @@ export type BridgeStatus =
   | "CONNECTED"
   | "DISCONNECTED"
   | "ERROR"
+  | "STALE"
   | "EXPIRED";
 
 export type StatusTone = "success" | "warning" | "danger" | "info" | "neutral";
@@ -54,6 +55,12 @@ export const BRIDGE_STATUS_MODEL: Record<
     tone: "success",
     explanation: "The Kocel Bridge EA is reporting this MT5 account.",
     action: "View details",
+  },
+  STALE: {
+    label: "Stale",
+    tone: "warning",
+    explanation: "The MT5 account is not receiving fresh heartbeat updates.",
+    action: "Check MT5",
   },
   DISCONNECTED: {
     label: "Disconnected",
@@ -107,6 +114,17 @@ export type BrokerConnection = {
   authorized_at: string | null;
   revoked_at: string | null;
   last_seen_at: string | null;
+  last_sync_at: string | null;
+  balance: number | null;
+  equity: number | null;
+  credit: number | null;
+  margin: number | null;
+  free_margin: number | null;
+  margin_level: number | null;
+  profit: number | null;
+  currency: string | null;
+  leverage: number | null;
+  account_status: string | null;
   created_at: string;
   updated_at: string;
   broker?: Broker | null;

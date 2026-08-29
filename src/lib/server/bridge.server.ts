@@ -3,6 +3,8 @@
  * because the caller is an EA in the user's terminal, not a signed-in browser.
  */
 
+import { z } from "zod";
+
 import {
   AUTHORIZATION_REQUEST_TTL_MINUTES,
   BRIDGE_AUTHORIZATION_POLL_SECONDS,
@@ -37,6 +39,63 @@ async function admin() {
 function isOnline(lastSeenAt: string | null): boolean {
   if (!lastSeenAt) return false;
   return Date.now() - new Date(lastSeenAt).getTime() < BRIDGE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
+}
+
+const bridgePositionSchema = z.object({
+  ticket: z.number().int().positive(),
+  symbol: z.string().trim().min(1).max(32),
+  type: z.string().trim().min(1).max(32),
+  volume: z.number().positive(),
+  openPrice: z.number().positive(),
+  currentPrice: z.number().positive(),
+  stopLoss: z.number().nullable().optional(),
+  takeProfit: z.number().nullable().optional(),
+  currentProfit: z.number(),
+  swap: z.number(),
+  magic: z.number().int().nullable().optional(),
+  openTime: z.string().datetime(),
+});
+
+const bridgeOrderSchema = z.object({
+  ticket: z.number().int().positive(),
+  symbol: z.string().trim().min(1).max(32),
+  type: z.string().trim().min(1).max(32),
+  volume: z.number().positive(),
+  price: z.number().positive(),
+  stopLoss: z.number().nullable().optional(),
+  takeProfit: z.number().nullable().optional(),
+  currentState: z.string().trim().min(1).max(32),
+  magic: z.number().int().nullable().optional(),
+  createdAt: z.string().datetime(),
+});
+
+const bridgeAccountSchema = z.object({
+  balance: z.number().finite(),
+  equity: z.number().finite(),
+  margin: z.number().finite(),
+  freeMargin: z.number().finite(),
+  marginLevel: z.number().finite().nullable(),
+  credit: z.number().nonnegative().finite(),
+  profit: z.number().finite(),
+  currency: z.string().trim().min(3).max(8),
+  leverage: z.number().int().positive().nullable(),
+});
+
+export const bridgeHeartbeatSchema = z.object({
+  status: z.enum(["CONNECTED", "ERROR"]),
+  account: bridgeAccountSchema.optional(),
+  positions: z.array(bridgePositionSchema).max(500).optional(),
+  orders: z.array(bridgeOrderSchema).max(500).optional(),
+  openTrades: z.number().int().min(0).max(10_000).optional(),
+  message: z.string().trim().max(300).nullish(),
+});
+
+export function validateBridgeHeartbeat(payload: unknown): BridgeHeartbeat {
+  const parsed = bridgeHeartbeatSchema.parse(payload);
+  if (parsed.account && parsed.account.marginLevel !== null && !Number.isFinite(parsed.account.marginLevel)) {
+    throw new Error("Invalid account margin level value.");
+  }
+  return parsed as BridgeHeartbeat;
 }
 
 export const bridgeService: BridgeService = {
@@ -194,27 +253,111 @@ export const bridgeService: BridgeService = {
   },
 
   async heartbeat(identity: BridgeIdentity, payload: BridgeHeartbeat): Promise<BridgeStatus> {
+    const normalized = validateBridgeHeartbeat(payload);
     const db = await admin();
     const now = new Date().toISOString();
 
     const { data: before } = await db
       .from("broker_connections")
-      .select("status")
+      .select("status, mt5_login, last_seen_at")
       .eq("id", identity.connectionId)
       .maybeSingle();
 
-    const status = payload.status === "ERROR" ? "ERROR" : "CONNECTED";
-    await db
+    if (!before) throw notFound("That connection no longer exists.");
+
+    const status = normalized.status === "ERROR" ? "ERROR" : "CONNECTED";
+    const account = normalized.account ?? null;
+
+    const { data: connection } = await db
       .from("broker_connections")
       .update({
         status,
         last_seen_at: now,
-        ...(payload.account
-          ? { currency: payload.account.currency, leverage: payload.account.leverage }
+        last_sync_at: now,
+        ...(account
+          ? {
+              balance: account.balance,
+              equity: account.equity,
+              credit: account.credit,
+              margin: account.margin,
+              free_margin: account.freeMargin,
+              margin_level: account.marginLevel,
+              profit: account.profit,
+              currency: account.currency,
+              leverage: account.leverage,
+            }
           : {}),
         ...(status === "CONNECTED" ? { last_connected_at: now } : {}),
       })
-      .eq("id", identity.connectionId);
+      .eq("id", identity.connectionId)
+      .select("id, status, last_seen_at, last_sync_at, mt5_login")
+      .maybeSingle();
+
+    if (!connection) throw notFound("That connection no longer exists.");
+
+    if (account) {
+      await db.from("mt5_account_snapshots").insert({
+        user_id: identity.userId,
+        broker_connection_id: identity.connectionId,
+        mt5_login: before.mt5_login,
+        status,
+        balance: account.balance,
+        equity: account.equity,
+        credit: account.credit,
+        margin: account.margin,
+        free_margin: account.freeMargin,
+        margin_level: account.marginLevel,
+        profit: account.profit,
+        currency: account.currency,
+        leverage: account.leverage,
+        snapshot_at: now,
+      });
+    }
+
+    if (normalized.positions?.length) {
+      await db.from("mt5_open_positions").delete().eq("broker_connection_id", identity.connectionId).eq("user_id", identity.userId);
+      await db.from("mt5_open_positions").insert(
+        normalized.positions.map((position) => ({
+          user_id: identity.userId,
+          broker_connection_id: identity.connectionId,
+          mt5_login: before.mt5_login,
+          ticket: position.ticket,
+          symbol: position.symbol,
+          direction: position.type,
+          volume: position.volume,
+          open_price: position.openPrice,
+          current_price: position.currentPrice,
+          stop_loss: position.stopLoss ?? null,
+          take_profit: position.takeProfit ?? null,
+          current_profit: position.currentProfit,
+          swap: position.swap,
+          magic_number: position.magic ?? null,
+          opened_at: position.openTime,
+          created_at: now,
+        })),
+      );
+    }
+
+    if (normalized.orders?.length) {
+      await db.from("mt5_pending_orders").delete().eq("broker_connection_id", identity.connectionId).eq("user_id", identity.userId);
+      await db.from("mt5_pending_orders").insert(
+        normalized.orders.map((order) => ({
+          user_id: identity.userId,
+          broker_connection_id: identity.connectionId,
+          mt5_login: before.mt5_login,
+          ticket: order.ticket,
+          symbol: order.symbol,
+          order_type: order.type,
+          volume: order.volume,
+          price: order.price,
+          stop_loss: order.stopLoss ?? null,
+          take_profit: order.takeProfit ?? null,
+          state: order.currentState,
+          magic_number: order.magic ?? null,
+          created_at: order.createdAt,
+        })),
+      );
+    }
 
     if (before?.status !== "CONNECTED" && status === "CONNECTED") {
       await recordAudit({
@@ -233,11 +376,12 @@ export const bridgeService: BridgeService = {
       });
     }
 
+    const online = isOnline(connection.last_seen_at);
     return {
       connectionId: identity.connectionId,
-      status,
-      lastSeenAt: now,
-      online: status === "CONNECTED",
+      status: online ? "CONNECTED" : "STALE",
+      lastSeenAt: connection.last_seen_at,
+      online,
     };
   },
 
@@ -278,11 +422,12 @@ export const bridgeService: BridgeService = {
       .eq("id", identity.connectionId)
       .maybeSingle();
     if (!data) throw notFound("That connection no longer exists.");
+    const online = isOnline(data.last_seen_at);
     return {
       connectionId: data.id,
-      status: data.status as BridgeStatus["status"],
+      status: online ? (data.status === "ERROR" ? "ERROR" : "CONNECTED") : "STALE",
       lastSeenAt: data.last_seen_at,
-      online: isOnline(data.last_seen_at),
+      online,
     };
   },
 };

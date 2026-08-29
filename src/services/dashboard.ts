@@ -15,19 +15,49 @@ export async function getDashboard(connection: BrokerConnection | null): Promise
     return {
       live: false,
       summary: null,
-      message: "Connect an MT5 account to see live account information.",
+      message: "MT5 Not Connected",
     };
   }
-  if (connection.status !== "CONNECTED") {
+
+  const stale =
+    !connection.last_seen_at ||
+    Date.now() - new Date(connection.last_seen_at).getTime() > 90_000;
+
+  if (connection.status !== "CONNECTED" || stale) {
     return {
       live: false,
-      summary: null,
-      message: "Account information appears once the Kocel Bridge EA reports this account.",
+      summary:
+        connection.balance != null || connection.equity != null
+          ? {
+              balance: connection.balance,
+              equity: connection.equity,
+              free_margin: connection.free_margin,
+              margin_level: connection.margin_level,
+              today_pl: null,
+              total_pl: connection.profit,
+              currency: connection.currency ?? "USD",
+            }
+          : null,
+      message: stale ? "MT5 Not Connected" : "MT5 Not Connected",
     };
   }
+
+  const summary: AccountSummary | null =
+    connection.balance == null && connection.equity == null && connection.free_margin == null
+      ? null
+      : {
+          balance: connection.balance,
+          equity: connection.equity,
+          free_margin: connection.free_margin,
+          margin_level: connection.margin_level,
+          today_pl: null,
+          total_pl: connection.profit,
+          currency: connection.currency ?? "USD",
+        };
+
   return {
-    live: false,
-    summary: null,
-    message: "Waiting for the Kocel Bridge EA to deliver account figures.",
+    live: true,
+    summary,
+    message: summary ? null : "Waiting for the Kocel Bridge EA to deliver account figures.",
   };
 }

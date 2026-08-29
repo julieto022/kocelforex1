@@ -11,6 +11,34 @@ import {
   toErrorResponse,
 } from "@/lib/server/bridge-http.server";
 
+const positionSchema = z.object({
+  ticket: z.number().int().positive(),
+  symbol: z.string().trim().min(1).max(32),
+  type: z.string().trim().min(1).max(32),
+  volume: z.number().positive(),
+  openPrice: z.number().positive(),
+  currentPrice: z.number().positive(),
+  stopLoss: z.number().nullable().optional(),
+  takeProfit: z.number().nullable().optional(),
+  currentProfit: z.number(),
+  swap: z.number(),
+  magic: z.number().int().nullable().optional(),
+  openTime: z.string().datetime(),
+});
+
+const orderSchema = z.object({
+  ticket: z.number().int().positive(),
+  symbol: z.string().trim().min(1).max(32),
+  type: z.string().trim().min(1).max(32),
+  volume: z.number().positive(),
+  price: z.number().positive(),
+  stopLoss: z.number().nullable().optional(),
+  takeProfit: z.number().nullable().optional(),
+  currentState: z.string().trim().min(1).max(32),
+  magic: z.number().int().nullable().optional(),
+  createdAt: z.string().datetime(),
+});
+
 const schema = z.object({
   status: z.enum(["CONNECTED", "ERROR"]),
   account: z
@@ -20,10 +48,14 @@ const schema = z.object({
       margin: z.number(),
       freeMargin: z.number(),
       marginLevel: z.number().nullable(),
-      currency: z.string().trim().max(8),
+      credit: z.number().nonnegative(),
+      profit: z.number(),
+      currency: z.string().trim().min(3).max(8),
       leverage: z.number().nullable(),
     })
     .optional(),
+  positions: z.array(positionSchema).max(500).optional(),
+  orders: z.array(orderSchema).max(500).optional(),
   openTrades: z.number().int().min(0).max(10_000).optional(),
   message: z.string().trim().max(300).nullish(),
 });
