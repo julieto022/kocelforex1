@@ -57,6 +57,36 @@ struct KocelMt5AccountSnapshot
    long leverage;
 };
 
+struct KocelMt5Position
+{
+   long ticket;
+   string symbol;
+   string type;
+   double volume;
+   double open_price;
+   double current_price;
+   double stop_loss;
+   double take_profit;
+   double current_profit;
+   double swap;
+   long magic;
+   string open_time;
+};
+
+struct KocelMt5Order
+{
+   long ticket;
+   string symbol;
+   string type;
+   double volume;
+   double price;
+   double stop_loss;
+   double take_profit;
+   string current_state;
+   long magic;
+   string created_at;
+};
+
 struct KocelHttpResponse
 {
    int status_code;
@@ -94,6 +124,36 @@ void KocelResetAccountSnapshot(KocelMt5AccountSnapshot &snapshot)
    snapshot.margin_level_available = false;
    snapshot.currency = "";
    snapshot.leverage = 0;
+}
+
+void KocelResetPosition(KocelMt5Position &position)
+{
+   position.ticket = 0;
+   position.symbol = "";
+   position.type = "";
+   position.volume = 0.0;
+   position.open_price = 0.0;
+   position.current_price = 0.0;
+   position.stop_loss = 0.0;
+   position.take_profit = 0.0;
+   position.current_profit = 0.0;
+   position.swap = 0.0;
+   position.magic = 0;
+   position.open_time = "";
+}
+
+void KocelResetOrder(KocelMt5Order &order)
+{
+   order.ticket = 0;
+   order.symbol = "";
+   order.type = "";
+   order.volume = 0.0;
+   order.price = 0.0;
+   order.stop_loss = 0.0;
+   order.take_profit = 0.0;
+   order.current_state = "";
+   order.magic = 0;
+   order.created_at = "";
 }
 
 void KocelResetHttpResponse(KocelHttpResponse &response)

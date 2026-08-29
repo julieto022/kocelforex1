@@ -395,8 +395,27 @@ void OnTimer()
       {
          KocelMt5AccountSnapshot snapshot;
          g_terminal.ReadAccountSnapshot(snapshot);
+
+         // Read positions and orders
+         KocelMt5Position positions[];
+         int pos_count = 0;
+         KocelMt5Order orders[];
+         int order_count = 0;
+         
+         if(!g_terminal.ReadOpenPositions(positions, pos_count))
+         {
+            g_logger.Error("Failed to read open positions.");
+            pos_count = 0;
+         }
+         
+         if(!g_terminal.ReadPendingOrders(orders, order_count))
+         {
+            g_logger.Error("Failed to read pending orders.");
+            order_count = 0;
+         }
+
          string message = "";
-         if(g_bridge.Heartbeat(snapshot, g_terminal.OpenTradesCount(), message))
+         if(g_bridge.Heartbeat(snapshot, positions, pos_count, orders, order_count, message))
          {
             g_next_heartbeat = now + g_bridge.HeartbeatSeconds();
             KocelResetRetry();
@@ -409,9 +428,16 @@ void OnTimer()
          else
          {
             KocelScheduleRetry();
-            g_logger.Warning("Kocel heartbeat failed; retry scheduled.");
+            int http_code = g_bridge.LastResponseStatusCode();
+            if(http_code > 0)
+               g_logger.Warning("Kocel heartbeat failed (HTTP " + IntegerToString(http_code) + "); retry scheduled.");
+            else
+               g_logger.Warning("Kocel heartbeat failed (" + message + "); retry scheduled.");
             g_next_heartbeat = now + g_bridge.HeartbeatSeconds();
          }
+         
+         ArrayFree(positions);
+         ArrayFree(orders);
       }
 
       if(g_state.Current() == KOCEL_STATE_CONNECTED && (g_next_status == 0 || now >= g_next_status))

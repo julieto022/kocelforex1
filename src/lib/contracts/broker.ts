@@ -83,8 +83,8 @@ export type BridgeAccountSnapshot = {
   margin: number;
   freeMargin: number;
   marginLevel: number | null;
-  credit: number;
-  profit: number;
+  credit?: number | undefined;
+  profit?: number | undefined;
   currency: string;
   leverage: number | null;
 };

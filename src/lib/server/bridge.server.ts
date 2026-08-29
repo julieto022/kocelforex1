@@ -75,8 +75,8 @@ const bridgeAccountSchema = z.object({
   margin: z.number().finite(),
   freeMargin: z.number().finite(),
   marginLevel: z.number().finite().nullable(),
-  credit: z.number().nonnegative().finite(),
-  profit: z.number().finite(),
+  credit: z.number().nonnegative().finite().optional(),
+  profit: z.number().finite().optional(),
   currency: z.string().trim().min(3).max(8),
   leverage: z.number().int().positive().nullable(),
 });

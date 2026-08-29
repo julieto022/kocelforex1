@@ -48,10 +48,10 @@ const schema = z.object({
       margin: z.number(),
       freeMargin: z.number(),
       marginLevel: z.number().nullable(),
-      credit: z.number().nonnegative(),
-      profit: z.number(),
       currency: z.string().trim().min(3).max(8),
       leverage: z.number().nullable(),
+      credit: z.number().nonnegative().optional(),
+      profit: z.number().optional(),
     })
     .optional(),
   positions: z.array(positionSchema).max(500).optional(),
