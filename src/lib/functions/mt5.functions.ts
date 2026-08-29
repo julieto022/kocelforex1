@@ -85,32 +85,38 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
     }
     const validation = validateAuthorizationRequest(request);
     if (!validation.ok) throw conflict(validation.message);
+    // Identity fields are read from the locked EA request by the SQL function,
+    // so any MT5 broker reported by the terminal is accepted.
     const { data: connectionId, error } = await supabaseAdmin.rpc(
       "approve_mt5_authorization_request",
       {
         _request_id: data.requestId,
         _user_id: userId,
-        _broker_id: null as unknown as string,
-        // Identity fields are read from the locked EA request by the SQL function.
-        _account_name: null as unknown as string,
-        _nickname: null as unknown as string,
-        _account_type: null as unknown as string,
-        _environment: null as unknown as string,
       },
     );
     if (error || !connectionId) {
       const message = error?.message ?? "";
-      if (message.includes("DUPLICATE_CONNECTION"))
-        throw conflict("That MT5 account is already connected to your workspace.");
+      logger.error("mt5", "approval failed", {
+        requestId: data.requestId,
+        userId,
+        code: (error as { code?: string } | null)?.code,
+        details: (error as { details?: string } | null)?.details,
+        message,
+      });
+      if (message.includes("AUTHORIZATION_NOT_FOUND"))
+        throw notFound("BRIDGE_CONNECTION_NOT_FOUND: that authorization request no longer exists.");
       if (message.includes("AUTHORIZATION_EXPIRED"))
-        throw conflict("This authorization request has expired.");
+        throw conflict("BRIDGE_CONNECTION_EXPIRED: this authorization request has expired.");
       if (message.includes("AUTHORIZATION_ALREADY_DECIDED"))
-        throw conflict("This authorization request has already been decided.");
+        throw conflict(
+          "BRIDGE_APPROVAL_FAILED: this authorization request has already been decided.",
+        );
       if (message.includes("INVALID_ENVIRONMENT") || message.includes("ENVIRONMENT_MISMATCH"))
-        throw conflict("The MT5 terminal environment is missing or invalid.");
+        throw conflict("INVALID_PAYLOAD: the MT5 terminal environment is missing or invalid.");
       if (message.includes("INVALID_BROKER_IDENTITY"))
-        throw conflict("The detected MT5 broker identity is invalid.");
-      throw toApiError(error);
+        throw conflict("INVALID_PAYLOAD: the detected MT5 broker identity is invalid.");
+      if (error) throw toApiError(error);
+      throw conflict("BRIDGE_APPROVAL_FAILED: the connection could not be authorized.");
     }
     await recordAudit({
       userId,
