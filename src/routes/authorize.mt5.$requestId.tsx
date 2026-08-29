@@ -19,6 +19,8 @@ export const Route = createFileRoute("/authorize/mt5/$requestId")({
 function MT5AuthorizationPage() {
   const { requestId } = Route.useParams();
   const { session } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const request = useQuery({
     queryKey: ["mt5-authorization", requestId],
