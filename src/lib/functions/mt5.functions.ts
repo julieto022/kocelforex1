@@ -97,7 +97,7 @@ export const approveAuthorizationRequest = createServerFn({ method: "POST" })
     );
     if (error || !connectionId) {
       const message = error?.message ?? "";
-      logger.error("mt5", "approval failed", {
+      logger.error("connection", "approval failed", {
         requestId: data.requestId,
         userId,
         code: (error as { code?: string } | null)?.code,
