@@ -20,6 +20,14 @@ private:
       return "/" + path;
    }
 
+   string NormalizeBaseUrl(const string base_url) const
+   {
+      string value = base_url;
+      while(StringLen(value) > 0 && StringSubstr(value, StringLen(value) - 1, 1) == "/")
+         value = StringSubstr(value, 0, StringLen(value) - 1);
+      return value;
+   }
+
 public:
    CKocelHttp()
    {
@@ -30,14 +38,17 @@ public:
 
    void Configure(const string base_url, const int timeout_seconds)
    {
-      m_base_url = base_url;
+      m_base_url = NormalizeBaseUrl(base_url);
       m_timeout_seconds = timeout_seconds;
       m_last_error = "";
    }
 
    string BuildUrl(const string path) const
    {
-      return m_base_url + NormalizePath(path);
+      string base_url = NormalizeBaseUrl(m_base_url);
+      if(base_url == "")
+         return NormalizePath(path);
+      return base_url + NormalizePath(path);
    }
 
    string BuildHeaders(const string bearer_token = "") const
