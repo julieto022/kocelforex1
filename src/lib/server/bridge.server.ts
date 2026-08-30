@@ -41,6 +41,28 @@ function isOnline(lastSeenAt: string | null): boolean {
   return Date.now() - new Date(lastSeenAt).getTime() < BRIDGE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
 }
 
+/**
+ * MT5 terminals report times as "YYYY.MM.DD HH:MM:SS". Accept that alongside
+ * ISO-8601 and normalise to an ISO UTC instant the database can store.
+ */
+export const bridgeTimestampSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .transform((value, ctx) => {
+    const mt5 = value.match(/^(\d{4})[.\-/](\d{2})[.\-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?Z?$/);
+    const iso = mt5
+      ? `${mt5[1]}-${mt5[2]}-${mt5[3]}T${mt5[4]}:${mt5[5]}:${mt5[6] ?? "00"}Z`
+      : value;
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid timestamp." });
+      return z.NEVER;
+    }
+    return parsed.toISOString();
+  });
+
 const bridgePositionSchema = z.object({
   ticket: z.number().int().positive(),
   symbol: z.string().trim().min(1).max(32),
@@ -53,7 +75,7 @@ const bridgePositionSchema = z.object({
   currentProfit: z.number(),
   swap: z.number(),
   magic: z.number().int().nullable().optional(),
-  openTime: z.string().datetime(),
+  openTime: bridgeTimestampSchema,
 });
 
 const bridgeOrderSchema = z.object({
@@ -66,7 +88,7 @@ const bridgeOrderSchema = z.object({
   takeProfit: z.number().nullable().optional(),
   currentState: z.string().trim().min(1).max(32),
   magic: z.number().int().nullable().optional(),
-  createdAt: z.string().datetime(),
+  createdAt: bridgeTimestampSchema,
 });
 
 const bridgeAccountSchema = z.object({
