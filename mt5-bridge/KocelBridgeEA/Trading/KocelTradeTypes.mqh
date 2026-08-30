@@ -43,6 +43,7 @@ struct KocelTradeCommand
 struct KocelTradeResult
 {
    string command_id;
+   string client_request_id;  // Echo from command for idempotency
    string status;         // EXECUTED, FAILED, REJECTED
    long   mt5_ticket;     // Position or order ticket after execution
    long   deal_ticket;    // Deal ticket if filled

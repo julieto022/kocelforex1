@@ -63,7 +63,8 @@ public:
       }
       
       // Check trading is allowed
-      if(SymbolInfoInteger(cmd.symbol, SYMBOL_TRADE_EXCEPTIONS) & SYMBOL_TRADE_MODE_CLOSEONLY)
+      long trade_mode = SymbolInfoInteger(cmd.symbol, SYMBOL_TRADE_MODE);
+      if(trade_mode == SYMBOL_TRADE_MODE_CLOSEONLY)
       {
          result.valid = false;
          result.error_code = "TRADE_DISABLED";

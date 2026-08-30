@@ -42,7 +42,7 @@ public:
       request.tp = cmd.take_profit > 0 ? cmd.take_profit : 0;
       request.sl = cmd.stop_loss > 0 ? cmd.stop_loss : 0;
       request.deviation = 20;  // Points of slippage tolerance
-      request.magic = 0xKOCEL;  // Magic number to identify Kocel trades
+      request.magic = 0x4B4F43;  // Magic number to identify Kocel trades (KOCEL in hex)
       request.comment = "Kocel Manual Trade";
       request.type_filling = ORDER_FILLING_FOK;  // Fill or Kill
       request.type_time = ORDER_TIME_GTC;        // Good Till Cancel
@@ -104,7 +104,7 @@ public:
          return result;
       }
       
-      string symbol = PositionGetSymbol();
+      string symbol = PositionGetString(POSITION_SYMBOL);
       ENUM_POSITION_TYPE pos_type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
       double volume = PositionGetDouble(POSITION_VOLUME);
       
@@ -119,7 +119,7 @@ public:
       request.type = (pos_type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
       request.price = 0;
       request.deviation = 20;
-      request.magic = 0xKOCEL;
+      request.magic = 0x4B4F43;  // Magic number to identify Kocel trades
       request.comment = "Kocel Close Trade";
       request.type_filling = ORDER_FILLING_FOK;
       request.type_time = ORDER_TIME_GTC;
@@ -178,7 +178,7 @@ public:
          return result;
       }
       
-      string symbol = PositionGetSymbol();
+      string symbol = PositionGetString(POSITION_SYMBOL);
       
       // Prepare modify request
       MqlTradeRequest request = {};
@@ -189,7 +189,7 @@ public:
       request.symbol = symbol;
       request.tp = cmd.take_profit > 0 ? cmd.take_profit : 0;
       request.sl = cmd.stop_loss > 0 ? cmd.stop_loss : 0;
-      request.magic = 0xKOCEL;
+      request.magic = 0x4B4F43;  // Magic number to identify Kocel trades
       request.comment = "Kocel Modify SL/TP";
       
       // Send modify request
@@ -252,7 +252,7 @@ public:
       request.action = TRADE_ACTION_REMOVE;
       request.order = cmd.order_ticket;
       request.symbol = symbol;
-      request.magic = 0xKOCEL;
+      request.magic = 0x4B4F43;  // Magic number to identify Kocel trades
       request.comment = "Kocel Cancel Order";
       
       // Cancel the order
