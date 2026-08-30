@@ -198,7 +198,24 @@ export async function executeTradeCommand(
     .single();
 
   if (error || !command) {
-    throw new ApiError("INTERNAL_ERROR", "Failed to create trade command.");
+    logger.error("database", "Failed to insert MT5 trade command", {
+      error: error
+        ? {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          }
+        : { message: "Insert returned no command." },
+      commandId,
+      connectionId: request.connectionId,
+      operation: request.operation,
+    });
+
+    throw new ApiError(
+      "SERVICE_UNAVAILABLE",
+      "Trade command storage is unavailable. Verify that the Phase 3.4 Supabase migration is applied.",
+    );
   }
 
   // Record audit (using CONNECTION_AUTHORIZED as proxy for trade action)
