@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { fail, ok } from "@/lib/api/response";
-import { bridgeService } from "@/lib/server/bridge.server";
+import { bridgeService, bridgeTimestampSchema } from "@/lib/server/bridge.server";
 import {
   authenticateBridge,
   limitBridge,
@@ -23,7 +23,7 @@ const positionSchema = z.object({
   currentProfit: z.number(),
   swap: z.number(),
   magic: z.number().int().nullable().optional(),
-  openTime: z.string().datetime(),
+  openTime: bridgeTimestampSchema,
 });
 
 const orderSchema = z.object({
@@ -36,7 +36,7 @@ const orderSchema = z.object({
   takeProfit: z.number().nullable().optional(),
   currentState: z.string().trim().min(1).max(32),
   magic: z.number().int().nullable().optional(),
-  createdAt: z.string().datetime(),
+  createdAt: bridgeTimestampSchema,
 });
 
 const schema = z.object({

@@ -75,7 +75,7 @@ const bridgePositionSchema = z.object({
   currentProfit: z.number(),
   swap: z.number(),
   magic: z.number().int().nullable().optional(),
-  openTime: z.string().datetime(),
+  openTime: bridgeTimestampSchema,
 });
 
 const bridgeOrderSchema = z.object({
@@ -88,7 +88,7 @@ const bridgeOrderSchema = z.object({
   takeProfit: z.number().nullable().optional(),
   currentState: z.string().trim().min(1).max(32),
   magic: z.number().int().nullable().optional(),
-  createdAt: z.string().datetime(),
+  createdAt: bridgeTimestampSchema,
 });
 
 const bridgeAccountSchema = z.object({
