@@ -1,0 +1,344 @@
+/**
+ * Trade execution service. Server-only: processes trade commands, validates them,
+ * stores them in the database, and handles results from the Bridge EA.
+ */
+
+import { z } from "zod";
+
+import { ApiError, forbidden, notFound } from "@/lib/api/errors";
+import { logger } from "@/lib/api/logger";
+import type {
+  TradeExecutionRequest,
+  TradeExecutionResult,
+  BridgeTradeCommand,
+  BridgeCommandPollResponse,
+  BridgeCommandResultRequest,
+  TradeCommandStatus,
+} from "@/lib/contracts/broker";
+import { recordAudit } from "@/lib/server/audit.server";
+
+async function admin() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
+/** Validates trade execution request */
+export const tradeExecutionRequestSchema = z.object({
+  connectionId: z.string().uuid(),
+  operation: z.enum(["OPEN_MARKET", "CLOSE_POSITION", "MODIFY_POSITION", "CANCEL_PENDING_ORDER"]),
+  symbol: z.string().trim().min(1).max(32).optional(),
+  side: z.enum(["BUY", "SELL"]).optional(),
+  volume: z.number().positive().optional(),
+  stopLoss: z.number().optional(),
+  takeProfit: z.number().optional(),
+  positionTicket: z.number().int().positive().optional(),
+  orderTicket: z.number().int().positive().optional(),
+  clientRequestId: z.string().uuid(),
+});
+
+export type TradeExecutionRequestValidated = z.infer<typeof tradeExecutionRequestSchema>;
+
+/** Validates bridge command result from EA */
+export const bridgeCommandResultSchema = z.object({
+  commandId: z.string().uuid(),
+  status: z.enum(["EXECUTED", "FAILED", "REJECTED"]),
+  mt5Ticket: z.number().int().positive().optional(),
+  dealTicket: z.number().int().positive().optional(),
+  executedVolume: z.number().positive().optional(),
+  executedPrice: z.number().positive().optional(),
+  errorCode: z.string().trim().max(50).optional(),
+  message: z.string().trim().max(300).optional(),
+});
+
+export async function executeTradeCommand(
+  userId: string,
+  request: TradeExecutionRequestValidated,
+): Promise<TradeExecutionResult> {
+  const db = await admin();
+  const now = new Date().toISOString();
+  const commandId = crypto.randomUUID();
+
+  // Validate connection ownership
+  const { data: connection } = await db
+    .from("broker_connections")
+    .select("id, user_id, status")
+    .eq("id", request.connectionId)
+    .maybeSingle();
+
+  if (!connection) throw notFound("Connection not found.");
+  if (connection.user_id !== userId) throw forbidden("You do not own this connection.");
+
+  // Connection must be active
+  if (connection.status !== "CONNECTED") {
+    return {
+      commandId,
+      status: "REJECTED",
+      errorCode: "CONNECTION_NOT_ACTIVE",
+      message: "The MT5 Bridge is not currently connected.",
+    };
+  }
+
+  // Validate operation-specific requirements
+  const validationError = validateTradeOperation(request);
+  if (validationError) {
+    return {
+      commandId,
+      status: "REJECTED",
+      errorCode: validationError.code,
+      message: validationError.message,
+    };
+  }
+
+  // Check for duplicate execution (idempotency)
+  const { data: existing } = await db
+    .from("mt5_trade_commands")
+    .select("id, status, client_request_id")
+    .eq("connection_id", request.connectionId)
+    .eq("client_request_id", request.clientRequestId)
+    .maybeSingle();
+
+  if (existing) {
+    // If already executed, return the result
+    if (existing.status === "EXECUTED" || existing.status === "FAILED") {
+      return {
+        commandId: existing.id,
+        status: existing.status as TradeCommandStatus,
+        message: "This command was already processed.",
+      };
+    }
+    // If still pending/sent, return the same command ID to prevent re-execution
+    return {
+      commandId: existing.id,
+      status: existing.status as TradeCommandStatus,
+      message: "This command is already being processed.",
+    };
+  }
+
+  // Create the trade command record
+  const { data: command, error } = await db
+    .from("mt5_trade_commands")
+    .insert({
+      id: commandId,
+      user_id: userId,
+      connection_id: request.connectionId,
+      client_request_id: request.clientRequestId,
+      operation: request.operation,
+      symbol: request.symbol ?? null,
+      side: request.side ?? null,
+      requested_volume: request.volume ?? null,
+      requested_stop_loss: request.stopLoss ?? null,
+      requested_take_profit: request.takeProfit ?? null,
+      position_ticket: request.positionTicket ?? null,
+      order_ticket: request.orderTicket ?? null,
+      status: "PENDING",
+      requested_at: now,
+      expires_at: new Date(Date.now() + 5 * 60_000).toISOString(), // 5 minute expiry
+    })
+    .select("id, status")
+    .single();
+
+  if (error || !command) {
+    throw new ApiError("INTERNAL_ERROR", "Failed to create trade command.");
+  }
+
+  // Record audit
+  await recordAudit({
+    userId,
+    action: "TRADE_COMMAND_CREATED",
+    entityType: "mt5_trade_command",
+    entityId: commandId,
+    metadata: { operation: request.operation },
+  });
+
+  logger.info("trade", "command created", { commandId, operation: request.operation });
+
+  return {
+    commandId,
+    status: "PENDING",
+    message: "Trade command queued for execution.",
+  };
+}
+
+/** Validates operation-specific requirements */
+function validateTradeOperation(
+  request: TradeExecutionRequestValidated,
+): { code: string; message: string } | null {
+  switch (request.operation) {
+    case "OPEN_MARKET":
+      if (!request.symbol) return { code: "INVALID_SYMBOL", message: "Symbol is required." };
+      if (!request.side) return { code: "INVALID_SIDE", message: "Side (BUY/SELL) is required." };
+      if (!request.volume || request.volume <= 0)
+        return { code: "INVALID_VOLUME", message: "Volume must be positive." };
+      return null;
+
+    case "CLOSE_POSITION":
+      if (!request.positionTicket)
+        return { code: "INVALID_TICKET", message: "Position ticket is required." };
+      return null;
+
+    case "MODIFY_POSITION":
+      if (!request.positionTicket)
+        return { code: "INVALID_TICKET", message: "Position ticket is required." };
+      if (
+        (request.stopLoss === undefined || request.stopLoss === null) &&
+        (request.takeProfit === undefined || request.takeProfit === null)
+      ) {
+        return { code: "INVALID_PARAMS", message: "At least SL or TP must be provided." };
+      }
+      return null;
+
+    case "CANCEL_PENDING_ORDER":
+      if (!request.orderTicket)
+        return { code: "INVALID_TICKET", message: "Order ticket is required." };
+      return null;
+
+    default:
+      return { code: "UNKNOWN_OPERATION", message: "Unknown operation." };
+  }
+}
+
+/** Retrieves pending commands for the authenticated connection (Bridge EA) */
+export async function getPendingCommandsForBridge(
+  connectionId: string,
+): Promise<BridgeCommandPollResponse> {
+  const db = await admin();
+  const now = new Date();
+
+  // Fetch non-expired commands in PENDING or SENT state
+  const { data: commands, error } = await db
+    .from("mt5_trade_commands")
+    .select(
+      "id, operation, symbol, side, requested_volume, requested_stop_loss, requested_take_profit, position_ticket, order_ticket, client_request_id, requested_at",
+    )
+    .eq("connection_id", connectionId)
+    .in("status", ["PENDING", "SENT"])
+    .gt("expires_at", now.toISOString())
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    logger.error("trade", "Failed to fetch commands", { error, connectionId });
+    return { commands: [], lastPollAt: now.toISOString() };
+  }
+
+  // Update status to SENT for commands being returned to EA
+  if (commands && commands.length > 0) {
+    const commandIds = commands.map((c) => c.id);
+    await db
+      .from("mt5_trade_commands")
+      .update({ status: "SENT", sent_at: now.toISOString() })
+      .in("id", commandIds);
+  }
+
+  const bridgeCommands: BridgeTradeCommand[] = (commands || []).map((cmd) => ({
+    commandId: cmd.id,
+    operation: cmd.operation as TradeOperation,
+    symbol: cmd.symbol ?? undefined,
+    side: cmd.side as "BUY" | "SELL" | undefined,
+    volume: cmd.requested_volume ?? undefined,
+    stopLoss: cmd.requested_stop_loss ?? undefined,
+    takeProfit: cmd.requested_take_profit ?? undefined,
+    positionTicket: cmd.position_ticket ?? undefined,
+    orderTicket: cmd.order_ticket ?? undefined,
+    clientRequestId: cmd.client_request_id,
+    requestedAt: cmd.requested_at,
+  }));
+
+  return {
+    commands: bridgeCommands,
+    lastPollAt: now.toISOString(),
+  };
+}
+
+/** Handles trade execution result from the EA (Bridge) */
+export async function recordTradeExecutionResult(
+  connectionId: string,
+  result: z.infer<typeof bridgeCommandResultSchema>,
+): Promise<void> {
+  const db = await admin();
+  const now = new Date().toISOString();
+
+  // Verify command exists and belongs to this connection
+  const { data: command } = await db
+    .from("mt5_trade_commands")
+    .select("id, user_id, status, connection_id")
+    .eq("id", result.commandId)
+    .maybeSingle();
+
+  if (!command) throw notFound("Command not found.");
+  if (command.connection_id !== connectionId)
+    throw forbidden("Command does not belong to this connection.");
+
+  // Prevent duplicate result recording
+  if (["EXECUTED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED"].includes(command.status)) {
+    logger.warn("trade", "Attempted to record result for already-completed command", {
+      commandId: result.commandId,
+      existingStatus: command.status,
+    });
+    return;
+  }
+
+  // Update command with result
+  const updateData: Record<string, string | number | null> = {
+    status: result.status,
+    executed_at: now,
+    completed_at: now,
+  };
+
+  if (result.mt5Ticket) updateData.mt5_ticket = result.mt5Ticket;
+  if (result.dealTicket) updateData.mt5_deal_ticket = result.dealTicket;
+  if (result.executedVolume) updateData.executed_volume = result.executedVolume;
+  if (result.executedPrice) updateData.executed_price = result.executedPrice;
+  if (result.errorCode) updateData.error_code = result.errorCode;
+  if (result.message) updateData.error_message = result.message;
+
+  const { error } = await db
+    .from("mt5_trade_commands")
+    .update(updateData)
+    .eq("id", result.commandId);
+
+  if (error) {
+    throw new ApiError("INTERNAL_ERROR", "Failed to record trade result.");
+  }
+
+  // Record audit event
+  await recordAudit({
+    userId: command.user_id,
+    action: "TRADE_COMMAND_EXECUTED",
+    entityType: "mt5_trade_command",
+    entityId: result.commandId,
+    metadata: {
+      status: result.status,
+      errorCode: result.errorCode,
+    },
+  });
+
+  logger.info("trade", "result recorded", {
+    commandId: result.commandId,
+    status: result.status,
+  });
+}
+
+/** Marks expired commands as EXPIRED */
+export async function expireStaleCommands(): Promise<number> {
+  const db = await admin();
+  const now = new Date().toISOString();
+
+  const { data, error } = await db
+    .from("mt5_trade_commands")
+    .update({ status: "EXPIRED", completed_at: now })
+    .in("status", ["PENDING", "SENT"])
+    .lt("expires_at", now)
+    .select("id");
+
+  if (error) {
+    logger.error("trade", "Failed to expire stale commands", { error });
+    return 0;
+  }
+
+  const count = data?.length ?? 0;
+  if (count > 0) {
+    logger.info("trade", "expired commands", { count });
+  }
+
+  return count;
+}

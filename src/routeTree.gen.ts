@@ -46,6 +46,9 @@ import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/publ
 import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
 import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
 import { Route as ApiPublicBridgeStatusRouteImport } from './routes/api/public/bridge/status'
+import { Route as ApiProtectedMt5OrdersExecuteRouteImport } from './routes/api/protected/mt5/orders/execute'
+import { Route as ApiPublicBridgeCommandsPollRouteImport } from './routes/api/public/bridge/commands/poll'
+import { Route as ApiPublicBridgeCommandsCommandIdResultRouteImport } from './routes/api/public/bridge/commands/$commandId/result'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -235,6 +238,24 @@ const ApiPublicBridgeStatusRoute = ApiPublicBridgeStatusRouteImport.update({
   path: '/api/public/bridge/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProtectedMt5OrdersExecuteRoute =
+  ApiProtectedMt5OrdersExecuteRouteImport.update({
+    id: '/api/protected/mt5/orders/execute',
+    path: '/api/protected/mt5/orders/execute',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBridgeCommandsPollRoute =
+  ApiPublicBridgeCommandsPollRouteImport.update({
+    id: '/api/public/bridge/commands/poll',
+    path: '/api/public/bridge/commands/poll',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBridgeCommandsCommandIdResultRoute =
+  ApiPublicBridgeCommandsCommandIdResultRouteImport.update({
+    id: '/api/public/bridge/commands/$commandId/result',
+    path: '/api/public/bridge/commands/$commandId/result',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -273,6 +294,9 @@ export interface FileRoutesByFullPath {
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
+  '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
+  '/api/public/bridge/commands/poll': typeof ApiPublicBridgeCommandsPollRoute
+  '/api/public/bridge/commands/$commandId/result': typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -310,6 +334,9 @@ export interface FileRoutesByTo {
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
+  '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
+  '/api/public/bridge/commands/poll': typeof ApiPublicBridgeCommandsPollRoute
+  '/api/public/bridge/commands/$commandId/result': typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -350,6 +377,9 @@ export interface FileRoutesById {
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
+  '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
+  '/api/public/bridge/commands/poll': typeof ApiPublicBridgeCommandsPollRoute
+  '/api/public/bridge/commands/$commandId/result': typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -390,6 +420,9 @@ export interface FileRouteTypes {
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
     | '/api/public/bridge/status'
+    | '/api/protected/mt5/orders/execute'
+    | '/api/public/bridge/commands/poll'
+    | '/api/public/bridge/commands/$commandId/result'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -427,6 +460,9 @@ export interface FileRouteTypes {
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
     | '/api/public/bridge/status'
+    | '/api/protected/mt5/orders/execute'
+    | '/api/public/bridge/commands/poll'
+    | '/api/public/bridge/commands/$commandId/result'
   id:
     | '__root__'
     | '/'
@@ -466,6 +502,9 @@ export interface FileRouteTypes {
     | '/api/public/bridge/heartbeat'
     | '/api/public/bridge/register'
     | '/api/public/bridge/status'
+    | '/api/protected/mt5/orders/execute'
+    | '/api/public/bridge/commands/poll'
+    | '/api/public/bridge/commands/$commandId/result'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -483,6 +522,9 @@ export interface RootRouteChildren {
   ApiPublicBridgeHeartbeatRoute: typeof ApiPublicBridgeHeartbeatRoute
   ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
   ApiPublicBridgeStatusRoute: typeof ApiPublicBridgeStatusRoute
+  ApiProtectedMt5OrdersExecuteRoute: typeof ApiProtectedMt5OrdersExecuteRoute
+  ApiPublicBridgeCommandsPollRoute: typeof ApiPublicBridgeCommandsPollRoute
+  ApiPublicBridgeCommandsCommandIdResultRoute: typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -746,6 +788,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBridgeStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/protected/mt5/orders/execute': {
+      id: '/api/protected/mt5/orders/execute'
+      path: '/api/protected/mt5/orders/execute'
+      fullPath: '/api/protected/mt5/orders/execute'
+      preLoaderRoute: typeof ApiProtectedMt5OrdersExecuteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/commands/poll': {
+      id: '/api/public/bridge/commands/poll'
+      path: '/api/public/bridge/commands/poll'
+      fullPath: '/api/public/bridge/commands/poll'
+      preLoaderRoute: typeof ApiPublicBridgeCommandsPollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bridge/commands/$commandId/result': {
+      id: '/api/public/bridge/commands/$commandId/result'
+      path: '/api/public/bridge/commands/$commandId/result'
+      fullPath: '/api/public/bridge/commands/$commandId/result'
+      preLoaderRoute: typeof ApiPublicBridgeCommandsCommandIdResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -837,6 +900,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBridgeHeartbeatRoute: ApiPublicBridgeHeartbeatRoute,
   ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
   ApiPublicBridgeStatusRoute: ApiPublicBridgeStatusRoute,
+  ApiProtectedMt5OrdersExecuteRoute: ApiProtectedMt5OrdersExecuteRoute,
+  ApiPublicBridgeCommandsPollRoute: ApiPublicBridgeCommandsPollRoute,
+  ApiPublicBridgeCommandsCommandIdResultRoute:
+    ApiPublicBridgeCommandsCommandIdResultRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

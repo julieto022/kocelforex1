@@ -462,6 +462,85 @@ public:
    {
       return m_token_expires_at > 0 && TimeGMT() >= m_token_expires_at;
    }
+
+   // Phase 3.4: Trade command polling
+   bool PollCommands(string &commands_json, string &message)
+   {
+      message = "";
+      if(m_bridge_token == "")
+      {
+         message = "No Bridge session token is active.";
+         return false;
+      }
+
+      KocelHttpResponse response;
+      const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_COMMAND_POLL, "{}", m_bridge_token, response);
+      m_last_response = response;
+      if(!http_ok)
+      {
+         message = response.error_message;
+         return false;
+      }
+
+      string data = "";
+      if(!ParseEnvelope(response, data, message))
+         return false;
+
+      commands_json = data;
+      message = "Commands polled.";
+      return true;
+   }
+
+   // Phase 3.4: Trade command result reporting
+   bool ReportCommandResult(const string command_id, const string status, 
+                           const long mt5_ticket, const long deal_ticket,
+                           const double executed_volume, const double executed_price,
+                           const string error_code, const string error_message,
+                           string &response_message)
+   {
+      response_message = "";
+      if(m_bridge_token == "")
+      {
+         response_message = "No Bridge session token is active.";
+         return false;
+      }
+
+      // Build result payload
+      string payload = "{";
+      payload += "\"commandId\":" + KocelJsonString(command_id) + ",";
+      payload += "\"status\":" + KocelJsonString(status) + ",";
+      if(mt5_ticket > 0)
+         payload += "\"mt5Ticket\":" + StringFormat("%I64u", mt5_ticket) + ",";
+      if(deal_ticket > 0)
+         payload += "\"dealTicket\":" + StringFormat("%I64u", deal_ticket) + ",";
+      if(executed_volume > 0)
+         payload += "\"executedVolume\":" + DoubleToString(executed_volume, 2) + ",";
+      if(executed_price > 0)
+         payload += "\"executedPrice\":" + DoubleToString(executed_price, 5) + ",";
+      if(error_code != "")
+         payload += "\"errorCode\":" + KocelJsonString(error_code) + ",";
+      if(error_message != "")
+         payload += "\"message\":" + KocelJsonString(error_message) + ",";
+      payload = StringSubstr(payload, 0, StringLen(payload) - 1);  // Remove trailing comma
+      payload += "}";
+
+      KocelHttpResponse response;
+      const string endpoint = KOCEL_ENDPOINT_COMMAND_RESULT + "/" + command_id + "/result";
+      const bool http_ok = m_http.HttpPost(endpoint, payload, m_bridge_token, response);
+      m_last_response = response;
+      if(!http_ok)
+      {
+         response_message = response.error_message;
+         return false;
+      }
+
+      string data = "";
+      if(!ParseEnvelope(response, data, response_message))
+         return false;
+
+      response_message = "Result reported.";
+      return true;
+   }
 };
 
 #endif

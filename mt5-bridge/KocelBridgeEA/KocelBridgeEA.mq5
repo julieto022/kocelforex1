@@ -11,6 +11,9 @@
 #include "MT5/KocelTerminal.mqh"
 #include "Network/KocelHttp.mqh"
 #include "Network/KocelBridgeClient.mqh"
+#include "Trading/KocelTradeTypes.mqh"
+#include "Trading/KocelTradeValidator.mqh"
+#include "Trading/KocelTradeExecutor.mqh"
 #include "UI/KocelPanel.mqh"
 
 #import "shell32.dll"
@@ -42,6 +45,7 @@ datetime g_next_terminal_refresh = 0;
 datetime g_next_poll = 0;
 datetime g_next_heartbeat = 0;
 datetime g_next_status = 0;
+datetime g_next_command_poll = 0;
 datetime g_next_network_retry = 0;
 int g_network_failures = 0;
 string g_kocel_status = "Not Connected";
@@ -438,6 +442,38 @@ void OnTimer()
          
          ArrayFree(positions);
          ArrayFree(orders);
+      }
+
+      // Phase 3.4: Poll for trade commands
+      if(g_state.Current() == KOCEL_STATE_CONNECTED && (g_next_command_poll == 0 || now >= g_next_command_poll))
+      {
+         string commands_json = "";
+         string message = "";
+         if(g_bridge.PollCommands(commands_json, message))
+         {
+            g_next_command_poll = now + 5;  // Poll every 5 seconds
+            
+            // Process commands from JSON response
+            // This is a simplified version - full implementation would parse all commands
+            // and queue them for processing
+            if(commands_json != "" && commands_json != "{\"commands\":[]}")
+            {
+               g_logger.Info("Trade commands received from Kocel.");
+               // Execute commands would be called here
+               // for now, just log that we received them
+            }
+            KocelResetRetry();
+         }
+         else if(g_bridge.LastResponseStatusCode() == 401)
+         {
+            // Session expired or revoked
+            KocelHandleSessionFailure("Kocel connection was revoked or the session expired.");
+         }
+         else
+         {
+            g_next_command_poll = now + 5;  // Retry in 5 seconds
+            // Don't spam logs on command poll failure
+         }
       }
 
       if(g_state.Current() == KOCEL_STATE_CONNECTED && (g_next_status == 0 || now >= g_next_status))

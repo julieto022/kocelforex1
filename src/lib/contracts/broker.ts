@@ -152,3 +152,65 @@ export interface BridgeService {
   disconnect(identity: BridgeIdentity, reason?: string): Promise<void>;
   status(identity: BridgeIdentity): Promise<BridgeStatus>;
 }
+
+/* --------------------------------------------------------------- Trade Execution */
+
+export type TradeOperation =
+  "OPEN_MARKET" | "CLOSE_POSITION" | "MODIFY_POSITION" | "CANCEL_PENDING_ORDER";
+
+export type TradeCommandStatus =
+  "PENDING" | "SENT" | "EXECUTING" | "EXECUTED" | "FAILED" | "REJECTED" | "EXPIRED" | "CANCELLED";
+
+export type TradeExecutionRequest = {
+  connectionId: string;
+  operation: TradeOperation;
+  symbol?: string;
+  side?: "BUY" | "SELL";
+  volume?: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  positionTicket?: number;
+  orderTicket?: number;
+  clientRequestId: string;
+};
+
+export type TradeExecutionResult = {
+  commandId: string;
+  status: TradeCommandStatus;
+  mt5Ticket?: number;
+  dealTicket?: number;
+  executedVolume?: number;
+  executedPrice?: number;
+  errorCode?: string;
+  message?: string;
+};
+
+export type BridgeTradeCommand = {
+  commandId: string;
+  operation: TradeOperation;
+  symbol?: string;
+  side?: "BUY" | "SELL";
+  volume?: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  positionTicket?: number;
+  orderTicket?: number;
+  clientRequestId: string;
+  requestedAt: string;
+};
+
+export type BridgeCommandPollResponse = {
+  commands: BridgeTradeCommand[];
+  lastPollAt: string;
+};
+
+export type BridgeCommandResultRequest = {
+  commandId: string;
+  status: Extract<TradeCommandStatus, "EXECUTED" | "FAILED" | "REJECTED">;
+  mt5Ticket?: number;
+  dealTicket?: number;
+  executedVolume?: number;
+  executedPrice?: number;
+  errorCode?: string;
+  message?: string;
+};

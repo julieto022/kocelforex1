@@ -13,6 +13,8 @@ const string KOCEL_ENDPOINT_AUTHENTICATE = "/api/public/bridge/authenticate";
 const string KOCEL_ENDPOINT_HEARTBEAT    = "/api/public/bridge/heartbeat";
 const string KOCEL_ENDPOINT_STATUS       = "/api/public/bridge/status";
 const string KOCEL_ENDPOINT_DISCONNECT   = "/api/public/bridge/disconnect";
+const string KOCEL_ENDPOINT_COMMAND_POLL = "/api/public/bridge/commands/poll";
+const string KOCEL_ENDPOINT_COMMAND_RESULT = "/api/public/bridge/commands";
 
 #define KOCEL_DEFAULT_HEARTBEAT_SECONDS 30
 #define KOCEL_DEFAULT_TIMEOUT_SECONDS 30

@@ -8,6 +8,7 @@ import { DashboardWidgets } from "@/components/kocel/dashboard-widgets";
 import { PageHeader } from "@/components/kocel/page-header";
 import { EmptyState, SectionCard } from "@/components/kocel/states";
 import { BridgeStatusBadge } from "@/components/kocel/status-badge";
+import { TradingPanel } from "@/components/kocel/trading-panel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
@@ -99,6 +100,8 @@ function DashboardPage() {
               </p>
             )}
           </SectionCard>
+
+          <TradingPanel />
 
           <SectionCard title="Open positions" bodyClassName="p-0 sm:p-0">
             <EmptyState
