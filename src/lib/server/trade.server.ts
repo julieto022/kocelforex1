@@ -234,6 +234,7 @@ export async function executeTradeCommand(
 
 function getTradeCommandStorageError(error: { code?: string; message?: string } | null): string {
   switch (error?.code) {
+    case "PGRST205":
     case "42P01":
       return "The Phase 3.4 trade-command table is missing from Supabase. Apply the Phase 3.4 migration.";
     case "42703":
