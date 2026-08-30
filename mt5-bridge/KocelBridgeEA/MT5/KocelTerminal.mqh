@@ -110,7 +110,7 @@ public:
          positions[i].swap = PositionGetDouble(POSITION_SWAP);
          positions[i].magic = (long)PositionGetInteger(POSITION_MAGIC);
          const datetime open_time = (datetime)PositionGetInteger(POSITION_TIME);
-         positions[i].open_time = TimeToString(open_time, TIME_DATE | TIME_SECONDS);
+         positions[i].open_time = IsoTime(open_time);
       }
       return true;
    }
@@ -151,7 +151,7 @@ public:
          orders[i].current_state = EnumToString((ENUM_ORDER_STATE)OrderGetInteger(ORDER_STATE));
          orders[i].magic = (long)OrderGetInteger(ORDER_MAGIC);
          const datetime created_at = (datetime)OrderGetInteger(ORDER_TIME_SETUP);
-         orders[i].created_at = TimeToString(created_at, TIME_DATE | TIME_SECONDS);
+         orders[i].created_at = IsoTime(created_at);
       }
       return true;
    }
