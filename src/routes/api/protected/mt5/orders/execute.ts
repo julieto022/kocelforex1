@@ -2,20 +2,20 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { fail, ok } from "@/lib/api/response";
-import { isApiError } from "@/lib/api/errors";
+import { isApiError, unauthorized } from "@/lib/api/errors";
 import { executeTradeCommand, tradeExecutionRequestSchema } from "@/lib/server/trade.server";
 import { logger } from "@/lib/api/logger";
-import { supabase } from "@/integrations/supabase/client.server";
 
 async function getAuthenticatedUser(request: Request): Promise<string | null> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
 
   try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const token = authHeader.slice(7).trim();
     const {
       data: { user },
-    } = await supabase.auth.getUser(token);
+    } = await supabaseAdmin.auth.getUser(token);
     return user?.id ?? null;
   } catch {
     return null;

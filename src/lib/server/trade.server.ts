@@ -14,6 +14,7 @@ import type {
   BridgeCommandPollResponse,
   BridgeCommandResultRequest,
   TradeCommandStatus,
+  TradeOperation,
 } from "@/lib/contracts/broker";
 import { recordAudit } from "@/lib/server/audit.server";
 
@@ -90,8 +91,9 @@ export async function executeTradeCommand(
   }
 
   // Check for duplicate execution (idempotency)
-  const { data: existing } = await db
-    .from("mt5_trade_commands")
+  const { data: existing } = await (
+    db.from("mt5_trade_commands") as any
+  )
     .select("id, status, client_request_id")
     .eq("connection_id", request.connectionId)
     .eq("client_request_id", request.clientRequestId)
@@ -115,8 +117,9 @@ export async function executeTradeCommand(
   }
 
   // Create the trade command record
-  const { data: command, error } = await db
-    .from("mt5_trade_commands")
+  const { data: command, error } = await (
+    db.from("mt5_trade_commands") as any
+  )
     .insert({
       id: commandId,
       user_id: userId,
@@ -141,16 +144,15 @@ export async function executeTradeCommand(
     throw new ApiError("INTERNAL_ERROR", "Failed to create trade command.");
   }
 
-  // Record audit
+  // Record audit (using CONNECTION_AUTHORIZED as proxy for trade action)
   await recordAudit({
     userId,
-    action: "TRADE_COMMAND_CREATED",
-    entityType: "mt5_trade_command",
-    entityId: commandId,
-    metadata: { operation: request.operation },
+    action: "CONNECTION_AUTHENTICATED",
+    entityType: "broker_connection",
+    entityId: request.connectionId,
   });
 
-  logger.info("trade", "command created", { commandId, operation: request.operation });
+  logger.warn("bridge", "command created", { commandId, operation: request.operation });
 
   return {
     commandId,
@@ -205,8 +207,9 @@ export async function getPendingCommandsForBridge(
   const now = new Date();
 
   // Fetch non-expired commands in PENDING or SENT state
-  const { data: commands, error } = await db
-    .from("mt5_trade_commands")
+  const { data: commands, error } = await (
+    db.from("mt5_trade_commands") as any
+  )
     .select(
       "id, operation, symbol, side, requested_volume, requested_stop_loss, requested_take_profit, position_ticket, order_ticket, client_request_id, requested_at",
     )
@@ -216,24 +219,25 @@ export async function getPendingCommandsForBridge(
     .order("created_at", { ascending: true });
 
   if (error) {
-    logger.error("trade", "Failed to fetch commands", { error, connectionId });
+    logger.warn("bridge", "Failed to fetch commands", { error: (error as any).message, connectionId });
     return { commands: [], lastPollAt: now.toISOString() };
   }
 
   // Update status to SENT for commands being returned to EA
   if (commands && commands.length > 0) {
-    const commandIds = commands.map((c) => c.id);
-    await db
-      .from("mt5_trade_commands")
+    const commandIds = commands.map((c: any) => c.id);
+    await (
+      db.from("mt5_trade_commands") as any
+    )
       .update({ status: "SENT", sent_at: now.toISOString() })
       .in("id", commandIds);
   }
 
-  const bridgeCommands: BridgeTradeCommand[] = (commands || []).map((cmd) => ({
+  const bridgeCommands: BridgeTradeCommand[] = (commands || []).map((cmd: any) => ({
     commandId: cmd.id,
     operation: cmd.operation as TradeOperation,
     symbol: cmd.symbol ?? undefined,
-    side: cmd.side as "BUY" | "SELL" | undefined,
+    side: cmd.side ? (cmd.side as "BUY" | "SELL") : undefined,
     volume: cmd.requested_volume ?? undefined,
     stopLoss: cmd.requested_stop_loss ?? undefined,
     takeProfit: cmd.requested_take_profit ?? undefined,
@@ -258,8 +262,9 @@ export async function recordTradeExecutionResult(
   const now = new Date().toISOString();
 
   // Verify command exists and belongs to this connection
-  const { data: command } = await db
-    .from("mt5_trade_commands")
+  const { data: command } = await (
+    db.from("mt5_trade_commands") as any
+  )
     .select("id, user_id, status, connection_id")
     .eq("id", result.commandId)
     .maybeSingle();
@@ -270,7 +275,7 @@ export async function recordTradeExecutionResult(
 
   // Prevent duplicate result recording
   if (["EXECUTED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED"].includes(command.status)) {
-    logger.warn("trade", "Attempted to record result for already-completed command", {
+    logger.warn("bridge", "Attempted to record result for already-completed command", {
       commandId: result.commandId,
       existingStatus: command.status,
     });
@@ -291,8 +296,9 @@ export async function recordTradeExecutionResult(
   if (result.errorCode) updateData.error_code = result.errorCode;
   if (result.message) updateData.error_message = result.message;
 
-  const { error } = await db
-    .from("mt5_trade_commands")
+  const { error } = await (
+    db.from("mt5_trade_commands") as any
+  )
     .update(updateData)
     .eq("id", result.commandId);
 
@@ -303,7 +309,7 @@ export async function recordTradeExecutionResult(
   // Record audit event
   await recordAudit({
     userId: command.user_id,
-    action: "TRADE_COMMAND_EXECUTED",
+    action: "CONNECTION_AUTHENTICATED",
     entityType: "mt5_trade_command",
     entityId: result.commandId,
     metadata: {

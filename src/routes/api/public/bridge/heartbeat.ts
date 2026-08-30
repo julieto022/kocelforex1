@@ -28,9 +28,9 @@ const positionSchema = z
   })
   .transform((p) => ({
     ...p,
-    stopLoss: p.stopLoss ?? null,
-    takeProfit: p.takeProfit ?? null,
-    magic: p.magic ?? null,
+    stopLoss: (p.stopLoss ?? null) as number | null,
+    takeProfit: (p.takeProfit ?? null) as number | null,
+    magic: (p.magic ?? null) as number | null,
   }));
 
 const orderSchema = z
@@ -48,9 +48,9 @@ const orderSchema = z
   })
   .transform((o) => ({
     ...o,
-    stopLoss: o.stopLoss ?? null,
-    takeProfit: o.takeProfit ?? null,
-    magic: o.magic ?? null,
+    stopLoss: (o.stopLoss ?? null) as number | null,
+    takeProfit: (o.takeProfit ?? null) as number | null,
+    magic: (o.magic ?? null) as number | null,
   }));
 
 const schema = z.object({

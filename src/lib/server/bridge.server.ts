@@ -304,15 +304,15 @@ export const bridgeService: BridgeService = {
       ? {
           balance: account.balance,
           equity: account.equity,
-          credit: account.credit ?? null,
+          credit: account.credit !== undefined ? account.credit : null,
           margin: account.margin,
           free_margin: account.freeMargin,
           margin_level: account.marginLevel,
-          profit: account.profit ?? null,
+          profit: account.profit !== undefined ? account.profit : null,
           currency: account.currency,
           leverage: account.leverage,
         }
-      : {};
+      : {}
 
     const { data: connection } = await db
       .from("broker_connections")
@@ -365,11 +365,11 @@ export const bridgeService: BridgeService = {
           volume: position.volume,
           open_price: position.openPrice,
           current_price: position.currentPrice,
-          stop_loss: position.stopLoss ?? null,
-          take_profit: position.takeProfit ?? null,
+          stop_loss: position.stopLoss as number | null,
+          take_profit: position.takeProfit as number | null,
           current_profit: position.currentProfit,
           swap: position.swap,
-          magic_number: position.magic ?? null,
+          magic_number: position.magic as number | null,
           opened_at: position.openTime,
           created_at: now,
         })),
@@ -392,10 +392,10 @@ export const bridgeService: BridgeService = {
           order_type: order.type,
           volume: order.volume,
           price: order.price,
-          stop_loss: order.stopLoss ?? null,
-          take_profit: order.takeProfit ?? null,
+          stop_loss: order.stopLoss as number | null,
+          take_profit: order.takeProfit as number | null,
           state: order.currentState,
-          magic_number: order.magic ?? null,
+          magic_number: order.magic as number | null,
           created_at: order.createdAt,
         })),
       );

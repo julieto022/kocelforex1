@@ -34,7 +34,7 @@ export async function getDashboard(connection: BrokerConnection | null): Promise
               margin_level: connection.margin_level,
               today_pl: null,
               total_pl: connection.profit,
-              currency: connection.currency ?? "USD",
+              currency: (connection.currency ?? "USD") as string,
             }
           : null,
       message: stale ? "MT5 Not Connected" : "MT5 Not Connected",
@@ -51,7 +51,7 @@ export async function getDashboard(connection: BrokerConnection | null): Promise
           margin_level: connection.margin_level,
           today_pl: null,
           total_pl: connection.profit,
-          currency: connection.currency ?? "USD",
+          currency: (connection.currency ?? "USD") as string,
         };
 
   return {

@@ -27,7 +27,13 @@ export function TradingPanel() {
   const [takeProfit, setTakeProfit] = useState("");
   const [status, setStatus] = useState<ExecutionStatus>("idle");
   const [message, setMessage] = useState("");
-  const [result, setResult] = useState<{ ticket?: string; message?: string } | null>(null);
+  const [result, setResult] = useState<{
+    commandId?: string;
+    status?: string;
+    message?: string;
+    mt5Ticket?: string;
+    errorCode?: string;
+  } | null>(null);
 
   const handleExecute = async () => {
     if (!user || !active) {
