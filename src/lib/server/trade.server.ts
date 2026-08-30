@@ -212,10 +212,7 @@ export async function executeTradeCommand(
       operation: request.operation,
     });
 
-    throw new ApiError(
-      "SERVICE_UNAVAILABLE",
-      "Trade command storage is unavailable. Verify that the Phase 3.4 Supabase migration is applied.",
-    );
+    throw new ApiError("SERVICE_UNAVAILABLE", getTradeCommandStorageError(error));
   }
 
   // Record audit (using CONNECTION_AUTHORIZED as proxy for trade action)
@@ -233,6 +230,21 @@ export async function executeTradeCommand(
     status: "PENDING",
     message: "Trade command queued for execution.",
   };
+}
+
+function getTradeCommandStorageError(error: { code?: string; message?: string } | null): string {
+  switch (error?.code) {
+    case "42P01":
+      return "The Phase 3.4 trade-command table is missing from Supabase. Apply the Phase 3.4 migration.";
+    case "42703":
+      return "The Phase 3.4 trade-command schema is incomplete. Apply the latest Phase 3.4 migration.";
+    case "42501":
+      return "The server is not permitted to write trade commands. Configure the Supabase service-role key.";
+    case "23505":
+      return "This trade request was already submitted. Retry with a new request ID.";
+    default:
+      return "Supabase rejected the trade command. Check the server database log for the underlying error.";
+  }
 }
 
 /** Validates operation-specific requirements */

@@ -54,16 +54,20 @@ GRANT ALL ON public.mt5_trade_commands TO service_role;
 ALTER TABLE public.mt5_trade_commands ENABLE ROW LEVEL SECURITY;
 
 -- Users can read and update their own commands
+DROP POLICY IF EXISTS "Users read own trade commands" ON public.mt5_trade_commands;
 CREATE POLICY "Users read own trade commands" ON public.mt5_trade_commands
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users update own trade commands" ON public.mt5_trade_commands;
 CREATE POLICY "Users update own trade commands" ON public.mt5_trade_commands
   FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users insert own trade commands" ON public.mt5_trade_commands;
 CREATE POLICY "Users insert own trade commands" ON public.mt5_trade_commands
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
 -- Service role has full access for bridge operations
+DROP POLICY IF EXISTS "Service role has full access" ON public.mt5_trade_commands;
 CREATE POLICY "Service role has full access" ON public.mt5_trade_commands
   FOR ALL TO service_role USING (true);
 
@@ -111,6 +115,7 @@ GRANT ALL ON public.mt5_trade_command_audit TO service_role;
 -- RLS for audit table
 ALTER TABLE public.mt5_trade_command_audit ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own audit logs" ON public.mt5_trade_command_audit;
 CREATE POLICY "Users read own audit logs" ON public.mt5_trade_command_audit
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
