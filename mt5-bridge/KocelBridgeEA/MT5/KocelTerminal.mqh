@@ -13,6 +13,16 @@ private:
       return value;
    }
 
+   /** ISO-8601 UTC timestamp (YYYY-MM-DDTHH:MM:SS) expected by the Kocel API. */
+   string IsoTime(const datetime value) const
+   {
+      MqlDateTime parts;
+      TimeToStruct(value, parts);
+      return StringFormat("%04d-%02d-%02dT%02d:%02d:%02d",
+                          parts.year, parts.mon, parts.day,
+                          parts.hour, parts.min, parts.sec);
+   }
+
    string DetectEnvironment() const
    {
       const long mode = AccountInfoInteger(ACCOUNT_TRADE_MODE);
