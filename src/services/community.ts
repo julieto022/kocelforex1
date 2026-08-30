@@ -5,12 +5,7 @@ import {
   savePost,
   unsavePost,
 } from "@/lib/functions/community.functions";
-import type {
-  CommunityAuthor,
-  CommunityComment,
-  CommunityPost,
-  TradingIdea,
-} from "./types";
+import type { CommunityAuthor, CommunityComment, CommunityPost, TradingIdea } from "./types";
 
 export type CommunityFilters = {
   category?: string | undefined;
@@ -29,9 +24,7 @@ async function loadAuthors(userIds: string[]): Promise<Map<string, CommunityAuth
     .select("id, username, full_name, avatar_url")
     .in("id", unique);
   if (error) throw error;
-  return new Map(
-    (data ?? []).map((row) => [row.id, row as unknown as CommunityAuthor] as const),
-  );
+  return new Map((data ?? []).map((row) => [row.id, row as unknown as CommunityAuthor] as const));
 }
 
 async function decoratePosts(
@@ -69,7 +62,8 @@ export async function getPosts(
   viewerId: string | null = null,
 ): Promise<CommunityPost[]> {
   let query = supabase.from("community_posts").select("*");
-  if (filters.category && filters.category !== "all") query = query.eq("category", filters.category);
+  if (filters.category && filters.category !== "all")
+    query = query.eq("category", filters.category);
   if (filters.symbol && filters.symbol !== "all") query = query.eq("symbol", filters.symbol);
   if (filters.userId) query = query.eq("user_id", filters.userId);
   if (filters.search?.trim()) query = query.ilike("content", `%${filters.search.trim()}%`);
@@ -81,7 +75,8 @@ export async function getPosts(
   if (filters.sort === "popular") {
     return [...posts].sort(
       (a, b) =>
-        (b.reaction_count ?? 0) + (b.comment_count ?? 0) -
+        (b.reaction_count ?? 0) +
+        (b.comment_count ?? 0) -
         ((a.reaction_count ?? 0) + (a.comment_count ?? 0)),
     );
   }

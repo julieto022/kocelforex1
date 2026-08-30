@@ -246,9 +246,7 @@ export function PostCard({
               {(commentsQuery.data ?? []).map((item) => (
                 <li key={item.id} className="flex gap-2.5">
                   <Avatar className="size-7">
-                    {item.author?.avatar_url && (
-                      <AvatarImage src={item.author.avatar_url} alt="" />
-                    )}
+                    {item.author?.avatar_url && <AvatarImage src={item.author.avatar_url} alt="" />}
                     <AvatarFallback className="text-[0.6rem]">
                       {initials(item.author?.full_name ?? item.author?.username)}
                     </AvatarFallback>

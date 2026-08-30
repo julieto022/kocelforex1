@@ -49,7 +49,13 @@ export const updateSettings = createServerFn({ method: "POST" })
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(2).max(80).optional(),
-  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.]+$/).optional(),
+  username: z
+    .string()
+    .trim()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9_.]+$/)
+    .optional(),
   phone: z.string().trim().max(24).nullish(),
   country: z.string().trim().max(60).nullish(),
   avatar_url: z.string().url().max(500).nullish(),
@@ -79,7 +85,10 @@ export const updateProfile = createServerFn({ method: "POST" })
     );
     if (Object.keys(patch).length === 0) throw invalid("Nothing to update.");
 
-    const { error } = await supabase.from("profiles").update(patch as never).eq("id", userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update(patch as never)
+      .eq("id", userId);
     if (error) {
       if (error.message.includes("duplicate")) throw invalid("That username is already taken.");
       throw toApiError(error);
@@ -93,9 +102,7 @@ export const updateProfile = createServerFn({ method: "POST" })
  */
 export const deleteAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) =>
-    z.object({ confirmation: z.literal("DELETE") }).parse(data),
-  )
+  .validator((data: unknown) => z.object({ confirmation: z.literal("DELETE") }).parse(data))
   .handler(async ({ context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

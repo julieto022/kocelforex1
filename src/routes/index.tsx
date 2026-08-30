@@ -1,14 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Activity,
-  BarChart3,
-  Bot,
-  Layers,
-  LineChart,
-  Lock,
-  ShieldCheck,
-} from "lucide-react";
+import { Activity, BarChart3, Bot, Layers, LineChart, Lock, ShieldCheck } from "lucide-react";
 
 import { KocelLogo, TAGLINE } from "@/components/kocel/brand";
 import { StatusBadge } from "@/components/kocel/status-badge";
@@ -57,7 +49,11 @@ const features = [
     body: "Build and apply multiple trading strategies.",
   },
   { icon: ShieldCheck, title: "Risk Management", body: "Control exposure and trading risk." },
-  { icon: Activity, title: "Trade Monitoring", body: "Monitor open positions and trading activity." },
+  {
+    icon: Activity,
+    title: "Trade Monitoring",
+    body: "Monitor open positions and trading activity.",
+  },
   {
     icon: BarChart3,
     title: "Performance Analytics",
@@ -66,9 +62,15 @@ const features = [
 ];
 
 const steps = [
-  { title: "Create Kocel Account", body: "One independent Kocel identity, separate from any broker." },
+  {
+    title: "Create Kocel Account",
+    body: "One independent Kocel identity, separate from any broker.",
+  },
   { title: "Connect MT5 Broker", body: "Add the MT5 account details Kocel should manage." },
-  { title: "Install Kocel Bridge EA", body: "Attach the Bridge EA to a chart in your MT5 terminal." },
+  {
+    title: "Install Kocel Bridge EA",
+    body: "Attach the Bridge EA to a chart in your MT5 terminal.",
+  },
   { title: "Start Trading", body: "Monitor, analyze and automate from one workspace." },
 ];
 
@@ -207,9 +209,7 @@ function LandingPage() {
             <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {steps.map((step, index) => (
                 <li key={step.title} className="panel p-4">
-                  <span className="num text-xs font-semibold text-primary">
-                    STEP {index + 1}
-                  </span>
+                  <span className="num text-xs font-semibold text-primary">STEP {index + 1}</span>
                   <h3 className="mt-2 text-sm font-semibold text-foreground">{step.title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
                 </li>
@@ -351,7 +351,10 @@ function DashboardPreview() {
       <div className="space-y-3 p-4">
         <div className="grid grid-cols-2 gap-2">
           {rows.map((row) => (
-            <div key={row.label} className="rounded-md border border-border bg-muted/40 px-3 py-2.5">
+            <div
+              key={row.label}
+              className="rounded-md border border-border bg-muted/40 px-3 py-2.5"
+            >
               <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
                 {row.label}
               </p>

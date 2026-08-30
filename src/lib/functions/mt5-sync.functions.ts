@@ -6,9 +6,7 @@ import { toApiError } from "@/lib/api/errors";
 
 export const getMt5Positions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) =>
-    z.object({ connectionId: z.string().uuid() }).parse(data ?? {}),
-  )
+  .validator((data: unknown) => z.object({ connectionId: z.string().uuid() }).parse(data ?? {}))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -24,25 +22,38 @@ export const getMt5Positions = createServerFn({ method: "POST" })
       throw new Error("Connection not found");
     }
 
-    // Fetch open positions
+    // Fetch open positions - select actual columns and transform
     const { data: positions, error } = await supabase
       .from("mt5_open_positions")
       .select(
-        "ticket, symbol, direction as type, volume, open_price as openPrice, current_price as currentPrice, stop_loss as stopLoss, take_profit as takeProfit, current_profit as currentProfit, swap, magic_number as magic, opened_at as openTime"
+        "ticket, symbol, direction, volume, open_price, current_price, stop_loss, take_profit, current_profit, swap, magic_number, opened_at",
       )
       .eq("broker_connection_id", data.connectionId)
       .eq("user_id", userId)
       .order("opened_at", { ascending: false });
 
     if (error) throw toApiError(error);
-    return positions ?? [];
+
+    // Transform to Mt5Position format
+    return (positions ?? []).map((p: any) => ({
+      ticket: p.ticket,
+      symbol: p.symbol,
+      type: p.direction,
+      volume: p.volume,
+      openPrice: p.open_price,
+      currentPrice: p.current_price,
+      stopLoss: p.stop_loss ?? null,
+      takeProfit: p.take_profit ?? null,
+      currentProfit: p.current_profit,
+      swap: p.swap ?? null,
+      magic: p.magic_number ?? null,
+      openTime: p.opened_at,
+    }));
   });
 
 export const getMt5Orders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) =>
-    z.object({ connectionId: z.string().uuid() }).parse(data ?? {}),
-  )
+  .validator((data: unknown) => z.object({ connectionId: z.string().uuid() }).parse(data ?? {}))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -58,18 +69,31 @@ export const getMt5Orders = createServerFn({ method: "POST" })
       throw new Error("Connection not found");
     }
 
-    // Fetch pending orders
+    // Fetch pending orders - select actual columns and transform
     const { data: orders, error } = await supabase
       .from("mt5_pending_orders")
       .select(
-        "ticket, symbol, order_type as type, volume, price, stop_loss as stopLoss, take_profit as takeProfit, state as currentState, magic_number as magic, created_at as createdAt"
+        "ticket, symbol, order_type, volume, price, stop_loss, take_profit, state, magic_number, created_at",
       )
       .eq("broker_connection_id", data.connectionId)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) throw toApiError(error);
-    return orders ?? [];
+
+    // Transform to Mt5Order format
+    return (orders ?? []).map((o: any) => ({
+      ticket: o.ticket,
+      symbol: o.symbol,
+      type: o.order_type,
+      volume: o.volume,
+      price: o.price,
+      stopLoss: o.stop_loss ?? null,
+      takeProfit: o.take_profit ?? null,
+      currentState: o.state,
+      magic: o.magic_number ?? null,
+      createdAt: o.created_at,
+    }));
   });
 
 export const getMt5AccountSnapshot = createServerFn({ method: "POST" })

@@ -133,7 +133,11 @@ function MT5AuthorizationPage() {
         </dl>
         {!expired && !decided && (
           <>
-            <p className={validation.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>
+            <p
+              className={
+                validation.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"
+              }
+            >
               {validation.message}
             </p>
             <p className="text-xs text-muted-foreground">

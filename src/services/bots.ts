@@ -31,10 +31,7 @@ export async function createBot(_userId: string, input: CreateBotInput): Promise
     data: {
       name: input.name,
       symbol: input.symbol,
-      riskProfile: input.riskProfile.toUpperCase() as
-        | "CONSERVATIVE"
-        | "BALANCED"
-        | "AGGRESSIVE",
+      riskProfile: input.riskProfile.toUpperCase() as "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE",
       timeframe: input.timeframe ?? null,
       brokerConnectionId: input.brokerConnectionId,
       strategyId: input.strategyId,

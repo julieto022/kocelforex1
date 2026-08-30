@@ -36,7 +36,8 @@ export function ConnectWizard({
           <BridgeStepList />
           <p className="flex items-start gap-2 rounded-md border border-info/30 bg-info/10 px-3 py-2 text-xs text-foreground/80">
             <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-info" />
-            Kocel does not require or store your MT5 broker password. Your broker credentials remain inside MetaTrader 5.
+            Kocel does not require or store your MT5 broker password. Your broker credentials remain
+            inside MetaTrader 5.
           </p>
           <BridgeDownloadActions />
         </div>

@@ -6,14 +6,14 @@ Phase 1 UI, navigation, design system and all modules stay exactly as they are. 
 
 Phase 2 asks for a standalone `/backend` Express + Postgres server. This app runs on TanStack Start on a serverless edge runtime — a long-running Express process can't be hosted here. The equivalent, already-supported architecture is used instead, and it satisfies every Phase 2 success criterion:
 
-| Phase 2 asks for | Built as |
-|---|---|
-| Express controllers/routes | Typed server functions (`createServerFn`) + HTTP routes under `src/routes/api/` for external callers (Bridge, cron, health) |
-| Services / repositories | `src/services/*` (client) + `src/lib/*.functions.ts` and `*.server.ts` (server logic) |
-| Postgres + migrations | Lovable Cloud Postgres with versioned migrations |
-| JWT auth + sessions | Managed auth: Argon2-class password hashing, refresh rotation, HTTP-only session storage — never broker credentials |
-| requireAuth / requireOwnership | Auth middleware on server functions + row-level ownership rules enforced in the database itself |
-| Rate limiting | Server-side counters table + per-endpoint limits |
+| Phase 2 asks for               | Built as                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Express controllers/routes     | Typed server functions (`createServerFn`) + HTTP routes under `src/routes/api/` for external callers (Bridge, cron, health) |
+| Services / repositories        | `src/services/*` (client) + `src/lib/*.functions.ts` and `*.server.ts` (server logic)                                       |
+| Postgres + migrations          | Lovable Cloud Postgres with versioned migrations                                                                            |
+| JWT auth + sessions            | Managed auth: Argon2-class password hashing, refresh rotation, HTTP-only session storage — never broker credentials         |
+| requireAuth / requireOwnership | Auth middleware on server functions + row-level ownership rules enforced in the database itself                             |
+| Rate limiting                  | Server-side counters table + per-endpoint limits                                                                            |
 
 Users never touch the database directly; every write goes through authenticated, validated server logic.
 

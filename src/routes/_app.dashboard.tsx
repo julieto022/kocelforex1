@@ -11,8 +11,6 @@ import { BridgeStatusBadge } from "@/components/kocel/status-badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
-import { getDashboard } from "@/services/dashboard";
-import { getTrades } from "@/services/trades";
 import { maskLogin } from "@/services/mt5";
 
 export const Route = createFileRoute("/_app/dashboard")({
@@ -24,22 +22,16 @@ function DashboardPage() {
   const { active, connections } = useConnections();
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  const dashboardQuery = useQuery({
-    queryKey: ["dashboard", active?.id ?? null],
-    queryFn: () => getDashboard(active),
-  });
-
-  const tradesQuery = useQuery({
-    queryKey: ["trades", user?.id, active?.id ?? null, "open"],
-    queryFn: () => getTrades(user!.id, { connectionId: active?.id ?? null, status: "open" }),
-    enabled: Boolean(user?.id),
-  });
+  // Determine connection status based on last_seen_at
+  const isConnectionStale =
+    !active?.last_seen_at || Date.now() - new Date(active.last_seen_at).getTime() > 90_000;
+  const isConnected = active?.status === "CONNECTED" && !isConnectionStale;
 
   const metrics = [
-    { label: "Balance", value: dashboardQuery.data?.summary?.balance },
-    { label: "Equity", value: dashboardQuery.data?.summary?.equity },
-    { label: "Free margin", value: dashboardQuery.data?.summary?.free_margin },
-    { label: "Today's P/L", value: dashboardQuery.data?.summary?.today_pl },
+    { label: "Balance", value: active?.balance },
+    { label: "Equity", value: active?.equity },
+    { label: "Free margin", value: active?.free_margin },
+    { label: "Margin level", value: active?.margin_level },
   ];
 
   return (
@@ -74,7 +66,11 @@ function DashboardPage() {
                 ? `${active.broker_name ?? active.broker?.name ?? "MT5 broker"} · ${maskLogin(active.mt5_login)} · ${active.server}`
                 : undefined
             }
-            action={active ? <BridgeStatusBadge status={active.status} /> : undefined}
+            action={
+              active ? (
+                <BridgeStatusBadge status={isConnected ? "CONNECTED" : "DISCONNECTED"} />
+              ) : undefined
+            }
           >
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {metrics.map((metric) => (
@@ -88,33 +84,28 @@ function DashboardPage() {
                 </div>
               ))}
             </div>
-            {dashboardQuery.data?.message && (
+            {active?.last_sync_at && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                <Wallet className="mr-1 inline-block size-3" />
+                Last synced: {new Date(active.last_sync_at).toLocaleString()}
+              </p>
+            )}
+            {!isConnected && (
               <p className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
                 <Wallet className="mt-0.5 size-3.5 shrink-0" />
-                {dashboardQuery.data.message}
+                {isConnectionStale
+                  ? "Waiting for the Kocel Bridge EA to report this account."
+                  : "MT5 Not Connected"}
               </p>
             )}
           </SectionCard>
 
           <SectionCard title="Open positions" bodyClassName="p-0 sm:p-0">
-            {(tradesQuery.data ?? []).length === 0 ? (
-              <EmptyState
-                icon={Activity}
-                title="No open positions"
-                description="Positions reported by the Kocel Bridge EA appear here."
-              />
-            ) : (
-              <ul className="divide-y divide-border">
-                {(tradesQuery.data ?? []).map((trade) => (
-                  <li key={trade.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <span className="num font-medium text-foreground">{trade.symbol}</span>
-                    <span className="text-muted-foreground">{trade.type}</span>
-                    <span className="num text-foreground">{trade.volume ?? "—"}</span>
-                    <span className="num text-muted-foreground">{trade.profit ?? "—"}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <EmptyState
+              icon={Activity}
+              title="No open positions"
+              description="Positions are now synced from MT5. Refresh or wait for the next heartbeat update."
+            />
           </SectionCard>
         </>
       )}

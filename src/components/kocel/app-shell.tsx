@@ -19,7 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: (() => void) | undefined }) {
+function NavLinks({
+  items,
+  onNavigate,
+}: {
+  items: NavItem[];
+  onNavigate?: (() => void) | undefined;
+}) {
   return (
     <nav className="flex flex-col gap-0.5">
       {items.map((item) => (

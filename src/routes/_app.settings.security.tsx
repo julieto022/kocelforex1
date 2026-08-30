@@ -9,11 +9,7 @@ import { SectionCard } from "@/components/kocel/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  listSessions,
-  revokeAllSessions,
-  revokeSession,
-} from "@/lib/functions/sessions.functions";
+import { listSessions, revokeAllSessions, revokeSession } from "@/lib/functions/sessions.functions";
 import { updatePassword } from "@/services/auth";
 
 export const Route = createFileRoute("/_app/settings/security")({
@@ -39,8 +35,7 @@ const schema = z
 function SecuritySettings() {
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery({ queryKey: ["sessions"], queryFn: () => listSessions() });
-  const invalidateSessions = () =>
-    queryClient.invalidateQueries({ queryKey: ["sessions"] });
+  const invalidateSessions = () => queryClient.invalidateQueries({ queryKey: ["sessions"] });
 
   const revokeOne = useMutation({
     mutationFn: (sessionId: string) => revokeSession({ data: { sessionId } }),

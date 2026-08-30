@@ -68,7 +68,10 @@ export const updateBot = createServerFn({ method: "POST" })
     if (data.configuration !== undefined) patch["configuration"] = data.configuration;
     if (Object.keys(patch).length === 0) throw invalid("Nothing to update.");
 
-    const { error } = await supabase.from("bots").update(patch as never).eq("id", data.botId);
+    const { error } = await supabase
+      .from("bots")
+      .update(patch as never)
+      .eq("id", data.botId);
     if (error) throw toApiError(error);
 
     await recordAudit({ userId, action: "BOT_UPDATED", entityType: "bot", entityId: data.botId });

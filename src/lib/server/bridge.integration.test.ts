@@ -66,7 +66,10 @@ describe.skipIf(!integrationEnabled)("Bridge API integration", () => {
     const { data: registeredIdentities, error: identityError } = await supabaseAdmin
       .from("mt5_authorization_requests")
       .select("broker_hint, server, environment")
-      .in("id", results.map((item) => item.requestId));
+      .in(
+        "id",
+        results.map((item) => item.requestId),
+      );
     expect(identityError).toBeNull();
     expect(registeredIdentities).toEqual(
       expect.arrayContaining(

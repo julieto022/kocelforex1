@@ -33,7 +33,11 @@ export const MARKET_CATEGORIES: { id: MarketCategory; label: string; note?: stri
   { id: "forex", label: "Forex" },
   { id: "metals", label: "Metals" },
   { id: "indices", label: "Indices" },
-  { id: "other", label: "Other", note: "Commodities, crypto CFDs and stocks arrive with broker capability discovery." },
+  {
+    id: "other",
+    label: "Other",
+    note: "Commodities, crypto CFDs and stocks arrive with broker capability discovery.",
+  },
 ];
 
 /** Quotes require a live Bridge session. Kocel never simulates prices. */

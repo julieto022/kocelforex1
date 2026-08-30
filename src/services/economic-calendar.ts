@@ -14,7 +14,8 @@ export async function getEconomicEvents(
 ): Promise<EconomicEvent[]> {
   let query = supabase.from("economic_events").select("*");
 
-  if (filters.currency && filters.currency !== "all") query = query.eq("currency", filters.currency);
+  if (filters.currency && filters.currency !== "all")
+    query = query.eq("currency", filters.currency);
   if (filters.impact && filters.impact !== "all") query = query.eq("impact", filters.impact);
 
   if (filters.range && filters.range !== "all" && filters.range !== "custom") {

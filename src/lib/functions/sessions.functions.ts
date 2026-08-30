@@ -50,7 +50,11 @@ export const registerCurrentSession = createServerFn({ method: "POST" })
     if (existing) {
       await supabaseAdmin
         .from("user_sessions")
-        .update({ last_activity_at: new Date().toISOString(), revoked_at: null, expires_at: expiresAt })
+        .update({
+          last_activity_at: new Date().toISOString(),
+          revoked_at: null,
+          expires_at: expiresAt,
+        })
         .eq("id", existing.id);
       return { id: existing.id };
     }

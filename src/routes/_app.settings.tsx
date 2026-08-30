@@ -10,7 +10,10 @@ export const Route = createFileRoute("/_app/settings")({
 function SettingsLayout() {
   return (
     <div className="space-y-5">
-      <PageHeader title="Settings" description="Manage your Kocel account, brokers and preferences." />
+      <PageHeader
+        title="Settings"
+        description="Manage your Kocel account, brokers and preferences."
+      />
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {settingsNav.map((item) => (

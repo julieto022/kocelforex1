@@ -18,12 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getNews } from "@/services/news";
 import { getEconomicEvents } from "@/services/economic-calendar";
-import {
-  IMPACT_MODEL,
-  NEWS_CATEGORIES,
-  NEWS_CURRENCIES,
-  type ImpactLevel,
-} from "@/services/types";
+import { IMPACT_MODEL, NEWS_CATEGORIES, NEWS_CURRENCIES, type ImpactLevel } from "@/services/types";
 
 export const Route = createFileRoute("/_app/news")({
   component: NewsPage,

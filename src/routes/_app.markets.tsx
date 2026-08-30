@@ -83,7 +83,9 @@ function MarketsPage() {
             </li>
           ))}
           {instruments.length === 0 && (
-            <li className="px-3 py-4 text-sm text-muted-foreground">No symbols match your search.</li>
+            <li className="px-3 py-4 text-sm text-muted-foreground">
+              No symbols match your search.
+            </li>
           )}
         </ul>
       </SectionCard>

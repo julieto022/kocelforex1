@@ -1,4 +1,5 @@
 # PHASE 3.3 BUG FIX REPORT
+
 ## Live MT5 Account & Position/Order Synchronization
 
 **Date**: August 29, 2026  
@@ -110,13 +111,15 @@ bool ReadPendingOrders(KocelMt5Order *&orders, int &order_count)
 #### Enhanced Heartbeat (KocelBridgeClient.mqh)
 
 **OLD Signature**:
+
 ```cpp
-bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, 
-               const int open_trades, 
+bool Heartbeat(const KocelMt5AccountSnapshot &snapshot,
+               const int open_trades,
                string &message)
 ```
 
 **NEW Signature**:
+
 ```cpp
 bool Heartbeat(const KocelMt5AccountSnapshot &snapshot,
                const KocelMt5Position *positions,
@@ -127,14 +130,15 @@ bool Heartbeat(const KocelMt5AccountSnapshot &snapshot,
 ```
 
 **Payload Generation**:
+
 ```json
 {
   "status": "CONNECTED",
   "account": {
-    "balance": 10000.00,
-    "equity": 10250.50,
-    "margin": 2500.00,
-    "freeMargin": 7750.50,
+    "balance": 10000.0,
+    "equity": 10250.5,
+    "margin": 2500.0,
+    "freeMargin": 7750.5,
     "marginLevel": 410.02,
     "currency": "USD",
     "leverage": 100
@@ -144,12 +148,12 @@ bool Heartbeat(const KocelMt5AccountSnapshot &snapshot,
       "ticket": 12345,
       "symbol": "EURUSD",
       "type": "BUY",
-      "volume": 1.50,
-      "openPrice": 1.09450,
-      "currentPrice": 1.09620,
-      "stopLoss": 1.09000,
-      "takeProfit": 1.10000,
-      "currentProfit": 255.50,
+      "volume": 1.5,
+      "openPrice": 1.0945,
+      "currentPrice": 1.0962,
+      "stopLoss": 1.09,
+      "takeProfit": 1.1,
+      "currentProfit": 255.5,
       "swap": -2.15,
       "magic": 0,
       "openTime": "2026-08-29T10:30:00Z"
@@ -160,10 +164,10 @@ bool Heartbeat(const KocelMt5AccountSnapshot &snapshot,
       "ticket": 54321,
       "symbol": "GBPUSD",
       "type": "BUY_LIMIT",
-      "volume": 2.00,
-      "price": 1.25000,
-      "stopLoss": 1.24000,
-      "takeProfit": 1.26000,
+      "volume": 2.0,
+      "price": 1.25,
+      "stopLoss": 1.24,
+      "takeProfit": 1.26,
       "currentState": "PLACED",
       "magic": 0,
       "createdAt": "2026-08-29T09:15:00Z"
@@ -198,7 +202,7 @@ if(!g_terminal.ReadPendingOrders(orders, order_count)) {
 
 // Send complete heartbeat
 string message = "";
-if(g_bridge.Heartbeat(snapshot, positions, pos_count, 
+if(g_bridge.Heartbeat(snapshot, positions, pos_count,
                        orders, order_count, message)) {
    g_next_heartbeat = now + g_bridge.HeartbeatSeconds();
    KocelResetRetry();
@@ -206,11 +210,11 @@ if(g_bridge.Heartbeat(snapshot, positions, pos_count,
    // Enhanced error diagnostics
    int http_code = g_bridge.LastResponseStatusCode();
    if(http_code > 0)
-      g_logger.Warning("Kocel heartbeat failed (HTTP " + 
-                       IntegerToString(http_code) + 
+      g_logger.Warning("Kocel heartbeat failed (HTTP " +
+                       IntegerToString(http_code) +
                        "); retry scheduled.");
    else
-      g_logger.Warning("Kocel heartbeat failed (" + message + 
+      g_logger.Warning("Kocel heartbeat failed (" + message +
                        "); retry scheduled.");
 }
 
@@ -223,6 +227,7 @@ ArrayFree(orders);
 #### Contract Alignment (broker.ts)
 
 **Before**:
+
 ```typescript
 export type BridgeAccountSnapshot = {
   balance: number;
@@ -230,14 +235,15 @@ export type BridgeAccountSnapshot = {
   margin: number;
   freeMargin: number;
   marginLevel: number | null;
-  credit: number;           // ❌ Required, but EA doesn't send
-  profit: number;           // ❌ Required, but EA doesn't send
+  credit: number; // ❌ Required, but EA doesn't send
+  profit: number; // ❌ Required, but EA doesn't send
   currency: string;
   leverage: number | null;
 };
 ```
 
 **After**:
+
 ```typescript
 export type BridgeAccountSnapshot = {
   balance: number;
@@ -245,8 +251,8 @@ export type BridgeAccountSnapshot = {
   margin: number;
   freeMargin: number;
   marginLevel: number | null;
-  credit?: number | undefined;  // ✅ Optional
-  profit?: number | undefined;  // ✅ Optional
+  credit?: number | undefined; // ✅ Optional
+  profit?: number | undefined; // ✅ Optional
   currency: string;
   leverage: number | null;
 };
@@ -261,8 +267,8 @@ const bridgeAccountSchema = z.object({
   margin: z.number().finite(),
   freeMargin: z.number().finite(),
   marginLevel: z.number().finite().nullable(),
-  credit: z.number().nonnegative().finite().optional(),    // ✅
-  profit: z.number().finite().optional(),                  // ✅
+  credit: z.number().nonnegative().finite().optional(), // ✅
+  profit: z.number().finite().optional(), // ✅
   currency: z.string().trim().min(3).max(8),
   leverage: z.number().int().positive().nullable(),
 });
@@ -273,17 +279,19 @@ const bridgeAccountSchema = z.object({
 ```typescript
 const schema = z.object({
   status: z.enum(["CONNECTED", "ERROR"]),
-  account: z.object({
-    balance: z.number(),
-    equity: z.number(),
-    margin: z.number(),
-    freeMargin: z.number(),
-    marginLevel: z.number().nullable(),
-    currency: z.string().trim().min(3).max(8),
-    leverage: z.number().nullable(),
-    credit: z.number().nonnegative().optional(),        // ✅
-    profit: z.number().optional(),                      // ✅
-  }).optional(),
+  account: z
+    .object({
+      balance: z.number(),
+      equity: z.number(),
+      margin: z.number(),
+      freeMargin: z.number(),
+      marginLevel: z.number().nullable(),
+      currency: z.string().trim().min(3).max(8),
+      leverage: z.number().nullable(),
+      credit: z.number().nonnegative().optional(), // ✅
+      profit: z.number().optional(), // ✅
+    })
+    .optional(),
   positions: z.array(positionSchema).max(500).optional(),
   orders: z.array(orderSchema).max(500).optional(),
   openTrades: z.number().int().min(0).max(10_000).optional(),
@@ -298,9 +306,13 @@ const schema = z.object({
 ```typescript
 export const getMt5Positions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data) => z.object({ 
-    connectionId: z.string().uuid() 
-  }).parse(data ?? {}))
+  .validator((data) =>
+    z
+      .object({
+        connectionId: z.string().uuid(),
+      })
+      .parse(data ?? {}),
+  )
   .handler(async ({ data, context }) => {
     // Verify ownership
     // Fetch positions from mt5_open_positions table
@@ -309,9 +321,13 @@ export const getMt5Positions = createServerFn({ method: "POST" })
 
 export const getMt5Orders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data) => z.object({ 
-    connectionId: z.string().uuid() 
-  }).parse(data ?? {}))
+  .validator((data) =>
+    z
+      .object({
+        connectionId: z.string().uuid(),
+      })
+      .parse(data ?? {}),
+  )
   .handler(async ({ data, context }) => {
     // Verify ownership
     // Fetch orders from mt5_pending_orders table
@@ -320,10 +336,14 @@ export const getMt5Orders = createServerFn({ method: "POST" })
 
 export const getMt5AccountSnapshot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data) => z.object({ 
-    connectionId: z.string().uuid(),
-    hours: z.number().int().min(0).default(0)
-  }).parse(data ?? {}))
+  .validator((data) =>
+    z
+      .object({
+        connectionId: z.string().uuid(),
+        hours: z.number().int().min(0).default(0),
+      })
+      .parse(data ?? {}),
+  )
   .handler(async ({ data, context }) => {
     // Verify ownership
     // Fetch latest snapshot (hours=0) or history (hours>0)
@@ -336,19 +356,21 @@ export const getMt5AccountSnapshot = createServerFn({ method: "POST" })
 ## Files Changed Summary
 
 ### Modified Files (7)
-| File | Changes | LOC |
-|------|---------|-----|
-| `mt5-bridge/KocelBridgeEA/Core/KocelTypes.mqh` | Added Position/Order structs and reset functions | +44 |
-| `mt5-bridge/KocelBridgeEA/MT5/KocelTerminal.mqh` | Added ReadOpenPositions() and ReadPendingOrders() | +78 |
-| `mt5-bridge/KocelBridgeEA/Network/KocelBridgeClient.mqh` | Enhanced heartbeat with full payload support | +115 |
-| `mt5-bridge/KocelBridgeEA/KocelBridgeEA.mq5` | Updated OnTimer() to read and send positions/orders | +30 |
-| `src/lib/contracts/broker.ts` | Made credit/profit optional | 4 |
-| `src/lib/server/bridge.server.ts` | Made credit/profit optional in schema | 4 |
-| `src/routes/api/public/bridge/heartbeat.ts` | Made credit/profit optional in validation | 4 |
+
+| File                                                     | Changes                                             | LOC  |
+| -------------------------------------------------------- | --------------------------------------------------- | ---- |
+| `mt5-bridge/KocelBridgeEA/Core/KocelTypes.mqh`           | Added Position/Order structs and reset functions    | +44  |
+| `mt5-bridge/KocelBridgeEA/MT5/KocelTerminal.mqh`         | Added ReadOpenPositions() and ReadPendingOrders()   | +78  |
+| `mt5-bridge/KocelBridgeEA/Network/KocelBridgeClient.mqh` | Enhanced heartbeat with full payload support        | +115 |
+| `mt5-bridge/KocelBridgeEA/KocelBridgeEA.mq5`             | Updated OnTimer() to read and send positions/orders | +30  |
+| `src/lib/contracts/broker.ts`                            | Made credit/profit optional                         | 4    |
+| `src/lib/server/bridge.server.ts`                        | Made credit/profit optional in schema               | 4    |
+| `src/routes/api/public/bridge/heartbeat.ts`              | Made credit/profit optional in validation           | 4    |
 
 ### Created Files (1)
-| File | Purpose | LOC |
-|------|---------|-----|
+
+| File                                      | Purpose                                                            | LOC |
+| ----------------------------------------- | ------------------------------------------------------------------ | --- |
 | `src/lib/functions/mt5-sync.functions.ts` | Server functions for dashboard to fetch positions/orders/snapshots | 134 |
 
 **Total Changes**: 283 lines added, 12 lines modified
@@ -358,6 +380,7 @@ export const getMt5AccountSnapshot = createServerFn({ method: "POST" })
 ## Security & Architecture
 
 ### ✅ Preserved
+
 - Phase 2 browser authorization flow (unchanged)
 - Secure Bridge session token handling
 - User ownership isolation via RLS policies
@@ -367,6 +390,7 @@ export const getMt5AccountSnapshot = createServerFn({ method: "POST" })
 - Rate limiting on heartbeat endpoint
 
 ### ✅ Enhanced
+
 - Better error diagnostics (HTTP status codes)
 - No secrets in logs
 - Proper error handling for position/order reading failures
@@ -415,25 +439,25 @@ mt5_pending_orders
 
 ### ✅ Completed Testing
 
-| Test | Result | Details |
-|------|--------|---------|
-| Type Safety | PASS | TypeScript validates all schemas |
-| Protocol Mismatch | PASS | EA payload now matches backend schema |
-| Ownership Isolation | PASS | RLS policies prevent data leaks |
-| Error Handling | PASS | EA logs meaningful diagnostics |
-| Backward Compatibility | PASS | Legacy heartbeat still works |
-| Schema Validation | PASS | Both EA and backend payloads validated |
+| Test                   | Result | Details                                |
+| ---------------------- | ------ | -------------------------------------- |
+| Type Safety            | PASS   | TypeScript validates all schemas       |
+| Protocol Mismatch      | PASS   | EA payload now matches backend schema  |
+| Ownership Isolation    | PASS   | RLS policies prevent data leaks        |
+| Error Handling         | PASS   | EA logs meaningful diagnostics         |
+| Backward Compatibility | PASS   | Legacy heartbeat still works           |
+| Schema Validation      | PASS   | Both EA and backend payloads validated |
 
 ### ⚠️ Requires Live MT5 Testing
 
-| Test | Type | Requirement |
-|------|------|-------------|
-| MQL5 Compilation | Build | MetaEditor with MT5 terminal |
-| Position Sync | Integration | Account with open positions |
-| Order Sync | Integration | Account with pending orders |
-| Dashboard Display | E2E | Browser + live connection |
-| Position Close Detection | Functional | Close position while connected |
-| Order Execution | Functional | Execute pending order while connected |
+| Test                     | Type        | Requirement                           |
+| ------------------------ | ----------- | ------------------------------------- |
+| MQL5 Compilation         | Build       | MetaEditor with MT5 terminal          |
+| Position Sync            | Integration | Account with open positions           |
+| Order Sync               | Integration | Account with pending orders           |
+| Dashboard Display        | E2E         | Browser + live connection             |
+| Position Close Detection | Functional  | Close position while connected        |
+| Order Execution          | Functional  | Execute pending order while connected |
 
 ---
 
@@ -452,6 +476,7 @@ mt5_pending_orders
 ## Live Testing Procedure
 
 ### Prerequisites
+
 - MT5 terminal with demo or real account
 - At least 1 open position or pending order
 - Kocel dashboard access
@@ -459,12 +484,14 @@ mt5_pending_orders
 ### Steps
 
 1. **Compile EA**
+
    ```
    MetaEditor → File → Compile
    Expected: KocelBridgeEA.ex5 generated with 0 errors, 0 warnings
    ```
 
 2. **Attach EA to Chart**
+
    ```
    MT5 Terminal → Attach Kocel Bridge EA to any chart
    Input parameters:
@@ -474,6 +501,7 @@ mt5_pending_orders
    ```
 
 3. **Authorize in Browser**
+
    ```
    EA Panel → Click "Connect MT5"
    Browser: Follow authorization flow
@@ -481,6 +509,7 @@ mt5_pending_orders
    ```
 
 4. **Verify Heartbeat**
+
    ```
    EA Log:
    ✓ "Bridge session established."
@@ -489,6 +518,7 @@ mt5_pending_orders
    ```
 
 5. **Monitor Dashboard**
+
    ```
    Kocel Dashboard → /dashboard
    Expected:
@@ -500,6 +530,7 @@ mt5_pending_orders
    ```
 
 6. **Test Position Change**
+
    ```
    In MT5: Close one open position
    Dashboard: Wait up to 30 seconds
@@ -518,25 +549,31 @@ mt5_pending_orders
 ## Error Scenarios & Recovery
 
 ### Scenario 1: "HTTP 401" in EA Log
+
 **Cause**: Bridge session expired
 **Recovery**: User clicks "Disconnect" then "Connect" in EA panel
 **Automatic Recovery**: No - requires user action
 
 ### Scenario 2: "[WARNING] Kocel heartbeat failed (connection error)"
+
 **Cause**: Network issue or API down
 **Recovery**: Automatic retry with exponential backoff
 **Status**: "Connected" → "Waiting for API..." → "Connected" (when restored)
 
 ### Scenario 3: Dashboard shows "MT5 Not Connected"
-**Cause**: 
+
+**Cause**:
+
 - No heartbeat received in 90 seconds, OR
 - Connection revoked, OR
 - EA disconnected
-**Recovery**: Check EA panel status; may need to reconnect
+  **Recovery**: Check EA panel status; may need to reconnect
 
 ### Scenario 4: Positions show in EA but not on Dashboard
+
 **Cause**: Backend not receiving position data
 **Solution**: Check:
+
 1. EA debug log for heartbeat success
 2. Browser console for API errors
 3. Database (mt5_open_positions table) for data
@@ -572,6 +609,7 @@ mt5_pending_orders
 Phase 3.3 sync layer is **READ-ONLY** for Kocel operations. For Phase 3.4 trading:
 
 **DO:**
+
 - Read from mt5_open_positions for position state
 - Use mt5_account_snapshots for account history
 - Create NEW tables for Kocel-initiated orders (mt5_kocel_orders)
@@ -579,6 +617,7 @@ Phase 3.3 sync layer is **READ-ONLY** for Kocel operations. For Phase 3.4 tradin
 - Link Kocel orders to MT5 orders via magic numbers (1-9999)
 
 **DON'T:**
+
 - Modify mt5_open_positions from trading code
 - Modify mt5_pending_orders from trading code
 - Assume position IDs stay the same (use ticket as key)
@@ -596,9 +635,9 @@ Phase 3.3 live MT5 synchronization is now **complete and functional**. The root 
 
 ## Revision History
 
-| Date | Version | Status | Changes |
-|------|---------|--------|---------|
-| 2026-08-29 | 1.0 | Complete | Initial bug fix implementation |
+| Date       | Version | Status   | Changes                        |
+| ---------- | ------- | -------- | ------------------------------ |
+| 2026-08-29 | 1.0     | Complete | Initial bug fix implementation |
 
 ---
 

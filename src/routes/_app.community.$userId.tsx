@@ -134,8 +134,8 @@ function CommunityProfilePage() {
                 <p className="text-xs text-muted-foreground">@{author.username}</p>
               )}
               <p className="num mt-1 text-xs text-muted-foreground">
-                {countsQuery.data?.followers ?? 0} followers ·{" "}
-                {countsQuery.data?.following ?? 0} following · {posts.length} posts
+                {countsQuery.data?.followers ?? 0} followers · {countsQuery.data?.following ?? 0}{" "}
+                following · {posts.length} posts
               </p>
             </div>
             {!isSelf && user && (
@@ -192,12 +192,7 @@ function CommunityProfilePage() {
       ) : (
         <div className="space-y-3">
           {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              invalidateKey={postsKey}
-              showAuthorLink={false}
-            />
+            <PostCard key={post.id} post={post} invalidateKey={postsKey} showAuthorLink={false} />
           ))}
         </div>
       )}

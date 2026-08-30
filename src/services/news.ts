@@ -43,10 +43,13 @@ function rangeEnd(range: string | undefined): Date | null {
 export async function getNews(filters: NewsFilters = {}): Promise<NewsItem[]> {
   let query = supabase.from("news").select("*");
 
-  if (filters.category && filters.category !== "all") query = query.eq("category", filters.category);
+  if (filters.category && filters.category !== "all")
+    query = query.eq("category", filters.category);
   if (filters.impact && filters.impact !== "all") query = query.eq("impact", filters.impact);
-  if (filters.currency && filters.currency !== "all") query = query.eq("currency", filters.currency);
-  if (filters.market && filters.market !== "all") query = query.ilike("symbol", `%${filters.market}%`);
+  if (filters.currency && filters.currency !== "all")
+    query = query.eq("currency", filters.currency);
+  if (filters.market && filters.market !== "all")
+    query = query.ilike("symbol", `%${filters.market}%`);
   if (filters.search?.trim()) query = query.ilike("title", `%${filters.search.trim()}%`);
 
   const start = rangeStart(filters.range);

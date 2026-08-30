@@ -11,33 +11,47 @@ import {
   toErrorResponse,
 } from "@/lib/server/bridge-http.server";
 
-const positionSchema = z.object({
-  ticket: z.number().int().positive(),
-  symbol: z.string().trim().min(1).max(32),
-  type: z.string().trim().min(1).max(32),
-  volume: z.number().positive(),
-  openPrice: z.number().positive(),
-  currentPrice: z.number().positive(),
-  stopLoss: z.number().nullable().optional(),
-  takeProfit: z.number().nullable().optional(),
-  currentProfit: z.number(),
-  swap: z.number(),
-  magic: z.number().int().nullable().optional(),
-  openTime: bridgeTimestampSchema,
-});
+const positionSchema = z
+  .object({
+    ticket: z.number().int().positive(),
+    symbol: z.string().trim().min(1).max(32),
+    type: z.string().trim().min(1).max(32),
+    volume: z.number().positive(),
+    openPrice: z.number().positive(),
+    currentPrice: z.number().positive(),
+    stopLoss: z.number().nullable().optional(),
+    takeProfit: z.number().nullable().optional(),
+    currentProfit: z.number(),
+    swap: z.number(),
+    magic: z.number().int().nullable().optional(),
+    openTime: bridgeTimestampSchema,
+  })
+  .transform((p) => ({
+    ...p,
+    stopLoss: p.stopLoss ?? null,
+    takeProfit: p.takeProfit ?? null,
+    magic: p.magic ?? null,
+  }));
 
-const orderSchema = z.object({
-  ticket: z.number().int().positive(),
-  symbol: z.string().trim().min(1).max(32),
-  type: z.string().trim().min(1).max(32),
-  volume: z.number().positive(),
-  price: z.number().positive(),
-  stopLoss: z.number().nullable().optional(),
-  takeProfit: z.number().nullable().optional(),
-  currentState: z.string().trim().min(1).max(32),
-  magic: z.number().int().nullable().optional(),
-  createdAt: bridgeTimestampSchema,
-});
+const orderSchema = z
+  .object({
+    ticket: z.number().int().positive(),
+    symbol: z.string().trim().min(1).max(32),
+    type: z.string().trim().min(1).max(32),
+    volume: z.number().positive(),
+    price: z.number().positive(),
+    stopLoss: z.number().nullable().optional(),
+    takeProfit: z.number().nullable().optional(),
+    currentState: z.string().trim().min(1).max(32),
+    magic: z.number().int().nullable().optional(),
+    createdAt: bridgeTimestampSchema,
+  })
+  .transform((o) => ({
+    ...o,
+    stopLoss: o.stopLoss ?? null,
+    takeProfit: o.takeProfit ?? null,
+    magic: o.magic ?? null,
+  }));
 
 const schema = z.object({
   status: z.enum(["CONNECTED", "ERROR"]),
@@ -71,7 +85,9 @@ export const Route = createFileRoute("/api/public/bridge/heartbeat")({
           if (!identity) return fail("UNAUTHENTICATED", "Invalid or expired bridge token.");
           await limitBridge(identity);
           const body = await readJson(request, schema);
-          const status = await bridgeService.heartbeat(identity, body);
+          // Body has been validated and transformed by schema; cast is safe
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const status = await bridgeService.heartbeat(identity, body as any);
           return ok(status, "Heartbeat received");
         } catch (error) {
           return toErrorResponse(error);

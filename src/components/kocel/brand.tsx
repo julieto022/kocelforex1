@@ -12,7 +12,13 @@ export function KocelMark({ className }: { className?: string }) {
         className,
       )}
     >
-      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4">
+      <svg
+        viewBox="0 0 24 24"
+        className="size-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+      >
         <path d="M4 18V6" strokeLinecap="round" />
         <path d="M20 6l-8 6 8 6" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M4 12h6" strokeLinecap="round" />

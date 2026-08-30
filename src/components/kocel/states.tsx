@@ -26,9 +26,7 @@ export function SectionCard({
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
           <div className="min-w-0">
             {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
-            {description && (
-              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-            )}
+            {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
           </div>
           {action}
         </header>
@@ -56,7 +54,9 @@ export function EmptyState({
   className?: string | undefined;
 }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center px-4 py-10 text-center", className)}>
+    <div
+      className={cn("flex flex-col items-center justify-center px-4 py-10 text-center", className)}
+    >
       {Icon && (
         <span className="mb-3 inline-flex size-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
           <Icon className="size-5" />

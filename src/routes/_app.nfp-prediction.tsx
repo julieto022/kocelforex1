@@ -158,7 +158,10 @@ function NfpPredictionPage() {
               </ul>
             </SectionCard>
 
-            <SectionCard title="15-factor analysis" description="Factors without data stay pending.">
+            <SectionCard
+              title="15-factor analysis"
+              description="Factors without data stay pending."
+            >
               <ul className="grid gap-2 sm:grid-cols-2">
                 {factors.map((factor) => (
                   <li

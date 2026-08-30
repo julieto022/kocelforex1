@@ -122,8 +122,6 @@ export type BrokerConnection = {
   free_margin: number | null;
   margin_level: number | null;
   profit: number | null;
-  currency: string | null;
-  leverage: number | null;
   account_status: string | null;
   created_at: string;
   updated_at: string;
@@ -233,24 +231,31 @@ export const IMPACT_MODEL: Record<ImpactLevel, { label: string; tone: StatusTone
 };
 
 export type NewsCategory =
-  | "forex"
-  | "economic"
-  | "central_banks"
-  | "commodities"
-  | "indices"
-  | "global_markets";
+  "forex" | "economic" | "central_banks" | "commodities" | "indices" | "global_markets";
 
 export const NEWS_CATEGORIES: { id: NewsCategory; label: string; description: string }[] = [
   { id: "forex", label: "Forex", description: "Currency-market news." },
-  { id: "economic", label: "Economic", description: "Economic reports and macroeconomic developments." },
+  {
+    id: "economic",
+    label: "Economic",
+    description: "Economic reports and macroeconomic developments.",
+  },
   {
     id: "central_banks",
     label: "Central Banks",
     description: "Interest-rate decisions, speeches and monetary-policy developments.",
   },
-  { id: "commodities", label: "Commodities", description: "Gold, oil and other relevant commodity news." },
+  {
+    id: "commodities",
+    label: "Commodities",
+    description: "Gold, oil and other relevant commodity news.",
+  },
   { id: "indices", label: "Indices", description: "Major index-related market developments." },
-  { id: "global_markets", label: "Global Markets", description: "Major international market events." },
+  {
+    id: "global_markets",
+    label: "Global Markets",
+    description: "Major international market events.",
+  },
 ];
 
 export const NEWS_CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"] as const;
@@ -366,13 +371,7 @@ export type Signal = {
   created_at: string;
 };
 
-export type CommunityCategory =
-  | "general"
-  | "market"
-  | "idea"
-  | "education"
-  | "news"
-  | "question";
+export type CommunityCategory = "general" | "market" | "idea" | "education" | "news" | "question";
 
 export const COMMUNITY_CATEGORIES: { id: CommunityCategory; label: string }[] = [
   { id: "general", label: "General Discussion" },

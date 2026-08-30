@@ -34,9 +34,7 @@ function redact(value: unknown, depth = 0): unknown {
   if (typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-      out[key] = REDACTED_KEYS.includes(key.toLowerCase())
-        ? "[redacted]"
-        : redact(item, depth + 1);
+      out[key] = REDACTED_KEYS.includes(key.toLowerCase()) ? "[redacted]" : redact(item, depth + 1);
     }
     return out;
   }
@@ -44,13 +42,7 @@ function redact(value: unknown, depth = 0): unknown {
 }
 
 export type LogScope =
-  | "auth"
-  | "api"
-  | "database"
-  | "bridge"
-  | "connection"
-  | "community"
-  | "system";
+  "auth" | "api" | "database" | "bridge" | "connection" | "community" | "system";
 
 type LogLevel = "info" | "warn" | "error";
 

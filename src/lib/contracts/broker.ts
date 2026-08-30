@@ -107,7 +107,14 @@ export type BridgePosition = {
 export type BridgeOrder = {
   ticket: number;
   symbol: string;
-  type: "BUY_LIMIT" | "SELL_LIMIT" | "BUY_STOP" | "SELL_STOP" | "BUY_STOP_LIMIT" | "SELL_STOP_LIMIT" | string;
+  type:
+    | "BUY_LIMIT"
+    | "SELL_LIMIT"
+    | "BUY_STOP"
+    | "SELL_STOP"
+    | "BUY_STOP_LIMIT"
+    | "SELL_STOP_LIMIT"
+    | string;
   volume: number;
   price: number;
   stopLoss: number | null;

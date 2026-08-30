@@ -194,7 +194,10 @@ function RegisterPage() {
             checked={form.accepted}
             onCheckedChange={(checked) => setForm({ ...form, accepted: checked === true })}
           />
-          <Label htmlFor="accepted" className="text-xs font-normal leading-relaxed text-muted-foreground">
+          <Label
+            htmlFor="accepted"
+            className="text-xs font-normal leading-relaxed text-muted-foreground"
+          >
             I accept the Kocel terms of service and understand that Kocel is not a broker and does
             not hold funds. Trading involves risk.
           </Label>

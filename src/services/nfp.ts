@@ -4,8 +4,7 @@ import { NFP_FACTORS, type NfpFactor, type NfpPrediction } from "./types";
 function normalize(row: Record<string, unknown>): NfpPrediction {
   return {
     ...(row as unknown as NfpPrediction),
-    confidence_breakdown:
-      (row["confidence_breakdown"] as Record<string, number> | null) ?? null,
+    confidence_breakdown: (row["confidence_breakdown"] as Record<string, number> | null) ?? null,
     factors: (row["factors"] as NfpFactor[] | null) ?? null,
   };
 }

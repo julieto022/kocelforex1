@@ -12,8 +12,7 @@ export const SIGNAL_TIMEFRAMES = ["M5", "M15", "M30", "H1", "H4", "D1"] as const
 function normalize(row: Record<string, unknown>): Signal {
   return {
     ...(row as unknown as Signal),
-    confidence_breakdown:
-      (row["confidence_breakdown"] as Record<string, number> | null) ?? null,
+    confidence_breakdown: (row["confidence_breakdown"] as Record<string, number> | null) ?? null,
     analysis:
       (row["analysis"] as { name: string; status: string; note?: string | null }[] | null) ?? null,
   };

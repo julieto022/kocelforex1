@@ -1,12 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import {
-  CalendarClock,
-  MessagesSquare,
-  Newspaper,
-  Target,
-  TrendingUp,
-} from "lucide-react";
+import { CalendarClock, MessagesSquare, Newspaper, Target, TrendingUp } from "lucide-react";
 
 import { SectionCard } from "@/components/kocel/states";
 import { StatusBadge } from "@/components/kocel/status-badge";
@@ -116,9 +110,7 @@ export function DashboardWidgets() {
               <li key={event.id} className="flex items-start gap-2">
                 <CalendarClock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {event.event_name}
-                  </p>
+                  <p className="truncate text-xs font-medium text-foreground">{event.event_name}</p>
                   <p className="num text-[0.65rem] text-muted-foreground">
                     {event.currency} · {shortTime(event.event_time)}
                   </p>
@@ -205,9 +197,7 @@ export function DashboardWidgets() {
                   {signal.direction}
                 </StatusBadge>
                 <span className="num text-[0.65rem] text-muted-foreground">
-                  {signal.confidence == null
-                    ? "—"
-                    : `${Number(signal.confidence).toFixed(0)}%`}
+                  {signal.confidence == null ? "—" : `${Number(signal.confidence).toFixed(0)}%`}
                 </span>
               </li>
             ))}

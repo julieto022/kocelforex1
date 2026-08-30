@@ -51,7 +51,9 @@ export const bridgeTimestampSchema = z
   .min(1)
   .max(40)
   .transform((value, ctx) => {
-    const mt5 = value.match(/^(\d{4})[.\-/](\d{2})[.\-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?Z?$/);
+    const mt5 = value.match(
+      /^(\d{4})[.\-/](\d{2})[.\-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?Z?$/,
+    );
     const iso = mt5
       ? `${mt5[1]}-${mt5[2]}-${mt5[3]}T${mt5[4]}:${mt5[5]}:${mt5[6] ?? "00"}Z`
       : value;
@@ -114,7 +116,11 @@ export const bridgeHeartbeatSchema = z.object({
 
 export function validateBridgeHeartbeat(payload: unknown): BridgeHeartbeat {
   const parsed = bridgeHeartbeatSchema.parse(payload);
-  if (parsed.account && parsed.account.marginLevel !== null && !Number.isFinite(parsed.account.marginLevel)) {
+  if (
+    parsed.account &&
+    parsed.account.marginLevel !== null &&
+    !Number.isFinite(parsed.account.marginLevel)
+  ) {
     throw new Error("Invalid account margin level value.");
   }
   return parsed as BridgeHeartbeat;
@@ -226,7 +232,10 @@ export const bridgeService: BridgeService = {
     });
     if (sessionError) {
       if (sessionError.message.includes("AUTHORIZATION_ALREADY_DECIDED")) {
-        throw new ApiError("AUTHORIZATION_ALREADY_DECIDED", "That authorization request has already issued a Bridge session.");
+        throw new ApiError(
+          "AUTHORIZATION_ALREADY_DECIDED",
+          "That authorization request has already issued a Bridge session.",
+        );
       }
       throw new ApiError("INTERNAL_ERROR", "Could not create the Bridge session.");
     }
@@ -290,25 +299,28 @@ export const bridgeService: BridgeService = {
     const status = normalized.status === "ERROR" ? "ERROR" : "CONNECTED";
     const account = normalized.account ?? null;
 
+    // Build account update object, converting undefined to null for optional fields
+    const accountUpdate = account
+      ? {
+          balance: account.balance,
+          equity: account.equity,
+          credit: account.credit ?? null,
+          margin: account.margin,
+          free_margin: account.freeMargin,
+          margin_level: account.marginLevel,
+          profit: account.profit ?? null,
+          currency: account.currency,
+          leverage: account.leverage,
+        }
+      : {};
+
     const { data: connection } = await db
       .from("broker_connections")
       .update({
         status,
         last_seen_at: now,
         last_sync_at: now,
-        ...(account
-          ? {
-              balance: account.balance,
-              equity: account.equity,
-              credit: account.credit,
-              margin: account.margin,
-              free_margin: account.freeMargin,
-              margin_level: account.marginLevel,
-              profit: account.profit,
-              currency: account.currency,
-              leverage: account.leverage,
-            }
-          : {}),
+        ...accountUpdate,
         ...(status === "CONNECTED" ? { last_connected_at: now } : {}),
       })
       .eq("id", identity.connectionId)
@@ -325,11 +337,11 @@ export const bridgeService: BridgeService = {
         status,
         balance: account.balance,
         equity: account.equity,
-        credit: account.credit,
+        credit: account.credit ?? null,
         margin: account.margin,
         free_margin: account.freeMargin,
         margin_level: account.marginLevel,
-        profit: account.profit,
+        profit: account.profit ?? null,
         currency: account.currency,
         leverage: account.leverage,
         snapshot_at: now,
@@ -337,7 +349,11 @@ export const bridgeService: BridgeService = {
     }
 
     if (normalized.positions?.length) {
-      await db.from("mt5_open_positions").delete().eq("broker_connection_id", identity.connectionId).eq("user_id", identity.userId);
+      await db
+        .from("mt5_open_positions")
+        .delete()
+        .eq("broker_connection_id", identity.connectionId)
+        .eq("user_id", identity.userId);
       await db.from("mt5_open_positions").insert(
         normalized.positions.map((position) => ({
           user_id: identity.userId,
@@ -361,7 +377,11 @@ export const bridgeService: BridgeService = {
     }
 
     if (normalized.orders?.length) {
-      await db.from("mt5_pending_orders").delete().eq("broker_connection_id", identity.connectionId).eq("user_id", identity.userId);
+      await db
+        .from("mt5_pending_orders")
+        .delete()
+        .eq("broker_connection_id", identity.connectionId)
+        .eq("user_id", identity.userId);
       await db.from("mt5_pending_orders").insert(
         normalized.orders.map((order) => ({
           user_id: identity.userId,

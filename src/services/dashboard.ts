@@ -3,7 +3,7 @@ import type { AccountSummary, BrokerConnection } from "./types";
 export type DashboardData = {
   live: boolean;
   summary: AccountSummary | null;
-  message?: string;
+  message?: string | null;
 };
 
 /**
@@ -20,8 +20,7 @@ export async function getDashboard(connection: BrokerConnection | null): Promise
   }
 
   const stale =
-    !connection.last_seen_at ||
-    Date.now() - new Date(connection.last_seen_at).getTime() > 90_000;
+    !connection.last_seen_at || Date.now() - new Date(connection.last_seen_at).getTime() > 90_000;
 
   if (connection.status !== "CONNECTED" || stale) {
     return {
