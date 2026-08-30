@@ -17,7 +17,7 @@ import { SectionCard } from "./states";
 type ExecutionStatus = "idle" | "loading" | "success" | "error";
 
 export function TradingPanel() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { active } = useConnections();
 
   const [symbol, setSymbol] = useState("");
@@ -54,6 +54,13 @@ export function TradingPanel() {
       return;
     }
 
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setStatus("error");
+      setMessage("Your Kocel session has expired. Please sign in again.");
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
     setResult(null);
@@ -63,7 +70,7 @@ export function TradingPanel() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${(await (window as unknown as { supabase?: { auth?: { session?: { access_token?: string } } } }).supabase?.auth?.session?.access_token) || ""}`,
+          authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           connectionId: active.id,

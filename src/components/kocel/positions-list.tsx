@@ -30,7 +30,7 @@ interface PositionActionState {
 }
 
 export function PositionsList() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { active } = useConnections();
 
   const [action, setAction] = useState<PositionActionState>({
@@ -50,6 +50,18 @@ export function PositionsList() {
   const handleClose = async (ticket: number) => {
     if (!user || !active) return;
 
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setAction((prev) => ({
+        ...prev,
+        type: "close",
+        positionTicket: ticket,
+        status: "error",
+        message: "Your Kocel session has expired. Please sign in again.",
+      }));
+      return;
+    }
+
     setAction({
       type: "close",
       positionTicket: ticket,
@@ -64,7 +76,7 @@ export function PositionsList() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${(await (window as unknown as { supabase?: { auth?: { session?: { access_token?: string } } } }).supabase?.auth?.session?.access_token) || ""}`,
+          authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           connectionId: active.id,
@@ -123,6 +135,16 @@ export function PositionsList() {
       return;
     }
 
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setAction((prev) => ({
+        ...prev,
+        status: "error",
+        message: "Your Kocel session has expired. Please sign in again.",
+      }));
+      return;
+    }
+
     setAction((prev) => ({ ...prev, status: "loading", message: "Modifying position..." }));
 
     try {
@@ -130,7 +152,7 @@ export function PositionsList() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${(await (window as unknown as { supabase?: { auth?: { session?: { access_token?: string } } } }).supabase?.auth?.session?.access_token) || ""}`,
+          authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           connectionId: active.id,

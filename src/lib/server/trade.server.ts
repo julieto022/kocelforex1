@@ -24,18 +24,54 @@ async function admin() {
 }
 
 /** Validates trade execution request */
-export const tradeExecutionRequestSchema = z.object({
-  connectionId: z.string().uuid(),
-  operation: z.enum(["OPEN_MARKET", "CLOSE_POSITION", "MODIFY_POSITION", "CANCEL_PENDING_ORDER"]),
-  symbol: z.string().trim().min(1).max(32).optional(),
-  side: z.enum(["BUY", "SELL"]).optional(),
-  volume: z.number().positive().optional(),
-  stopLoss: z.number().optional(),
-  takeProfit: z.number().optional(),
-  positionTicket: z.number().int().positive().optional(),
-  orderTicket: z.number().int().positive().optional(),
-  clientRequestId: z.string().uuid(),
-});
+export const tradeExecutionRequestSchema = z
+  .object({
+    connectionId: z.string().uuid(),
+    operation: z.enum(["OPEN_MARKET", "CLOSE_POSITION", "MODIFY_POSITION", "CANCEL_PENDING_ORDER"]),
+    symbol: z.string().trim().min(1).max(32).optional(),
+    side: z.enum(["BUY", "SELL"]).optional(),
+    volume: z.number().positive().optional(),
+    stopLoss: z.number().optional(),
+    takeProfit: z.number().optional(),
+    positionTicket: z.number().int().positive().optional(),
+    orderTicket: z.number().int().positive().optional(),
+    clientRequestId: z.string().uuid(),
+  })
+  .superRefine((request, ctx) => {
+    switch (request.operation) {
+      case "OPEN_MARKET":
+        if (!request.symbol) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["symbol"], message: "Symbol is required." });
+        }
+        if (!request.side) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["side"], message: "Side is required." });
+        }
+        if (!request.volume || request.volume <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["volume"], message: "Volume must be positive." });
+        }
+        break;
+      case "CLOSE_POSITION":
+        if (!request.positionTicket || request.positionTicket <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["positionTicket"], message: "Position ticket is required." });
+        }
+        break;
+      case "MODIFY_POSITION":
+        if (!request.positionTicket || request.positionTicket <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["positionTicket"], message: "Position ticket is required." });
+        }
+        if (request.stopLoss === undefined && request.takeProfit === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "At least one of stopLoss or takeProfit must be provided." });
+        }
+        break;
+      case "CANCEL_PENDING_ORDER":
+        if (!request.orderTicket || request.orderTicket <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["orderTicket"], message: "Order ticket is required." });
+        }
+        break;
+      default:
+        break;
+    }
+  });
 
 export type TradeExecutionRequestValidated = z.infer<typeof tradeExecutionRequestSchema>;
 
@@ -68,6 +104,27 @@ export async function executeTradeCommand(
 
   if (!connection) throw notFound("Connection not found.");
   if (connection.user_id !== userId) throw forbidden("You do not own this connection.");
+
+  // Connection must be active and backed by a current Bridge session
+  const { data: activeBridgeSession } = await db
+    .from("bridge_sessions")
+    .select("id, expires_at, revoked_at")
+    .eq("connection_id", request.connectionId)
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+    .gt("expires_at", now)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!activeBridgeSession) {
+    return {
+      commandId,
+      status: "REJECTED",
+      errorCode: "BRIDGE_SESSION_REQUIRED",
+      message: "This MT5 connection does not have an active Bridge session.",
+    };
+  }
 
   // Connection must be active
   if (connection.status !== "CONNECTED") {
