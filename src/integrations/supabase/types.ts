@@ -169,17 +169,25 @@ export type Database = {
           account_name: string
           account_type: string | null
           authorized_at: string | null
+          balance: number | null
           broker_id: string
           created_at: string
+          credit: number | null
           currency: string | null
           ea_version: string | null
           environment: string
+          equity: number | null
+          free_margin: number | null
           id: string
           last_connected_at: string | null
           last_seen_at: string | null
+          last_sync_at: string | null
           leverage: number | null
+          margin: number | null
+          margin_level: number | null
           mt5_login: string
           nickname: string | null
+          profit: number | null
           revoked_at: string | null
           server: string
           status: string
@@ -193,17 +201,25 @@ export type Database = {
           account_name: string
           account_type?: string | null
           authorized_at?: string | null
+          balance?: number | null
           broker_id: string
           created_at?: string
+          credit?: number | null
           currency?: string | null
           ea_version?: string | null
           environment?: string
+          equity?: number | null
+          free_margin?: number | null
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
+          last_sync_at?: string | null
           leverage?: number | null
+          margin?: number | null
+          margin_level?: number | null
           mt5_login: string
           nickname?: string | null
+          profit?: number | null
           revoked_at?: string | null
           server: string
           status?: string
@@ -217,17 +233,25 @@ export type Database = {
           account_name?: string
           account_type?: string | null
           authorized_at?: string | null
+          balance?: number | null
           broker_id?: string
           created_at?: string
+          credit?: number | null
           currency?: string | null
           ea_version?: string | null
           environment?: string
+          equity?: number | null
+          free_margin?: number | null
           id?: string
           last_connected_at?: string | null
           last_seen_at?: string | null
+          last_sync_at?: string | null
           leverage?: number | null
+          margin?: number | null
+          margin_level?: number | null
           mt5_login?: string
           nickname?: string | null
+          profit?: number | null
           revoked_at?: string | null
           server?: string
           status?: string
@@ -652,6 +676,71 @@ export type Database = {
           },
         ]
       }
+      mt5_account_snapshots: {
+        Row: {
+          balance: number | null
+          broker_connection_id: string
+          created_at: string
+          credit: number | null
+          currency: string | null
+          equity: number | null
+          free_margin: number | null
+          id: string
+          leverage: number | null
+          margin: number | null
+          margin_level: number | null
+          mt5_login: string
+          profit: number | null
+          snapshot_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          broker_connection_id: string
+          created_at?: string
+          credit?: number | null
+          currency?: string | null
+          equity?: number | null
+          free_margin?: number | null
+          id?: string
+          leverage?: number | null
+          margin?: number | null
+          margin_level?: number | null
+          mt5_login: string
+          profit?: number | null
+          snapshot_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          broker_connection_id?: string
+          created_at?: string
+          credit?: number | null
+          currency?: string | null
+          equity?: number | null
+          free_margin?: number | null
+          id?: string
+          leverage?: number | null
+          margin?: number | null
+          margin_level?: number | null
+          mt5_login?: string
+          profit?: number | null
+          snapshot_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_account_snapshots_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mt5_authorization_requests: {
         Row: {
           account_name: string | null
@@ -726,6 +815,133 @@ export type Database = {
           {
             foreignKeyName: "mt5_authorization_requests_connection_id_fkey"
             columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mt5_open_positions: {
+        Row: {
+          broker_connection_id: string
+          created_at: string
+          current_price: number | null
+          current_profit: number | null
+          direction: string
+          id: string
+          magic_number: number | null
+          mt5_login: string
+          open_price: number | null
+          opened_at: string | null
+          stop_loss: number | null
+          swap: number | null
+          symbol: string
+          take_profit: number | null
+          ticket: number
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          broker_connection_id: string
+          created_at?: string
+          current_price?: number | null
+          current_profit?: number | null
+          direction: string
+          id?: string
+          magic_number?: number | null
+          mt5_login: string
+          open_price?: number | null
+          opened_at?: string | null
+          stop_loss?: number | null
+          swap?: number | null
+          symbol: string
+          take_profit?: number | null
+          ticket: number
+          user_id: string
+          volume: number
+        }
+        Update: {
+          broker_connection_id?: string
+          created_at?: string
+          current_price?: number | null
+          current_profit?: number | null
+          direction?: string
+          id?: string
+          magic_number?: number | null
+          mt5_login?: string
+          open_price?: number | null
+          opened_at?: string | null
+          stop_loss?: number | null
+          swap?: number | null
+          symbol?: string
+          take_profit?: number | null
+          ticket?: number
+          user_id?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_open_positions_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mt5_pending_orders: {
+        Row: {
+          broker_connection_id: string
+          created_at: string
+          id: string
+          magic_number: number | null
+          mt5_login: string
+          order_type: string
+          price: number | null
+          state: string | null
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          ticket: number
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          broker_connection_id: string
+          created_at?: string
+          id?: string
+          magic_number?: number | null
+          mt5_login: string
+          order_type: string
+          price?: number | null
+          state?: string | null
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+          ticket: number
+          user_id: string
+          volume: number
+        }
+        Update: {
+          broker_connection_id?: string
+          created_at?: string
+          id?: string
+          magic_number?: number | null
+          mt5_login?: string
+          order_type?: string
+          price?: number | null
+          state?: string | null
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          ticket?: number
+          user_id?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_pending_orders_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
             isOneToOne: false
             referencedRelation: "broker_connections"
             referencedColumns: ["id"]
