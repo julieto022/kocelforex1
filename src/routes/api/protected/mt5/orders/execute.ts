@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { fail, ok } from "@/lib/api/response";
-import { isApiError, unauthorized } from "@/lib/api/errors";
+import { isApiError } from "@/lib/api/errors";
 import { executeTradeCommand, tradeExecutionRequestSchema } from "@/lib/server/trade.server";
 import { logger } from "@/lib/api/logger";
 
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/protected/mt5/orders/execute")({
           try {
             body = await request.json();
           } catch {
-            return fail("INVALID_REQUEST", "Request body must be valid JSON.");
+            return fail("VALIDATION_ERROR", "Request body must be valid JSON.");
           }
 
           const validated = tradeExecutionRequestSchema.safeParse(body);

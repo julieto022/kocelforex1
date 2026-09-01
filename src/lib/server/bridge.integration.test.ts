@@ -49,7 +49,7 @@ describe.skipIf(!integrationEnabled)("Bridge API integration", () => {
     if (!result) throw new Error("Bridge registration returned no result.");
     createdPollToken = result.pollToken;
     expect(result.authorizationUrl).toBe(
-      `${process.env["PUBLIC_APP_URL"]}/authorize/mt5/${result.requestId}`,
+      `https://kocelforexhub.lovable.app/authorize/mt5/${result.requestId}`,
     );
     expect(result.pollToken).toMatch(/^[A-Za-z0-9_-]+$/);
 
