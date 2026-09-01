@@ -948,6 +948,145 @@ export type Database = {
           },
         ]
       }
+      mt5_trade_command_audit: {
+        Row: {
+          command_id: string
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          status_after: string | null
+          status_before: string | null
+          user_id: string
+        }
+        Insert: {
+          command_id: string
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          status_after?: string | null
+          status_before?: string | null
+          user_id: string
+        }
+        Update: {
+          command_id?: string
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          status_after?: string | null
+          status_before?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_trade_command_audit_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "mt5_trade_commands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mt5_trade_commands: {
+        Row: {
+          client_request_id: string
+          completed_at: string | null
+          connection_id: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          executed_at: string | null
+          executed_price: number | null
+          executed_volume: number | null
+          expires_at: string
+          id: string
+          mt5_deal_ticket: number | null
+          mt5_ticket: number | null
+          operation: string
+          order_ticket: number | null
+          position_ticket: number | null
+          requested_at: string
+          requested_price: number | null
+          requested_stop_loss: number | null
+          requested_take_profit: number | null
+          requested_volume: number | null
+          sent_at: string | null
+          side: string | null
+          status: string
+          symbol: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_request_id: string
+          completed_at?: string | null
+          connection_id: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          executed_price?: number | null
+          executed_volume?: number | null
+          expires_at?: string
+          id?: string
+          mt5_deal_ticket?: number | null
+          mt5_ticket?: number | null
+          operation: string
+          order_ticket?: number | null
+          position_ticket?: number | null
+          requested_at?: string
+          requested_price?: number | null
+          requested_stop_loss?: number | null
+          requested_take_profit?: number | null
+          requested_volume?: number | null
+          sent_at?: string | null
+          side?: string | null
+          status?: string
+          symbol?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_request_id?: string
+          completed_at?: string | null
+          connection_id?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          executed_price?: number | null
+          executed_volume?: number | null
+          expires_at?: string
+          id?: string
+          mt5_deal_ticket?: number | null
+          mt5_ticket?: number | null
+          operation?: string
+          order_ticket?: number | null
+          position_ticket?: number | null
+          requested_at?: string
+          requested_price?: number | null
+          requested_stop_loss?: number | null
+          requested_take_profit?: number | null
+          requested_volume?: number | null
+          sent_at?: string | null
+          side?: string | null
+          status?: string
+          symbol?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_trade_commands_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news: {
         Row: {
           category: string
