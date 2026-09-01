@@ -232,19 +232,29 @@ export async function executeTradeCommand(
   };
 }
 
-function getTradeCommandStorageError(error: { code?: string; message?: string } | null): string {
+function getTradeCommandStorageError(
+  error: { code?: string; message?: string; details?: string | null; hint?: string | null } | null,
+): string {
   switch (error?.code) {
     case "PGRST205":
     case "42P01":
-      return "The Phase 3.4 trade-command table is missing from Supabase. Apply the Phase 3.4 migration.";
+      return "The trade-command storage is not available yet. Please try again shortly.";
     case "42703":
-      return "The Phase 3.4 trade-command schema is incomplete. Apply the latest Phase 3.4 migration.";
+      return "The trade-command storage schema is out of date. The team has been notified.";
     case "42501":
-      return "The server is not permitted to write trade commands. Configure the Supabase service-role key.";
+      return "The server is not permitted to write trade commands.";
     case "23505":
       return "This trade request was already submitted. Retry with a new request ID.";
+    case "23503":
+      return "The selected MT5 connection is no longer available. Reconnect the account and try again.";
+    case "23514":
+      return "The trade request contains an unsupported operation, side, or status value.";
+    case "22P02":
+      return "The trade request contains an invalid value. Check the symbol, volume, and ticket fields.";
     default:
-      return "Supabase rejected the trade command. Check the server database log for the underlying error.";
+      return error?.message
+        ? `The trade command could not be stored (${error.code ?? "unknown"}).`
+        : "The trade command could not be stored. Please try again.";
   }
 }
 
