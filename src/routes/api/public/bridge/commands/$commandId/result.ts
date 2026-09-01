@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/bridge/commands/$commandId/res
               params.commandId,
             )
           ) {
-            return fail("INVALID_REQUEST", "Invalid command ID.");
+            return fail("VALIDATION_ERROR", "Invalid command ID.");
           }
 
           // Parse and validate result
