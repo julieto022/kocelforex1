@@ -87,6 +87,9 @@ export const bridgeCommandResultSchema = z.object({
   message: z.string().trim().max(300).optional(),
 });
 
+/** A Bridge is considered online when it has sent a heartbeat within this window (ms) */
+const BRIDGE_FRESHNESS_MS = 90_000;
+
 export async function executeTradeCommand(
   userId: string,
   request: TradeExecutionRequestValidated,
