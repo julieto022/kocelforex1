@@ -136,6 +136,21 @@ export async function executeTradeCommand(
     };
   }
 
+  // Bridge must have sent a heartbeat recently, otherwise the command would queue forever.
+  const lastSeen = (connection as { last_sync_at?: string | null }).last_sync_at;
+  const lastSeenMs = lastSeen ? Date.parse(lastSeen) : NaN;
+  if (!Number.isFinite(lastSeenMs) || Date.now() - lastSeenMs > BRIDGE_FRESHNESS_MS) {
+    return {
+      commandId,
+      status: "REJECTED",
+      errorCode: "BRIDGE_OFFLINE",
+      message:
+        "MT5 Bridge is offline. Please ensure MetaTrader 5 is running and Kocel Bridge EA is connected.",
+    };
+  }
+
+
+
   // Validate operation-specific requirements
   const validationError = validateTradeOperation(request);
   if (validationError) {
