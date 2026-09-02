@@ -40,7 +40,12 @@ export const Route = createFileRoute("/api/public/bridge/commands/$commandId/res
           // Parse and validate result
           const body = await readJson(request, bridgeCommandResultSchema);
 
-          // Record the execution result
+          // The body must describe the command named in the URL
+          if (body.commandId !== params.commandId) {
+            return fail("VALIDATION_ERROR", "Command ID mismatch.");
+          }
+
+          // Record the execution result (idempotent: completed commands are not overwritten)
           await recordTradeExecutionResult(identity.connectionId, body);
 
           logger.info("api", "trade result recorded", {
