@@ -98,7 +98,7 @@ export async function executeTradeCommand(
   // Validate connection ownership
   const { data: connection } = await db
     .from("broker_connections")
-    .select("id, user_id, status")
+    .select("id, user_id, status, last_sync_at")
     .eq("id", request.connectionId)
     .maybeSingle();
 
@@ -296,41 +296,57 @@ function validateTradeOperation(
   }
 }
 
-/** Retrieves pending commands for the authenticated connection (Bridge EA) */
+/** Column list returned to the Bridge EA */
+const BRIDGE_COMMAND_COLUMNS =
+  "id, operation, symbol, side, requested_volume, requested_stop_loss, requested_take_profit, position_ticket, order_ticket, client_request_id, requested_at";
+
+/** Commands claimed but never acknowledged are re-offered after this delay (ms) */
+const COMMAND_REDELIVERY_MS = 120_000;
+
+/**
+ * Atomically claims and returns pending commands for the authenticated connection.
+ * The UPDATE ... WHERE status = 'PENDING' RETURNING * pattern guarantees a command
+ * is handed to exactly one poller; repeated polls no longer see it.
+ */
 export async function getPendingCommandsForBridge(
   connectionId: string,
 ): Promise<BridgeCommandPollResponse> {
   const db = await admin();
   const now = new Date();
+  const nowIso = now.toISOString();
 
-  // Fetch non-expired commands in PENDING or SENT state
-  const { data: commands, error } = await (
-    db.from("mt5_trade_commands") as any
-  )
-    .select(
-      "id, operation, symbol, side, requested_volume, requested_stop_loss, requested_take_profit, position_ticket, order_ticket, client_request_id, requested_at",
-    )
+  // Atomic claim: only rows still PENDING transition to SENT and come back to us.
+  const { data: claimed, error } = await (db.from("mt5_trade_commands") as any)
+    .update({ status: "SENT", sent_at: nowIso })
     .eq("connection_id", connectionId)
-    .in("status", ["PENDING", "SENT"])
-    .gt("expires_at", now.toISOString())
-    .order("created_at", { ascending: true });
+    .eq("status", "PENDING")
+    .gt("expires_at", nowIso)
+    .select(BRIDGE_COMMAND_COLUMNS);
 
   if (error) {
-    logger.warn("bridge", "Failed to fetch commands", { error: (error as any).message, connectionId });
-    return { commands: [], lastPollAt: now.toISOString() };
+    logger.warn("bridge", "Failed to claim commands", {
+      error: (error as any).message,
+      connectionId,
+    });
+    return { commands: [], lastPollAt: nowIso };
   }
 
-  // Update status to SENT for commands being returned to EA
-  if (commands && commands.length > 0) {
-    const commandIds = commands.map((c: any) => c.id);
-    await (
-      db.from("mt5_trade_commands") as any
-    )
-      .update({ status: "SENT", sent_at: now.toISOString() })
-      .in("id", commandIds);
-  }
+  const rows: any[] = claimed ? [...claimed] : [];
 
-  const bridgeCommands: BridgeTradeCommand[] = (commands || []).map((cmd: any) => ({
+  // Re-deliver commands claimed long ago that never reported a result (EA restart /
+  // dropped response). The EA de-duplicates by command id, so this cannot double-execute.
+  const staleBefore = new Date(now.getTime() - COMMAND_REDELIVERY_MS).toISOString();
+  const { data: stale } = await (db.from("mt5_trade_commands") as any)
+    .update({ sent_at: nowIso })
+    .eq("connection_id", connectionId)
+    .eq("status", "SENT")
+    .lt("sent_at", staleBefore)
+    .gt("expires_at", nowIso)
+    .select(BRIDGE_COMMAND_COLUMNS);
+
+  if (stale && stale.length > 0) rows.push(...stale);
+
+  const bridgeCommands: BridgeTradeCommand[] = rows.map((cmd: any) => ({
     commandId: cmd.id,
     operation: cmd.operation as TradeOperation,
     symbol: cmd.symbol ?? undefined,
@@ -343,6 +359,7 @@ export async function getPendingCommandsForBridge(
     clientRequestId: cmd.client_request_id,
     requestedAt: cmd.requested_at,
   }));
+
 
   return {
     commands: bridgeCommands,
