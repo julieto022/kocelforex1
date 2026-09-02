@@ -216,4 +216,148 @@ datetime KocelIsoUtcToTime(const string iso_value)
    return (datetime)(local_assumed - local_offset);
 }
 
+bool KocelJsonGetDouble(const string json, const string key, double &value)
+{
+   value = 0.0;
+   int pos = KocelJsonFindValueStart(json, key);
+   if(pos < 0)
+      return false;
+
+   string raw = "";
+   while(pos < StringLen(json))
+   {
+      const ushort ch = StringGetCharacter(json, pos);
+      if((ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == '.' || ch == 'e' || ch == 'E')
+         raw += ShortToString(ch);
+      else
+         break;
+      pos++;
+   }
+
+   if(raw == "" || raw == "-" || raw == "+")
+      return false;
+
+   value = StringToDouble(raw);
+   return true;
+}
+
+bool KocelJsonGetLong(const string json, const string key, long &value)
+{
+   value = 0;
+   int pos = KocelJsonFindValueStart(json, key);
+   if(pos < 0)
+      return false;
+
+   string raw = "";
+   while(pos < StringLen(json))
+   {
+      const ushort ch = StringGetCharacter(json, pos);
+      if((ch >= '0' && ch <= '9') || ch == '-')
+         raw += ShortToString(ch);
+      else
+         break;
+      pos++;
+   }
+
+   if(raw == "" || raw == "-")
+      return false;
+
+   value = StringToInteger(raw);
+   return true;
+}
+
+// Extracts a raw JSON array (including brackets) for the given key.
+bool KocelJsonGetArray(const string json, const string key, string &value)
+{
+   value = "";
+   int pos = KocelJsonFindValueStart(json, key);
+   if(pos < 0 || StringGetCharacter(json, pos) != '[')
+      return false;
+
+   int depth = 0;
+   bool in_string = false;
+   bool escaped = false;
+   const int start = pos;
+   while(pos < StringLen(json))
+   {
+      const ushort ch = StringGetCharacter(json, pos);
+      if(in_string)
+      {
+         if(escaped)
+            escaped = false;
+         else if(ch == '\\')
+            escaped = true;
+         else if(ch == '"')
+            in_string = false;
+      }
+      else
+      {
+         if(ch == '"')
+            in_string = true;
+         else if(ch == '[')
+            depth++;
+         else if(ch == ']')
+         {
+            depth--;
+            if(depth == 0)
+            {
+               value = StringSubstr(json, start, pos - start + 1);
+               return true;
+            }
+         }
+      }
+      pos++;
+   }
+   return false;
+}
+
+// Splits a JSON array of objects into its top-level object elements.
+int KocelJsonSplitObjects(const string json_array, string &items[])
+{
+   ArrayFree(items);
+   int count = 0;
+   int depth = 0;
+   int start = -1;
+   bool in_string = false;
+   bool escaped = false;
+
+   for(int pos = 0; pos < StringLen(json_array); pos++)
+   {
+      const ushort ch = StringGetCharacter(json_array, pos);
+      if(in_string)
+      {
+         if(escaped)
+            escaped = false;
+         else if(ch == '\\')
+            escaped = true;
+         else if(ch == '"')
+            in_string = false;
+         continue;
+      }
+
+      if(ch == '"')
+      {
+         in_string = true;
+      }
+      else if(ch == '{')
+      {
+         if(depth == 0)
+            start = pos;
+         depth++;
+      }
+      else if(ch == '}')
+      {
+         depth--;
+         if(depth == 0 && start >= 0)
+         {
+            count++;
+            ArrayResize(items, count);
+            items[count - 1] = StringSubstr(json_array, start, pos - start + 1);
+            start = -1;
+         }
+      }
+   }
+   return count;
+}
+
 #endif
