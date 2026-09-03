@@ -380,7 +380,7 @@ export async function getPendingCommandsForBridge(
 
 
   return {
-    commands: bridgeCommands,
+    commands: bridgeCommands as BridgeTradeCommand[],
     lastPollAt: now.toISOString(),
   };
 }
