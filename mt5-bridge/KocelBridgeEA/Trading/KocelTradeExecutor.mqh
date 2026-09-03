@@ -22,6 +22,7 @@ public:
       
       // Validate first
       KocelTradeValidationResult validation = CKocelTradeValidator::ValidateOpenMarket(cmd);
+      result.executed_symbol = validation.resolved_symbol;
       if(!validation.valid)
       {
          result.status = KOCEL_TRADE_STATUS_REJECTED;
@@ -35,7 +36,7 @@ public:
       MqlTradeResult trade_result = {};
       
       request.action = TRADE_ACTION_DEAL;
-      request.symbol = cmd.symbol;
+      request.symbol = validation.resolved_symbol;
       request.volume = cmd.volume;
       request.type = (cmd.side == KOCEL_TRADE_BUY) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
       request.price = 0;  // Market order - let MT5 fill at current price
@@ -71,6 +72,7 @@ public:
       result.deal_ticket = trade_result.deal;
       result.executed_volume = trade_result.volume;
       result.executed_price = trade_result.price;
+      result.executed_symbol = validation.resolved_symbol;
       result.message = "Order executed successfully";
       
       return result;
@@ -105,6 +107,7 @@ public:
       }
       
       string symbol = PositionGetString(POSITION_SYMBOL);
+      result.executed_symbol = symbol;
       ENUM_POSITION_TYPE pos_type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
       double volume = PositionGetDouble(POSITION_VOLUME);
       
@@ -179,6 +182,7 @@ public:
       }
       
       string symbol = PositionGetString(POSITION_SYMBOL);
+      result.executed_symbol = symbol;
       
       // Prepare modify request
       MqlTradeRequest request = {};
@@ -244,6 +248,7 @@ public:
       }
       
       string symbol = OrderGetString(ORDER_SYMBOL);
+      result.executed_symbol = symbol;
       
       // Prepare cancel request
       MqlTradeRequest request = {};

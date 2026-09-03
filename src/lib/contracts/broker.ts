@@ -181,6 +181,7 @@ export type TradeExecutionResult = {
   dealTicket?: number;
   executedVolume?: number;
   executedPrice?: number;
+  executedSymbol?: string;
   errorCode?: string;
   message?: string;
 };
@@ -211,6 +212,7 @@ export type BridgeCommandResultRequest = {
   dealTicket?: number;
   executedVolume?: number;
   executedPrice?: number;
+  executedSymbol?: string;
   errorCode?: string;
   message?: string;
 };

@@ -45,6 +45,7 @@ struct KocelTradeResult
    string command_id;
    string client_request_id;  // Echo from command for idempotency
    string status;         // EXECUTED, FAILED, REJECTED
+   string executed_symbol; // Actual MT5 symbol used for execution
    long   mt5_ticket;     // Position or order ticket after execution
    long   deal_ticket;    // Deal ticket if filled
    double executed_volume;
@@ -64,6 +65,7 @@ struct KocelCommandPollResponse
 struct KocelTradeValidationResult
 {
    bool   valid;
+   string resolved_symbol; // Actual MT5 symbol selected for this command
    string error_code;
    string error_message;
 };
