@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle, Clock, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
 import { SectionCard } from "./states";
@@ -33,7 +34,61 @@ export function TradingPanel() {
     message?: string;
     mt5Ticket?: string;
     errorCode?: string;
+    executedPrice?: number;
   } | null>(null);
+
+  const pollRef = useRef<number | null>(null);
+  const commandId = result?.commandId;
+  const liveStatus = result?.status;
+
+  useEffect(() => {
+    if (!commandId) return;
+    if (liveStatus === "EXECUTED" || liveStatus === "FAILED" || liveStatus === "REJECTED") return;
+
+    let cancelled = false;
+    const tick = async () => {
+      const { data } = await supabase
+        .from("mt5_trade_commands")
+        .select("id, status, mt5_ticket, executed_price, error_code, error_message")
+        .eq("id", commandId)
+        .maybeSingle();
+
+      if (cancelled || !data) return;
+
+      setResult({
+        commandId,
+        status: data.status,
+        mt5Ticket: data.mt5_ticket ? String(data.mt5_ticket) : undefined,
+        errorCode: data.error_code ?? undefined,
+        executedPrice: data.executed_price ?? undefined,
+      });
+
+      if (data.status === "EXECUTED") {
+        setStatus("success");
+        setMessage(
+          `Order executed in MT5.${data.mt5_ticket ? ` Ticket: ${data.mt5_ticket}` : ""}${
+            data.executed_price ? ` at ${data.executed_price}` : ""
+          }`,
+        );
+      } else if (data.status === "FAILED" || data.status === "REJECTED") {
+        setStatus("error");
+        setMessage(data.error_message || "The MT5 terminal rejected this trade.");
+      } else if (data.status === "SENT") {
+        setStatus("loading");
+        setMessage("Command delivered to the MT5 Bridge EA. Executing...");
+      } else if (data.status === "EXECUTING") {
+        setStatus("loading");
+        setMessage("MT5 is executing your order...");
+      }
+    };
+
+    void tick();
+    pollRef.current = window.setInterval(tick, 2000);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) window.clearInterval(pollRef.current);
+    };
+  }, [commandId, liveStatus]);
 
   const handleExecute = async () => {
     if (!user || !active) {
@@ -233,6 +288,11 @@ export function TradingPanel() {
             {result.mt5Ticket && (
               <div>
                 <span className="font-medium">Ticket:</span> {result.mt5Ticket}
+              </div>
+            )}
+            {result.executedPrice != null && (
+              <div>
+                <span className="font-medium">Price:</span> {result.executedPrice}
               </div>
             )}
             {result.errorCode && (
