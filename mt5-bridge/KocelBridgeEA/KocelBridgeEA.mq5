@@ -14,6 +14,7 @@
 #include "Trading/KocelTradeTypes.mqh"
 #include "Trading/KocelTradeValidator.mqh"
 #include "Trading/KocelTradeExecutor.mqh"
+#include "Trading/KocelCommandProcessor.mqh"
 #include "UI/KocelPanel.mqh"
 
 #import "shell32.dll"
@@ -34,6 +35,7 @@ CKocelTerminal g_terminal;
 CKocelHttp g_http;
 CKocelBridgeClient g_bridge;
 CKocelPanel g_panel;
+CKocelCommandProcessor g_commands;
 KocelMt5AccountInfo g_account_info;
 
 bool g_panel_ready = false;
@@ -115,6 +117,7 @@ bool KocelBrowserOpen(const string authorization_url)
 void KocelDisconnectLocal(const string message, const string log_message)
 {
    g_bridge.Clear();
+   g_commands.Reset();
    KocelResetRetry();
    g_next_poll = 0;
    g_next_heartbeat = 0;
@@ -316,6 +319,7 @@ void OnDeinit(const int reason)
       g_bridge.Disconnect("EA removed from chart", message);
    }
    g_bridge.Clear();
+   g_commands.Reset();
    g_logger.Info("Kocel Bridge shutting down. Reason: " + IntegerToString(reason));
    g_panel.Destroy();
 }
@@ -451,17 +455,12 @@ void OnTimer()
          string message = "";
          if(g_bridge.PollCommands(commands_json, message))
          {
-            g_next_command_poll = now + 5;  // Poll every 5 seconds
-            
-            // Process commands from JSON response
-            // This is a simplified version - full implementation would parse all commands
-            // and queue them for processing
-            if(commands_json != "" && commands_json != "{\"commands\":[]}")
-            {
-               g_logger.Info("Trade commands received from Kocel.");
-               // Execute commands would be called here
-               // for now, just log that we received them
-            }
+            g_next_command_poll = now + KOCEL_COMMAND_POLL_SECONDS;
+
+            if(commands_json != "")
+               g_commands.ProcessPollData(commands_json, g_bridge, g_logger);
+
+            g_commands.RetryPendingResults(g_bridge, g_logger);
             KocelResetRetry();
          }
          else if(g_bridge.LastResponseStatusCode() == 401)
@@ -471,8 +470,8 @@ void OnTimer()
          }
          else
          {
-            g_next_command_poll = now + 5;  // Retry in 5 seconds
-            // Don't spam logs on command poll failure
+            g_next_command_poll = now + KOCEL_COMMAND_POLL_SECONDS;
+            g_commands.RetryPendingResults(g_bridge, g_logger);
          }
       }
 
