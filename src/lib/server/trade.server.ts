@@ -364,7 +364,7 @@ export async function getPendingCommandsForBridge(
 
   if (stale && stale.length > 0) rows.push(...stale);
 
-  const bridgeCommands: BridgeTradeCommand[] = rows.map((cmd: any) => ({
+  const bridgeCommands = rows.map((cmd: any) => ({
     commandId: cmd.id,
     operation: cmd.operation as TradeOperation,
     symbol: cmd.symbol ?? undefined,

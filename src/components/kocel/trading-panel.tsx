@@ -55,13 +55,17 @@ export function TradingPanel() {
 
       if (cancelled || !data) return;
 
-      setResult({
-        commandId,
-        status: data.status,
-        mt5Ticket: data.mt5_ticket ? String(data.mt5_ticket) : undefined,
-        errorCode: data.error_code ?? undefined,
-        executedPrice: data.executed_price ?? undefined,
-      });
+      const next: {
+        commandId?: string;
+        status?: string;
+        mt5Ticket?: string;
+        errorCode?: string;
+        executedPrice?: number;
+      } = { commandId, status: data.status };
+      if (data.mt5_ticket) next.mt5Ticket = String(data.mt5_ticket);
+      if (data.error_code) next.errorCode = data.error_code;
+      if (data.executed_price != null) next.executedPrice = data.executed_price;
+      setResult(next);
 
       if (data.status === "EXECUTED") {
         setStatus("success");
