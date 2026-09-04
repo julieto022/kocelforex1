@@ -49,6 +49,7 @@ struct KocelTradeResult
    long   deal_ticket;    // Deal ticket if filled
    double executed_volume;
    double executed_price;
+   string executed_symbol;   // Broker symbol actually traded in MT5
    string error_code;
    string message;
 };
@@ -66,6 +67,7 @@ struct KocelTradeValidationResult
    bool   valid;
    string error_code;
    string error_message;
+   string resolved_symbol;   // Broker symbol resolved for this terminal
 };
 
 #endif

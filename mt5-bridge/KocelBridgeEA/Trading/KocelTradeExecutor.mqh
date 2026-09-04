@@ -34,8 +34,11 @@ public:
       MqlTradeRequest request = {};
       MqlTradeResult trade_result = {};
       
+      const string exec_symbol = validation.resolved_symbol != "" ? validation.resolved_symbol : cmd.symbol;
+      result.executed_symbol = exec_symbol;
+
       request.action = TRADE_ACTION_DEAL;
-      request.symbol = cmd.symbol;
+      request.symbol = exec_symbol;
       request.volume = cmd.volume;
       request.type = (cmd.side == KOCEL_TRADE_BUY) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
       request.price = 0;  // Market order - let MT5 fill at current price
@@ -105,6 +108,7 @@ public:
       }
       
       string symbol = PositionGetString(POSITION_SYMBOL);
+      result.executed_symbol = symbol;
       ENUM_POSITION_TYPE pos_type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
       double volume = PositionGetDouble(POSITION_VOLUME);
       
@@ -179,6 +183,7 @@ public:
       }
       
       string symbol = PositionGetString(POSITION_SYMBOL);
+      result.executed_symbol = symbol;
       
       // Prepare modify request
       MqlTradeRequest request = {};
@@ -244,6 +249,7 @@ public:
       }
       
       string symbol = OrderGetString(ORDER_SYMBOL);
+      result.executed_symbol = symbol;
       
       // Prepare cancel request
       MqlTradeRequest request = {};
