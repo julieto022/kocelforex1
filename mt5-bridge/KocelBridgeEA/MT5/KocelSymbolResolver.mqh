@@ -329,4 +329,7 @@ public:
    }
 };
 
+// Shared resolver instance (validator/executor are static helpers).
+CKocelSymbolResolver g_kocel_symbol_resolver;
+
 #endif

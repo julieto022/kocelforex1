@@ -109,6 +109,7 @@ private:
          result.deal_ticket,
          result.executed_volume,
          result.executed_price,
+         result.executed_symbol,
          result.error_code,
          result.message,
          response_message
@@ -116,6 +117,8 @@ private:
 
       if(ok)
       {
+         if(result.executed_symbol != "")
+            logger.Info("MT5 symbol executed: " + result.executed_symbol);
          logger.Info("Trade command completed successfully.");
          return true;
       }
@@ -130,6 +133,7 @@ public:
    {
       ArrayFree(m_handled);
       ArrayFree(m_queue);
+      g_kocel_symbol_resolver.ResetCache();
    }
 
    int PendingResultCount() const { return ArraySize(m_queue); }
@@ -175,7 +179,7 @@ public:
          logger.Info("Command ID: " + cmd.command_id);
          logger.Info("Operation: " + cmd.operation);
          if(cmd.symbol != "")
-            logger.Info("Symbol: " + cmd.symbol);
+            logger.Info("Requested symbol: " + cmd.symbol);
          if(cmd.side != "")
             logger.Info("Side: " + cmd.side);
          if(cmd.volume > 0)

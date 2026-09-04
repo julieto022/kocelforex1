@@ -3,6 +3,7 @@
 
 #include "../Core/KocelConstants.mqh"
 #include "KocelTradeTypes.mqh"
+#include "../MT5/KocelSymbolResolver.mqh"
 
 /**
  * Trade validation - ensures commands are valid before execution against MT5
@@ -44,64 +45,74 @@ public:
          return result;
       }
       
-      // Check symbol exists
-      if(SymbolSelect(cmd.symbol, true) == false)
+      // Resolve the canonical Kocel symbol against the symbols this broker exposes.
+      KocelSymbolResolution resolution = g_kocel_symbol_resolver.Resolve(cmd.symbol);
+      if(resolution.code == KOCEL_SYMBOL_RESOLVE_AMBIGUOUS)
+      {
+         result.valid = false;
+         result.error_code = "SYMBOL_AMBIGUOUS";
+         result.error_message = resolution.message;
+         return result;
+      }
+      if(resolution.code != KOCEL_SYMBOL_RESOLVE_OK || resolution.resolved == "")
       {
          result.valid = false;
          result.error_code = "SYMBOL_NOT_FOUND";
-         result.error_message = "Symbol is not available in this terminal.";
+         result.error_message = resolution.message != ""
+            ? resolution.message
+            : StringFormat("Symbol %s is not available in this MT5 terminal.", cmd.symbol);
          return result;
       }
-      
-      // Check market is open for this symbol
-      if(!SymbolInfoInteger(cmd.symbol, SYMBOL_TRADE_MODE))
+
+      const string symbol = resolution.resolved;
+      result.resolved_symbol = symbol;
+
+      // Check trading is allowed for the resolved symbol
+      long trade_mode = SymbolInfoInteger(symbol, SYMBOL_TRADE_MODE);
+      if(trade_mode == SYMBOL_TRADE_MODE_DISABLED)
       {
          result.valid = false;
-         result.error_code = "MARKET_CLOSED";
-         result.error_message = "Market is closed for this symbol.";
+         result.error_code = "TRADE_DISABLED";
+         result.error_message = StringFormat("Trading is disabled for %s in this MT5 terminal.", symbol);
          return result;
       }
-      
-      // Check trading is allowed
-      long trade_mode = SymbolInfoInteger(cmd.symbol, SYMBOL_TRADE_MODE);
       if(trade_mode == SYMBOL_TRADE_MODE_CLOSEONLY)
       {
          result.valid = false;
          result.error_code = "TRADE_DISABLED";
-         result.error_message = "Trading is disabled for this symbol.";
+         result.error_message = StringFormat("%s is close-only in this MT5 terminal.", symbol);
          return result;
       }
-      
-      // Check volume constraints
-      double min_volume = SymbolInfoDouble(cmd.symbol, SYMBOL_VOLUME_MIN);
-      double max_volume = SymbolInfoDouble(cmd.symbol, SYMBOL_VOLUME_MAX);
-      double volume_step = SymbolInfoDouble(cmd.symbol, SYMBOL_VOLUME_STEP);
-      
+
+      // Check volume constraints against the resolved symbol
+      double min_volume = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+      double max_volume = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
+      double volume_step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+
       if(cmd.volume < min_volume)
       {
          result.valid = false;
          result.error_code = "INVALID_VOLUME";
-         result.error_message = StringFormat("Volume is below minimum (%.2f)", min_volume);
+         result.error_message = StringFormat("Volume is below the minimum for %s (%.2f)", symbol, min_volume);
          return result;
       }
-      
-      if(cmd.volume > max_volume)
+
+      if(max_volume > 0 && cmd.volume > max_volume)
       {
          result.valid = false;
          result.error_code = "INVALID_VOLUME";
-         result.error_message = StringFormat("Volume exceeds maximum (%.2f)", max_volume);
+         result.error_message = StringFormat("Volume exceeds the maximum for %s (%.2f)", symbol, max_volume);
          return result;
       }
-      
-      // Check volume step
-      if(MathMod(cmd.volume, volume_step) != 0)
+
+      if(volume_step > 0 && MathAbs(MathMod(cmd.volume, volume_step)) > 0.0000001)
       {
          result.valid = false;
          result.error_code = "INVALID_VOLUME";
-         result.error_message = StringFormat("Volume must be multiple of %.4f", volume_step);
+         result.error_message = StringFormat("Volume for %s must be a multiple of %.4f", symbol, volume_step);
          return result;
       }
-      
+
       result.valid = true;
       return result;
    }

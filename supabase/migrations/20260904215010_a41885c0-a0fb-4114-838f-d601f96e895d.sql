@@ -1,0 +1,1 @@
+ALTER TABLE public.mt5_trade_commands ADD COLUMN IF NOT EXISTS executed_symbol TEXT;
