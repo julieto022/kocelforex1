@@ -35,6 +35,8 @@ export function TradingPanel() {
     mt5Ticket?: string;
     errorCode?: string;
     executedPrice?: number;
+    requestedSymbol?: string;
+    executedSymbol?: string;
   } | null>(null);
 
   const pollRef = useRef<number | null>(null);
@@ -49,7 +51,7 @@ export function TradingPanel() {
     const tick = async () => {
       const { data } = await supabase
         .from("mt5_trade_commands")
-        .select("id, status, mt5_ticket, executed_price, error_code, error_message")
+        .select("id, status, symbol, executed_symbol, mt5_ticket, executed_price, error_code, error_message")
         .eq("id", commandId)
         .maybeSingle();
 
@@ -61,7 +63,11 @@ export function TradingPanel() {
         mt5Ticket?: string;
         errorCode?: string;
         executedPrice?: number;
+        requestedSymbol?: string;
+        executedSymbol?: string;
       } = { commandId, status: data.status };
+      if (data.symbol) next.requestedSymbol = data.symbol;
+      if (data.executed_symbol) next.executedSymbol = data.executed_symbol;
       if (data.mt5_ticket) next.mt5Ticket = String(data.mt5_ticket);
       if (data.error_code) next.errorCode = data.error_code;
       if (data.executed_price != null) next.executedPrice = data.executed_price;
@@ -289,6 +295,16 @@ export function TradingPanel() {
             <div>
               <span className="font-medium">Status:</span> {result.status}
             </div>
+            {result.requestedSymbol && (
+              <div>
+                <span className="font-medium">Requested symbol:</span> {result.requestedSymbol}
+              </div>
+            )}
+            {result.executedSymbol && (
+              <div>
+                <span className="font-medium">MT5 symbol:</span> {result.executedSymbol}
+              </div>
+            )}
             {result.mt5Ticket && (
               <div>
                 <span className="font-medium">Ticket:</span> {result.mt5Ticket}
