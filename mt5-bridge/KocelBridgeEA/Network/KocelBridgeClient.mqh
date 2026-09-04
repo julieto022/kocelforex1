@@ -495,7 +495,6 @@ public:
    bool ReportCommandResult(const string command_id, const string status, 
                            const long mt5_ticket, const long deal_ticket,
                            const double executed_volume, const double executed_price,
-                           const string executed_symbol,
                            const string error_code, const string error_message,
                            string &response_message)
    {
@@ -518,8 +517,6 @@ public:
          payload += "\"executedVolume\":" + DoubleToString(executed_volume, 2) + ",";
       if(executed_price > 0)
          payload += "\"executedPrice\":" + DoubleToString(executed_price, 5) + ",";
-      if(executed_symbol != "")
-         payload += "\"executedSymbol\":" + KocelJsonString(executed_symbol) + ",";
       if(error_code != "")
          payload += "\"errorCode\":" + KocelJsonString(error_code) + ",";
       if(error_message != "")

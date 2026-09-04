@@ -116,7 +116,6 @@ bool KocelBrowserOpen(const string authorization_url)
 
 void KocelDisconnectLocal(const string message, const string log_message)
 {
-   g_kocel_symbol_resolver.ResetCache();
    g_bridge.Clear();
    g_commands.Reset();
    KocelResetRetry();
@@ -142,9 +141,6 @@ bool KocelRefreshTerminal()
       || account_available != g_last_account_available
       || g_account_info.login != g_last_account_login
       || g_account_info.server != g_last_account_server;
-
-   if(changed)
-      g_kocel_symbol_resolver.ResetCache();
 
    if(changed && account_available)
    {
@@ -261,7 +257,6 @@ void ShowKocelSettingsHint()
 
 int OnInit()
 {
-   g_kocel_symbol_resolver.ResetCache();
    g_logger.Initialize(InpEnableDebugLogging);
    g_state.Initialize();
    KocelResetAccountInfo(g_account_info);
@@ -317,7 +312,6 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
-   g_kocel_symbol_resolver.ResetCache();
    EventKillTimer();
    if(g_bridge.HasBridgeSession())
    {

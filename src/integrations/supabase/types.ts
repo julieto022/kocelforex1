@@ -998,7 +998,6 @@ export type Database = {
           error_code: string | null
           error_message: string | null
           executed_at: string | null
-          executed_symbol: string | null
           executed_price: number | null
           executed_volume: number | null
           expires_at: string
@@ -1028,7 +1027,6 @@ export type Database = {
           error_code?: string | null
           error_message?: string | null
           executed_at?: string | null
-          executed_symbol?: string | null
           executed_price?: number | null
           executed_volume?: number | null
           expires_at?: string
@@ -1058,7 +1056,6 @@ export type Database = {
           error_code?: string | null
           error_message?: string | null
           executed_at?: string | null
-          executed_symbol?: string | null
           executed_price?: number | null
           executed_volume?: number | null
           expires_at?: string

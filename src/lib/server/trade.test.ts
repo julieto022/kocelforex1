@@ -119,31 +119,11 @@ describe("Phase 3.4: Trade Execution", () => {
         dealTicket: 98765432,
         executedVolume: 0.01,
         executedPrice: 1.17452,
-        executedSymbol: "BTCUSDm",
         message: "Order executed successfully",
       };
 
       const parsed = bridgeCommandResultSchema.safeParse(result);
       expect(parsed.success).toBe(true);
-    });
-
-    it("should accept legacy results without executedSymbol", () => {
-      const result = bridgeCommandResultSchema.safeParse({
-        commandId: "550e8400-e29b-41d4-a716-446655440000",
-        status: "FAILED",
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it("should reject unsafe executed symbols", () => {
-      const result = bridgeCommandResultSchema.safeParse({
-        commandId: "550e8400-e29b-41d4-a716-446655440000",
-        status: "EXECUTED",
-        executedSymbol: "BTCUSD;DROP TABLE",
-      });
-
-      expect(result.success).toBe(false);
     });
 
     it("should validate FAILED result with error code", () => {

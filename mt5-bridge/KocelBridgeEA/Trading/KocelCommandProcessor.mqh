@@ -109,7 +109,6 @@ private:
          result.deal_ticket,
          result.executed_volume,
          result.executed_price,
-         result.executed_symbol,
          result.error_code,
          result.message,
          response_message
@@ -176,7 +175,7 @@ public:
          logger.Info("Command ID: " + cmd.command_id);
          logger.Info("Operation: " + cmd.operation);
          if(cmd.symbol != "")
-            logger.Info("Requested symbol: " + cmd.symbol);
+            logger.Info("Symbol: " + cmd.symbol);
          if(cmd.side != "")
             logger.Info("Side: " + cmd.side);
          if(cmd.volume > 0)
@@ -208,7 +207,6 @@ public:
 
          if(!blocked)
          {
-            logger.Info("Resolving MT5 symbol...");
             if(cmd.operation == KOCEL_TRADE_OPEN_MARKET)
                logger.Info("Executing " + cmd.side + " command...");
             else
@@ -217,10 +215,6 @@ public:
             // Mark before execution: a crash/retry must never place a second order.
             MarkHandled(cmd.command_id);
             result = CKocelTradeExecutor::Execute(cmd);
-            if(result.executed_symbol != "")
-               logger.Info("MT5 symbol resolved: " + result.executed_symbol);
-            if(result.executed_symbol != "" && cmd.operation == KOCEL_TRADE_OPEN_MARKET)
-               logger.Info("MT5 symbol: " + result.executed_symbol);
             executed++;
          }
          else

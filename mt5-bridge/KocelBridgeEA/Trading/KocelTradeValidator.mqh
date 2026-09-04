@@ -3,9 +3,6 @@
 
 #include "../Core/KocelConstants.mqh"
 #include "KocelTradeTypes.mqh"
-#include "../MT5/KocelSymbolResolver.mqh"
-
-CKocelSymbolResolver g_kocel_symbol_resolver;
 
 /**
  * Trade validation - ensures commands are valid before execution against MT5
@@ -19,10 +16,6 @@ public:
    static KocelTradeValidationResult ValidateOpenMarket(const KocelTradeCommand &cmd)
    {
       KocelTradeValidationResult result;
-      result.valid = false;
-      result.resolved_symbol = "";
-      result.error_code = "";
-      result.error_message = "";
       
       // Symbol is required
       if(StringLen(cmd.symbol) == 0)
@@ -51,80 +44,61 @@ public:
          return result;
       }
       
-      KocelSymbolResolution resolution = g_kocel_symbol_resolver.Resolve(cmd.symbol);
-      if(resolution.code == KOCEL_SYMBOL_RESOLVE_NOT_FOUND)
+      // Check symbol exists
+      if(SymbolSelect(cmd.symbol, true) == false)
       {
+         result.valid = false;
          result.error_code = "SYMBOL_NOT_FOUND";
-         result.error_message = "No compatible MT5 symbol was found for " + cmd.symbol + ".";
+         result.error_message = "Symbol is not available in this terminal.";
          return result;
       }
-      if(resolution.code == KOCEL_SYMBOL_RESOLVE_AMBIGUOUS)
-      {
-         result.error_code = "SYMBOL_AMBIGUOUS";
-         result.error_message = "Multiple matching symbols were found for " + cmd.symbol + " in this MT5 terminal.";
-         return result;
-      }
-
-      result.resolved_symbol = resolution.resolved;
-      const string symbol = result.resolved_symbol;
       
       // Check market is open for this symbol
-      const long trade_mode = SymbolInfoInteger(symbol, SYMBOL_TRADE_MODE);
-      if(trade_mode == SYMBOL_TRADE_MODE_DISABLED)
+      if(!SymbolInfoInteger(cmd.symbol, SYMBOL_TRADE_MODE))
       {
+         result.valid = false;
          result.error_code = "MARKET_CLOSED";
          result.error_message = "Market is closed for this symbol.";
          return result;
       }
       
       // Check trading is allowed
+      long trade_mode = SymbolInfoInteger(cmd.symbol, SYMBOL_TRADE_MODE);
       if(trade_mode == SYMBOL_TRADE_MODE_CLOSEONLY)
       {
+         result.valid = false;
          result.error_code = "TRADE_DISABLED";
          result.error_message = "Trading is disabled for this symbol.";
          return result;
       }
-
-      if((cmd.side == KOCEL_TRADE_BUY && trade_mode == SYMBOL_TRADE_MODE_SHORTONLY) ||
-         (cmd.side == KOCEL_TRADE_SELL && trade_mode == SYMBOL_TRADE_MODE_LONGONLY))
-      {
-         result.error_code = "TRADE_DISABLED";
-         result.error_message = "The requested side is not permitted for this symbol.";
-         return result;
-      }
       
       // Check volume constraints
-      double min_volume = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
-      double max_volume = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
-      double volume_step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
-
-      if(min_volume <= 0 || max_volume < min_volume || volume_step <= 0)
-      {
-         result.error_code = "INVALID_VOLUME";
-         result.error_message = "Volume rules are unavailable for " + symbol + ".";
-         return result;
-      }
+      double min_volume = SymbolInfoDouble(cmd.symbol, SYMBOL_VOLUME_MIN);
+      double max_volume = SymbolInfoDouble(cmd.symbol, SYMBOL_VOLUME_MAX);
+      double volume_step = SymbolInfoDouble(cmd.symbol, SYMBOL_VOLUME_STEP);
       
       if(cmd.volume < min_volume)
       {
+         result.valid = false;
          result.error_code = "INVALID_VOLUME";
-         result.error_message = StringFormat("Volume %.4f is not valid for %s; minimum is %.4f.", cmd.volume, symbol, min_volume);
+         result.error_message = StringFormat("Volume is below minimum (%.2f)", min_volume);
          return result;
       }
       
       if(cmd.volume > max_volume)
       {
+         result.valid = false;
          result.error_code = "INVALID_VOLUME";
-         result.error_message = StringFormat("Volume %.4f is not valid for %s; maximum is %.4f.", cmd.volume, symbol, max_volume);
+         result.error_message = StringFormat("Volume exceeds maximum (%.2f)", max_volume);
          return result;
       }
       
       // Check volume step
-      const double step_remainder = MathMod(cmd.volume, volume_step);
-      if(step_remainder > 0.00000001 && volume_step - step_remainder > 0.00000001)
+      if(MathMod(cmd.volume, volume_step) != 0)
       {
+         result.valid = false;
          result.error_code = "INVALID_VOLUME";
-         result.error_message = StringFormat("Volume %.4f is not valid for %s; volume step is %.4f.", cmd.volume, symbol, volume_step);
+         result.error_message = StringFormat("Volume must be multiple of %.4f", volume_step);
          return result;
       }
       

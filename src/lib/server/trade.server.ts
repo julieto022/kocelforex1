@@ -83,13 +83,6 @@ export const bridgeCommandResultSchema = z.object({
   dealTicket: z.number().int().positive().optional(),
   executedVolume: z.number().positive().optional(),
   executedPrice: z.number().positive().optional(),
-  executedSymbol: z
-    .string()
-    .trim()
-    .min(1)
-    .max(32)
-    .regex(/^[A-Za-z0-9._#+!~\-]+$/)
-    .optional(),
   errorCode: z.string().trim().max(50).optional(),
   message: z.string().trim().max(300).optional(),
 });
@@ -432,7 +425,6 @@ export async function recordTradeExecutionResult(
   if (result.dealTicket) updateData["mt5_deal_ticket"] = result.dealTicket;
   if (result.executedVolume) updateData["executed_volume"] = result.executedVolume;
   if (result.executedPrice) updateData["executed_price"] = result.executedPrice;
-  if (result.executedSymbol) updateData["executed_symbol"] = result.executedSymbol;
   if (result.errorCode) updateData["error_code"] = result.errorCode;
   if (result.message) updateData["error_message"] = result.message;
 
