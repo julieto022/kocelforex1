@@ -1521,11 +1521,14 @@ export type Database = {
           closed_at: string | null
           commission: number | null
           created_at: string
+          deal_ticket: number | null
           entry_price: number | null
           exit_price: number | null
           id: string
+          net_profit: number | null
           opened_at: string | null
           profit: number | null
+          source: string
           status: string
           stop_loss: number | null
           swap: number | null
@@ -1543,11 +1546,14 @@ export type Database = {
           closed_at?: string | null
           commission?: number | null
           created_at?: string
+          deal_ticket?: number | null
           entry_price?: number | null
           exit_price?: number | null
           id?: string
+          net_profit?: number | null
           opened_at?: string | null
           profit?: number | null
+          source?: string
           status?: string
           stop_loss?: number | null
           swap?: number | null
@@ -1565,11 +1571,14 @@ export type Database = {
           closed_at?: string | null
           commission?: number | null
           created_at?: string
+          deal_ticket?: number | null
           entry_price?: number | null
           exit_price?: number | null
           id?: string
+          net_profit?: number | null
           opened_at?: string | null
           profit?: number | null
+          source?: string
           status?: string
           stop_loss?: number | null
           swap?: number | null
