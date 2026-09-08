@@ -27,7 +27,14 @@ async function admin() {
 export const tradeExecutionRequestSchema = z
   .object({
     connectionId: z.string().uuid(),
-    operation: z.enum(["OPEN_MARKET", "CLOSE_POSITION", "MODIFY_POSITION", "CANCEL_PENDING_ORDER"]),
+    operation: z.enum([
+      "OPEN_MARKET",
+      "CLOSE_POSITION",
+      "MODIFY_POSITION",
+      "PARTIAL_CLOSE",
+      "MOVE_TO_BREAK_EVEN",
+      "CANCEL_PENDING_ORDER",
+    ]),
     symbol: z.string().trim().min(1).max(32).optional(),
     side: z.enum(["BUY", "SELL"]).optional(),
     volume: z.number().positive().optional(),
@@ -56,11 +63,20 @@ export const tradeExecutionRequestSchema = z
         }
         break;
       case "MODIFY_POSITION":
+      case "MOVE_TO_BREAK_EVEN":
         if (!request.positionTicket || request.positionTicket <= 0) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["positionTicket"], message: "Position ticket is required." });
         }
         if (request.stopLoss === undefined && request.takeProfit === undefined) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, message: "At least one of stopLoss or takeProfit must be provided." });
+        }
+        break;
+      case "PARTIAL_CLOSE":
+        if (!request.positionTicket || request.positionTicket <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["positionTicket"], message: "Position ticket is required." });
+        }
+        if (!request.volume || request.volume <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["volume"], message: "Close volume must be positive." });
         }
         break;
       case "CANCEL_PENDING_ORDER":
@@ -102,7 +118,7 @@ export async function executeTradeCommand(
   // Validate connection ownership
   const { data: connection } = await db
     .from("broker_connections")
-    .select("id, user_id, status, last_sync_at")
+    .select("id, user_id, status, last_sync_at, equity, free_margin, margin")
     .eq("id", request.connectionId)
     .maybeSingle();
 
@@ -154,6 +170,19 @@ export async function executeTradeCommand(
   }
 
 
+  if (request.operation === "OPEN_MARKET") {
+    const risk = await getRiskSettings(db, userId, request.connectionId);
+    const riskFailure = await validateOpenRisk(db, userId, request, connection, risk);
+    if (riskFailure) {
+      await recordRiskEvent(userId, request.connectionId, riskFailure.code, riskFailure.message);
+      return {
+        commandId,
+        status: "REJECTED",
+        errorCode: riskFailure.code,
+        message: riskFailure.message,
+      };
+    }
+  }
 
   // Validate operation-specific requirements
   const validationError = validateTradeOperation(request);
@@ -305,6 +334,18 @@ function validateTradeOperation(
       }
       return null;
 
+    case "MOVE_TO_BREAK_EVEN":
+      if (!request.positionTicket)
+        return { code: "INVALID_TICKET", message: "Position ticket is required." };
+      return null;
+
+    case "PARTIAL_CLOSE":
+      if (!request.positionTicket)
+        return { code: "INVALID_TICKET", message: "Position ticket is required." };
+      if (!request.volume || request.volume <= 0)
+        return { code: "INVALID_VOLUME", message: "Close volume must be positive." };
+      return null;
+
     case "CANCEL_PENDING_ORDER":
       if (!request.orderTicket)
         return { code: "INVALID_TICKET", message: "Order ticket is required." };
@@ -313,6 +354,120 @@ function validateTradeOperation(
     default:
       return { code: "UNKNOWN_OPERATION", message: "Unknown operation." };
   }
+}
+
+type RiskSettings = {
+  max_lot_size: number;
+  max_open_positions: number;
+  max_positions_per_symbol: number;
+  max_daily_loss: number | null;
+  max_daily_loss_percent: number | null;
+  minimum_free_margin: number;
+  maximum_margin_usage_percent: number;
+  require_stop_loss: boolean;
+  manual_trading_enabled: boolean;
+  emergency_stop_enabled: boolean;
+};
+
+const DEFAULT_RISK_SETTINGS: RiskSettings = {
+  max_lot_size: 1,
+  max_open_positions: 10,
+  max_positions_per_symbol: 3,
+  max_daily_loss: null,
+  max_daily_loss_percent: null,
+  minimum_free_margin: 0,
+  maximum_margin_usage_percent: 80,
+  require_stop_loss: false,
+  manual_trading_enabled: true,
+  emergency_stop_enabled: false,
+};
+
+async function getRiskSettings(
+  db: Awaited<ReturnType<typeof admin>>,
+  userId: string,
+  connectionId: string,
+): Promise<RiskSettings> {
+  const { data } = await db
+    .from("trading_risk_settings")
+    .select(
+      "max_lot_size, max_open_positions, max_positions_per_symbol, max_daily_loss, max_daily_loss_percent, minimum_free_margin, maximum_margin_usage_percent, require_stop_loss, manual_trading_enabled, emergency_stop_enabled",
+    )
+    .eq("user_id", userId)
+    .eq("connection_id", connectionId)
+    .maybeSingle();
+  return { ...DEFAULT_RISK_SETTINGS, ...(data ?? {}) } as RiskSettings;
+}
+
+async function validateOpenRisk(
+  db: Awaited<ReturnType<typeof admin>>,
+  userId: string,
+  request: TradeExecutionRequestValidated,
+  connection: { id: string; equity?: number | null; free_margin?: number | null; margin?: number | null },
+  risk: RiskSettings,
+): Promise<{ code: string; message: string } | null> {
+  if (!risk.manual_trading_enabled)
+    return { code: "MANUAL_TRADING_DISABLED", message: "Manual trading is disabled for this MT5 connection." };
+  if (risk.emergency_stop_enabled)
+    return { code: "EMERGENCY_STOP_ACTIVE", message: "Emergency Stop is active. New trading commands are disabled." };
+  if (!request.volume || request.volume > risk.max_lot_size)
+    return { code: "MAX_LOT_EXCEEDED", message: "Requested lot size exceeds your configured maximum lot size." };
+  if (risk.require_stop_loss && (!request.stopLoss || request.stopLoss <= 0))
+    return { code: "STOP_LOSS_REQUIRED", message: "Stop Loss is required by your trading risk settings." };
+
+  const { count: openCount } = await db
+    .from("mt5_open_positions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("broker_connection_id", connection.id);
+  if ((openCount ?? 0) >= risk.max_open_positions)
+    return { code: "MAX_POSITIONS_REACHED", message: "Maximum open position limit has been reached." };
+
+  const { count: symbolCount } = await db
+    .from("mt5_open_positions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("broker_connection_id", connection.id)
+    .ilike("symbol", `${request.symbol}%`);
+  if ((symbolCount ?? 0) >= risk.max_positions_per_symbol)
+    return { code: "MAX_POSITIONS_PER_SYMBOL", message: "Maximum positions for this symbol has been reached." };
+
+  const freeMargin = connection.free_margin ?? 0;
+  if (freeMargin < risk.minimum_free_margin)
+    return { code: "MINIMUM_FREE_MARGIN", message: "Trade rejected because free margin is below your configured safety limit." };
+  const equity = connection.equity ?? 0;
+  const margin = connection.margin ?? 0;
+  if (equity > 0 && (margin / equity) * 100 > risk.maximum_margin_usage_percent)
+    return { code: "MARGIN_PROTECTION_TRIGGERED", message: "Trade rejected because margin usage exceeds your configured limit." };
+
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const { data: closed } = await db
+    .from("trades")
+    .select("net_profit, profit, commission, swap")
+    .eq("user_id", userId)
+    .eq("broker_connection_id", connection.id)
+    .eq("status", "closed")
+    .gte("closed_at", start.toISOString());
+  const realized = (closed ?? []).reduce(
+    (sum, trade) => sum + (trade.net_profit ?? (trade.profit ?? 0) + (trade.commission ?? 0) + (trade.swap ?? 0)),
+    0,
+  );
+  const loss = Math.max(0, -realized);
+  const percentLimit = risk.max_daily_loss_percent != null ? (equity * risk.max_daily_loss_percent) / 100 : null;
+  if ((risk.max_daily_loss != null && loss >= risk.max_daily_loss) || (percentLimit != null && loss >= percentLimit))
+    return { code: "DAILY_LOSS_LIMIT_REACHED", message: "Daily loss limit has been reached. New trades are temporarily blocked." };
+
+  return null;
+}
+
+async function recordRiskEvent(userId: string, connectionId: string, event: string, message: string) {
+  await recordAudit({
+    userId,
+    action: event,
+    entityType: "broker_connection",
+    entityId: connectionId,
+    metadata: { safeMessage: message },
+  });
 }
 
 /** Column list returned to the Bridge EA */

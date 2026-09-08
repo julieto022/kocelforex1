@@ -156,7 +156,12 @@ export interface BridgeService {
 /* --------------------------------------------------------------- Trade Execution */
 
 export type TradeOperation =
-  "OPEN_MARKET" | "CLOSE_POSITION" | "MODIFY_POSITION" | "CANCEL_PENDING_ORDER";
+  | "OPEN_MARKET"
+  | "CLOSE_POSITION"
+  | "MODIFY_POSITION"
+  | "PARTIAL_CLOSE"
+  | "MOVE_TO_BREAK_EVEN"
+  | "CANCEL_PENDING_ORDER";
 
 export type TradeCommandStatus =
   "PENDING" | "SENT" | "EXECUTING" | "EXECUTED" | "FAILED" | "REJECTED" | "EXPIRED" | "CANCELLED";

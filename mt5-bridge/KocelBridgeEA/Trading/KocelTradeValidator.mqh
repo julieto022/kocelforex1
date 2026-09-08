@@ -113,6 +113,40 @@ public:
          return result;
       }
 
+      const ENUM_ORDER_TYPE order_type = cmd.side == KOCEL_TRADE_BUY ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+      const double price = order_type == ORDER_TYPE_BUY ? SymbolInfoDouble(symbol, SYMBOL_ASK) : SymbolInfoDouble(symbol, SYMBOL_BID);
+      double required_margin = 0.0;
+      if(!OrderCalcMargin(order_type, symbol, cmd.volume, price, required_margin) ||
+         required_margin > AccountInfoDouble(ACCOUNT_MARGIN_FREE))
+      {
+         result.valid = false;
+         result.error_code = "INSUFFICIENT_MARGIN";
+         result.error_message = "Trade rejected because available free margin is insufficient.";
+         return result;
+      }
+
+      const double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+      const long stops_level = SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL);
+      const long freeze_level = SymbolInfoInteger(symbol, SYMBOL_TRADE_FREEZE_LEVEL);
+      const double minimum_distance = MathMax(stops_level, freeze_level) * point;
+      if(minimum_distance > 0 && cmd.stop_loss > 0)
+      {
+         if(order_type == ORDER_TYPE_BUY && price - cmd.stop_loss < minimum_distance)
+         {
+            result.valid = false;
+            result.error_code = "INVALID_STOP_LEVEL";
+            result.error_message = "Stop Loss is inside the broker minimum stop distance.";
+            return result;
+         }
+         if(order_type == ORDER_TYPE_SELL && cmd.stop_loss - price < minimum_distance)
+         {
+            result.valid = false;
+            result.error_code = "INVALID_STOP_LEVEL";
+            result.error_message = "Stop Loss is inside the broker minimum stop distance.";
+            return result;
+         }
+      }
+
       result.valid = true;
       return result;
    }
@@ -169,8 +203,99 @@ public:
          return result;
       }
       
+      const string symbol = PositionGetString(POSITION_SYMBOL);
+      const double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+      const long stops_level = SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL);
+      const long freeze_level = SymbolInfoInteger(symbol, SYMBOL_TRADE_FREEZE_LEVEL);
+      const double minimum_distance = MathMax(stops_level, freeze_level) * point;
+      const ENUM_POSITION_TYPE position_type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      const double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
+      const double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
+      if(minimum_distance > 0 && position_type == POSITION_TYPE_BUY)
+      {
+         if(cmd.stop_loss > 0 && bid - cmd.stop_loss < minimum_distance)
+         {
+            result.valid = false;
+            result.error_code = "INVALID_STOP_LEVEL";
+            result.error_message = "Stop Loss is inside the broker minimum stop distance.";
+            return result;
+         }
+         if(cmd.take_profit > 0 && cmd.take_profit - ask < minimum_distance)
+         {
+            result.valid = false;
+            result.error_code = "INVALID_STOP_LEVEL";
+            result.error_message = "Take Profit is inside the broker minimum stop distance.";
+            return result;
+         }
+      }
+      if(minimum_distance > 0 && position_type == POSITION_TYPE_SELL)
+      {
+         if(cmd.stop_loss > 0 && cmd.stop_loss - ask < minimum_distance)
+         {
+            result.valid = false;
+            result.error_code = "INVALID_STOP_LEVEL";
+            result.error_message = "Stop Loss is inside the broker minimum stop distance.";
+            return result;
+         }
+         if(cmd.take_profit > 0 && bid - cmd.take_profit < minimum_distance)
+         {
+            result.valid = false;
+            result.error_code = "INVALID_STOP_LEVEL";
+            result.error_message = "Take Profit is inside the broker minimum stop distance.";
+            return result;
+         }
+      }
+
       result.valid = true;
       return result;
+   }
+
+   static KocelTradeValidationResult ValidatePartialClose(const KocelTradeCommand &cmd)
+   {
+      KocelTradeValidationResult result;
+      if(cmd.position_ticket <= 0 || !PositionSelectByTicket(cmd.position_ticket))
+      {
+         result.valid = false;
+         result.error_code = "POSITION_NOT_FOUND";
+         result.error_message = "Position does not exist or is not accessible.";
+         return result;
+      }
+      const string symbol = PositionGetString(POSITION_SYMBOL);
+      const double position_volume = PositionGetDouble(POSITION_VOLUME);
+      const double min_volume = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+      const double step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+      if(cmd.volume <= 0 || cmd.volume > position_volume + 0.0000001 || cmd.volume < min_volume)
+      {
+         result.valid = false;
+         result.error_code = "INVALID_VOLUME";
+         result.error_message = "Close volume must be positive and no greater than the position volume.";
+         return result;
+      }
+      if(step > 0 && MathAbs(MathMod(cmd.volume, step)) > 0.0000001)
+      {
+         result.valid = false;
+         result.error_code = "INVALID_VOLUME";
+         result.error_message = StringFormat("Close volume must be a multiple of %.4f.", step);
+         return result;
+      }
+      result.valid = true;
+      return result;
+   }
+
+   static KocelTradeValidationResult ValidateBreakEven(const KocelTradeCommand &cmd)
+   {
+      if(cmd.position_ticket <= 0 || !PositionSelectByTicket(cmd.position_ticket))
+      {
+         KocelTradeValidationResult result;
+         result.valid = false;
+         result.error_code = "POSITION_NOT_FOUND";
+         result.error_message = "Position does not exist or is not accessible.";
+         return result;
+      }
+      KocelTradeCommand break_even = cmd;
+      break_even.stop_loss = PositionGetDouble(POSITION_PRICE_OPEN);
+      break_even.take_profit = PositionGetDouble(POSITION_TP);
+      return ValidateModifyPosition(break_even);
    }
    
    /**
@@ -214,6 +339,10 @@ public:
          return ValidateClosePosition(cmd);
       else if(cmd.operation == KOCEL_TRADE_MODIFY_POSITION)
          return ValidateModifyPosition(cmd);
+      else if(cmd.operation == KOCEL_TRADE_PARTIAL_CLOSE)
+         return ValidatePartialClose(cmd);
+      else if(cmd.operation == KOCEL_TRADE_BREAK_EVEN)
+         return ValidateBreakEven(cmd);
       else if(cmd.operation == KOCEL_TRADE_CANCEL_PENDING)
          return ValidateCancelPendingOrder(cmd);
       

@@ -1703,6 +1703,63 @@ export type Database = {
         }
         Relationships: []
       }
+      trading_risk_settings: {
+        Row: {
+          connection_id: string
+          created_at: string
+          emergency_stop_enabled: boolean
+          id: string
+          manual_trading_enabled: boolean
+          max_daily_loss: number | null
+          max_daily_loss_percent: number | null
+          max_lot_size: number
+          max_open_positions: number
+          max_positions_per_symbol: number
+          max_trade_risk_percent: number | null
+          maximum_margin_usage_percent: number
+          minimum_free_margin: number
+          require_stop_loss: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          emergency_stop_enabled?: boolean
+          id?: string
+          manual_trading_enabled?: boolean
+          max_daily_loss?: number | null
+          max_daily_loss_percent?: number | null
+          max_lot_size?: number
+          max_open_positions?: number
+          max_positions_per_symbol?: number
+          max_trade_risk_percent?: number | null
+          maximum_margin_usage_percent?: number
+          minimum_free_margin?: number
+          require_stop_loss?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          emergency_stop_enabled?: boolean
+          id?: string
+          manual_trading_enabled?: boolean
+          max_daily_loss?: number | null
+          max_daily_loss_percent?: number | null
+          max_lot_size?: number
+          max_open_positions?: number
+          max_positions_per_symbol?: number
+          max_trade_risk_percent?: number | null
+          maximum_margin_usage_percent?: number
+          minimum_free_margin?: number
+          require_stop_loss?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

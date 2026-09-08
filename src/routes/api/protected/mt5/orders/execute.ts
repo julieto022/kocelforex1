@@ -22,7 +22,7 @@ async function getAuthenticatedUser(request: Request): Promise<string | null> {
   }
 }
 
-/** User submits a trade command (OPEN_MARKET, CLOSE_POSITION, MODIFY_POSITION, CANCEL_PENDING_ORDER) */
+/** User submits a trade command through the authenticated Phase 3.4/3.5 command queue. */
 export const Route = createFileRoute("/api/protected/mt5/orders/execute")({
   server: {
     handlers: {

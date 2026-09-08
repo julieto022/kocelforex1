@@ -192,8 +192,8 @@ public:
       request.action = TRADE_ACTION_SLTP;
       request.position = cmd.position_ticket;
       request.symbol = symbol;
-      request.tp = cmd.take_profit > 0 ? cmd.take_profit : 0;
-      request.sl = cmd.stop_loss > 0 ? cmd.stop_loss : 0;
+      request.tp = cmd.take_profit > 0 ? cmd.take_profit : PositionGetDouble(POSITION_TP);
+      request.sl = cmd.stop_loss > 0 ? cmd.stop_loss : PositionGetDouble(POSITION_SL);
       request.magic = 0x4B4F43;  // Magic number to identify Kocel trades
       request.comment = "Kocel Modify SL/TP";
       
@@ -217,6 +217,71 @@ public:
       result.status = KOCEL_TRADE_STATUS_EXECUTED;
       result.message = "Position SL/TP modified successfully";
       
+      return result;
+   }
+
+   static KocelTradeResult ExecutePartialClose(const KocelTradeCommand &cmd)
+   {
+      KocelTradeResult result;
+      result.command_id = cmd.command_id;
+      result.client_request_id = cmd.client_request_id;
+      KocelTradeValidationResult validation = CKocelTradeValidator::ValidatePartialClose(cmd);
+      if(!validation.valid)
+      {
+         result.status = KOCEL_TRADE_STATUS_REJECTED;
+         result.error_code = validation.error_code;
+         result.message = validation.error_message;
+         return result;
+      }
+      PositionSelectByTicket(cmd.position_ticket);
+      const string symbol = PositionGetString(POSITION_SYMBOL);
+      const ENUM_POSITION_TYPE position_type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      MqlTradeRequest request = {};
+      MqlTradeResult trade_result = {};
+      request.action = TRADE_ACTION_DEAL;
+      request.position = cmd.position_ticket;
+      request.symbol = symbol;
+      request.volume = cmd.volume;
+      request.type = position_type == POSITION_TYPE_BUY ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
+      request.deviation = 20;
+      request.magic = 0x4B4F43;
+      request.comment = "Kocel Partial Close";
+      request.type_filling = ORDER_FILLING_FOK;
+      if(!OrderSend(request, trade_result) || (trade_result.retcode != TRADE_RETCODE_DONE && trade_result.retcode != TRADE_RETCODE_DONE_PARTIAL))
+      {
+         result.status = KOCEL_TRADE_STATUS_FAILED;
+         result.error_code = "PARTIAL_CLOSE_FAILED";
+         result.message = StringFormat("Partial close failed: code %d", trade_result.retcode);
+         return result;
+      }
+      result.status = KOCEL_TRADE_STATUS_EXECUTED;
+      result.deal_ticket = trade_result.deal;
+      result.executed_volume = trade_result.volume;
+      result.executed_price = trade_result.price;
+      result.executed_symbol = symbol;
+      result.message = "Position partially closed successfully";
+      return result;
+   }
+
+   static KocelTradeResult ExecuteBreakEven(const KocelTradeCommand &cmd)
+   {
+      KocelTradeCommand modified = cmd;
+      if(!PositionSelectByTicket(cmd.position_ticket))
+      {
+         KocelTradeResult result;
+         result.command_id = cmd.command_id;
+         result.client_request_id = cmd.client_request_id;
+         result.status = KOCEL_TRADE_STATUS_REJECTED;
+         result.error_code = "POSITION_NOT_FOUND";
+         result.message = "Position does not exist or is not accessible.";
+         return result;
+      }
+      modified.operation = KOCEL_TRADE_MODIFY_POSITION;
+      modified.stop_loss = PositionGetDouble(POSITION_PRICE_OPEN);
+      modified.take_profit = PositionGetDouble(POSITION_TP);
+      KocelTradeResult result = ExecuteModifyPosition(modified);
+      if(result.status == KOCEL_TRADE_STATUS_EXECUTED)
+         result.message = "Position moved to break even successfully";
       return result;
    }
    
@@ -299,6 +364,10 @@ public:
          return ExecuteClosePosition(cmd);
       else if(cmd.operation == KOCEL_TRADE_MODIFY_POSITION)
          return ExecuteModifyPosition(cmd);
+      else if(cmd.operation == KOCEL_TRADE_PARTIAL_CLOSE)
+         return ExecutePartialClose(cmd);
+      else if(cmd.operation == KOCEL_TRADE_BREAK_EVEN)
+         return ExecuteBreakEven(cmd);
       else if(cmd.operation == KOCEL_TRADE_CANCEL_PENDING)
          return ExecuteCancelPendingOrder(cmd);
       

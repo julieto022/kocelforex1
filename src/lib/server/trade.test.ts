@@ -72,6 +72,27 @@ describe("Phase 3.4: Trade Execution", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should validate PARTIAL_CLOSE command schema", () => {
+      const result = tradeExecutionRequestSchema.safeParse({
+        connectionId: "550e8400-e29b-41d4-a716-446655440000",
+        operation: "PARTIAL_CLOSE",
+        positionTicket: 12345678,
+        volume: 0.05,
+        clientRequestId: "550e8400-e29b-41d4-a716-446655440001",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("should validate MOVE_TO_BREAK_EVEN command schema", () => {
+      const result = tradeExecutionRequestSchema.safeParse({
+        connectionId: "550e8400-e29b-41d4-a716-446655440000",
+        operation: "MOVE_TO_BREAK_EVEN",
+        positionTicket: 12345678,
+        clientRequestId: "550e8400-e29b-41d4-a716-446655440001",
+      });
+      expect(result.success).toBe(true);
+    });
+
     it("should validate CANCEL_PENDING_ORDER command schema", () => {
       const validRequest = {
         connectionId: "550e8400-e29b-41d4-a716-446655440000",
