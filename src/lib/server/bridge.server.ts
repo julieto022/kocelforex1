@@ -348,13 +348,17 @@ export const bridgeService: BridgeService = {
       });
     }
 
-    if (normalized.positions?.length) {
+    if (normalized.positions) {
+      // MT5 is authoritative: an empty list means every stored position closed.
       await db
         .from("mt5_open_positions")
         .delete()
         .eq("broker_connection_id", identity.connectionId)
         .eq("user_id", identity.userId);
+    }
+    if (normalized.positions?.length) {
       await db.from("mt5_open_positions").insert(
+
         normalized.positions.map((position) => ({
           user_id: identity.userId,
           broker_connection_id: identity.connectionId,
@@ -376,13 +380,16 @@ export const bridgeService: BridgeService = {
       );
     }
 
-    if (normalized.orders?.length) {
+    if (normalized.orders) {
       await db
         .from("mt5_pending_orders")
         .delete()
         .eq("broker_connection_id", identity.connectionId)
         .eq("user_id", identity.userId);
+    }
+    if (normalized.orders?.length) {
       await db.from("mt5_pending_orders").insert(
+
         normalized.orders.map((order) => ({
           user_id: identity.userId,
           broker_connection_id: identity.connectionId,
