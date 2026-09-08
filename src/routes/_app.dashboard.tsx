@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 
 function DashboardPage() {
   const { active, connections } = useConnections();
-  const { active, connections } = useConnections();
+
   const [wizardOpen, setWizardOpen] = useState(false);
 
   // Determine connection status based on last_seen_at
