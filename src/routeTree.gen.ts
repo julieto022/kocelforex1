@@ -44,6 +44,7 @@ import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt
 import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/public/bridge/authenticate'
 import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/public/bridge/disconnect'
 import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
+import { Route as ApiPublicBridgeLiveStateRouteImport } from './routes/api/public/bridge/live-state'
 import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public/bridge/register'
 import { Route as ApiPublicBridgeStatusRouteImport } from './routes/api/public/bridge/status'
 import { Route as ApiProtectedMt5OrdersExecuteRouteImport } from './routes/api/protected/mt5/orders/execute'
@@ -228,6 +229,12 @@ const ApiPublicBridgeHeartbeatRoute =
     path: '/api/public/bridge/heartbeat',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBridgeLiveStateRoute =
+  ApiPublicBridgeLiveStateRouteImport.update({
+    id: '/api/public/bridge/live-state',
+    path: '/api/public/bridge/live-state',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBridgeRegisterRoute = ApiPublicBridgeRegisterRouteImport.update({
   id: '/api/public/bridge/register',
   path: '/api/public/bridge/register',
@@ -292,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
+  '/api/public/bridge/live-state': typeof ApiPublicBridgeLiveStateRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
   '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
@@ -332,6 +340,7 @@ export interface FileRoutesByTo {
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
+  '/api/public/bridge/live-state': typeof ApiPublicBridgeLiveStateRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
   '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
@@ -375,6 +384,7 @@ export interface FileRoutesById {
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
+  '/api/public/bridge/live-state': typeof ApiPublicBridgeLiveStateRoute
   '/api/public/bridge/register': typeof ApiPublicBridgeRegisterRoute
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
   '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/authenticate'
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
+    | '/api/public/bridge/live-state'
     | '/api/public/bridge/register'
     | '/api/public/bridge/status'
     | '/api/protected/mt5/orders/execute'
@@ -458,6 +469,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/authenticate'
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
+    | '/api/public/bridge/live-state'
     | '/api/public/bridge/register'
     | '/api/public/bridge/status'
     | '/api/protected/mt5/orders/execute'
@@ -500,6 +512,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/authenticate'
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
+    | '/api/public/bridge/live-state'
     | '/api/public/bridge/register'
     | '/api/public/bridge/status'
     | '/api/protected/mt5/orders/execute'
@@ -520,6 +533,7 @@ export interface RootRouteChildren {
   ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
   ApiPublicBridgeDisconnectRoute: typeof ApiPublicBridgeDisconnectRoute
   ApiPublicBridgeHeartbeatRoute: typeof ApiPublicBridgeHeartbeatRoute
+  ApiPublicBridgeLiveStateRoute: typeof ApiPublicBridgeLiveStateRoute
   ApiPublicBridgeRegisterRoute: typeof ApiPublicBridgeRegisterRoute
   ApiPublicBridgeStatusRoute: typeof ApiPublicBridgeStatusRoute
   ApiProtectedMt5OrdersExecuteRoute: typeof ApiProtectedMt5OrdersExecuteRoute
@@ -774,6 +788,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBridgeHeartbeatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bridge/live-state': {
+      id: '/api/public/bridge/live-state'
+      path: '/api/public/bridge/live-state'
+      fullPath: '/api/public/bridge/live-state'
+      preLoaderRoute: typeof ApiPublicBridgeLiveStateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bridge/register': {
       id: '/api/public/bridge/register'
       path: '/api/public/bridge/register'
@@ -898,6 +919,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,
   ApiPublicBridgeDisconnectRoute: ApiPublicBridgeDisconnectRoute,
   ApiPublicBridgeHeartbeatRoute: ApiPublicBridgeHeartbeatRoute,
+  ApiPublicBridgeLiveStateRoute: ApiPublicBridgeLiveStateRoute,
   ApiPublicBridgeRegisterRoute: ApiPublicBridgeRegisterRoute,
   ApiPublicBridgeStatusRoute: ApiPublicBridgeStatusRoute,
   ApiProtectedMt5OrdersExecuteRoute: ApiProtectedMt5OrdersExecuteRoute,

@@ -44,7 +44,9 @@ function TradesPage() {
         status: status === "all" ? undefined : status,
       }),
     enabled: Boolean(user?.id),
+    refetchInterval: 5000,
   });
+
 
   const trades = tradesQuery.data ?? [];
 
@@ -97,11 +99,14 @@ function TradesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Ticket</TableHead>
                   <TableHead>Symbol</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Volume</TableHead>
                   <TableHead>Entry</TableHead>
                   <TableHead>Exit</TableHead>
+                  <TableHead>Opened</TableHead>
+                  <TableHead>Closed</TableHead>
                   <TableHead>P/L</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -109,11 +114,18 @@ function TradesPage() {
               <TableBody>
                 {trades.map((trade) => (
                   <TableRow key={trade.id}>
+                    <TableCell className="num">{trade.ticket ?? "—"}</TableCell>
                     <TableCell className="num font-medium">{trade.symbol}</TableCell>
                     <TableCell>{trade.type}</TableCell>
                     <TableCell className="num">{trade.volume ?? "—"}</TableCell>
                     <TableCell className="num">{trade.entry_price ?? "—"}</TableCell>
                     <TableCell className="num">{trade.exit_price ?? "—"}</TableCell>
+                    <TableCell className="num">
+                      {trade.opened_at ? new Date(trade.opened_at).toLocaleString() : "—"}
+                    </TableCell>
+                    <TableCell className="num">
+                      {trade.closed_at ? new Date(trade.closed_at).toLocaleString() : "—"}
+                    </TableCell>
                     <TableCell className="num">{trade.profit ?? "—"}</TableCell>
                     <TableCell>{trade.status}</TableCell>
                   </TableRow>
@@ -122,6 +134,7 @@ function TradesPage() {
             </Table>
           </div>
         )}
+
       </SectionCard>
     </div>
   );

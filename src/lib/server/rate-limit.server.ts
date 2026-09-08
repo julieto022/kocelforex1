@@ -26,6 +26,9 @@ export const RATE_LIMITS = {
   /** Bridge registration attempts, per caller. */
   bridgeRegister: { limit: 20, windowSeconds: 600 },
   bridgePoll: { limit: 120, windowSeconds: 600 },
+  /** Fast live trading-state sync, roughly once per second per connection. */
+  bridgeLiveSync: { limit: 150, windowSeconds: 60 },
+
   /** Everything else. */
   general: { limit: 300, windowSeconds: 60 },
 } satisfies Record<string, RateLimitRule>;
