@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 });
 
 function DashboardPage() {
-  const { user } = useAuth();
+  const { active, connections } = useConnections();
   const { active, connections } = useConnections();
   const [wizardOpen, setWizardOpen] = useState(false);
 
