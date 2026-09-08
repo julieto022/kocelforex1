@@ -115,7 +115,7 @@ private:
       payload += "\"currency\":" + KocelJsonString(snapshot.currency) + ",";
       payload += "\"leverage\":" + leverage + ",";
       payload += "\"credit\":0,";
-      payload += "\"profit\":0";
+      payload += "\"profit\":" + DoubleToString(snapshot.profit, 2);
       payload += "},";
       payload += "\"openTrades\":" + IntegerToString(open_trades);
       payload += "}";
@@ -143,7 +143,7 @@ private:
       payload += "\"currency\":" + KocelJsonString(snapshot.currency) + ",";
       payload += "\"leverage\":" + leverage + ",";
       payload += "\"credit\":0,";
-      payload += "\"profit\":0";
+      payload += "\"profit\":" + DoubleToString(snapshot.profit, 2);
       payload += "},";
 
       payload += "\"positions\":[";
@@ -192,7 +192,90 @@ private:
       return payload;
    }
 
+   string LiveStatePayload(const KocelMt5AccountSnapshot &snapshot,
+                           const KocelMt5Position &positions[], const int pos_count,
+                           const KocelMt5Order &orders[], const int order_count,
+                           const KocelMt5ClosedTrade &trades[], const int trade_count) const
+   {
+      string payload = "{\"account\":{";
+      payload += "\"balance\":" + DoubleToString(snapshot.balance, 2) + ",";
+      payload += "\"equity\":" + DoubleToString(snapshot.equity, 2) + ",";
+      payload += "\"margin\":" + DoubleToString(snapshot.margin, 2) + ",";
+      payload += "\"freeMargin\":" + DoubleToString(snapshot.free_margin, 2) + ",";
+      payload += "\"marginLevel\":" + (snapshot.margin_level_available ? DoubleToString(snapshot.margin_level, 2) : "null") + ",";
+      payload += "\"profit\":" + DoubleToString(snapshot.profit, 2) + ",\"credit\":0,";
+      payload += "\"currency\":" + KocelJsonString(snapshot.currency) + ",";
+      payload += "\"leverage\":" + IntegerToString((int)snapshot.leverage) + "},";
+
+      payload += "\"positions\":[";
+      for(int i = 0; i < pos_count; i++)
+      {
+         if(i > 0) payload += ",";
+         payload += "{\"ticket\":" + StringFormat("%I64u", positions[i].ticket) + ",";
+         payload += "\"symbol\":" + KocelJsonString(positions[i].symbol) + ",\"type\":" + KocelJsonString(positions[i].type) + ",";
+         payload += "\"volume\":" + DoubleToString(positions[i].volume, 2) + ",\"openPrice\":" + DoubleToString(positions[i].open_price, 5) + ",";
+         payload += "\"currentPrice\":" + DoubleToString(positions[i].current_price, 5) + ",\"stopLoss\":" + (positions[i].stop_loss > 0 ? DoubleToString(positions[i].stop_loss, 5) : "null") + ",";
+         payload += "\"takeProfit\":" + (positions[i].take_profit > 0 ? DoubleToString(positions[i].take_profit, 5) : "null") + ",";
+         payload += "\"currentProfit\":" + DoubleToString(positions[i].current_profit, 2) + ",\"swap\":" + DoubleToString(positions[i].swap, 2) + ",";
+         payload += "\"magic\":" + IntegerToString((int)positions[i].magic) + ",\"openTime\":" + KocelJsonString(positions[i].open_time + "Z") + "}";
+      }
+      payload += "],\"orders\":[";
+      for(int i = 0; i < order_count; i++)
+      {
+         if(i > 0) payload += ",";
+         payload += "{\"ticket\":" + StringFormat("%I64u", orders[i].ticket) + ",";
+         payload += "\"symbol\":" + KocelJsonString(orders[i].symbol) + ",\"type\":" + KocelJsonString(orders[i].type) + ",";
+         payload += "\"volume\":" + DoubleToString(orders[i].volume, 2) + ",\"price\":" + DoubleToString(orders[i].price, 5) + ",";
+         payload += "\"stopLoss\":" + (orders[i].stop_loss > 0 ? DoubleToString(orders[i].stop_loss, 5) : "null") + ",\"takeProfit\":" + (orders[i].take_profit > 0 ? DoubleToString(orders[i].take_profit, 5) : "null") + ",";
+         payload += "\"currentState\":" + KocelJsonString(orders[i].current_state) + ",\"magic\":" + IntegerToString((int)orders[i].magic) + ",\"createdAt\":" + KocelJsonString(orders[i].created_at + "Z") + "}";
+      }
+      payload += "],\"closedTrades\":[";
+      for(int i = 0; i < trade_count; i++)
+      {
+         if(i > 0) payload += ",";
+         payload += "{\"ticket\":" + StringFormat("%I64u", trades[i].position_ticket) + ",\"positionTicket\":" + StringFormat("%I64u", trades[i].position_ticket) + ",";
+         payload += "\"dealTicket\":" + StringFormat("%I64u", trades[i].deal_ticket) + ",\"orderTicket\":" + StringFormat("%I64u", trades[i].order_ticket) + ",";
+         payload += "\"symbol\":" + KocelJsonString(trades[i].symbol) + ",\"type\":" + KocelJsonString(trades[i].type) + ",";
+         payload += "\"volume\":" + DoubleToString(trades[i].volume, 2) + ",\"entryPrice\":" + DoubleToString(trades[i].open_price, 5) + ",\"exitPrice\":" + DoubleToString(trades[i].close_price, 5) + ",";
+         payload += "\"profit\":" + DoubleToString(trades[i].profit, 2) + ",\"commission\":" + DoubleToString(trades[i].commission, 2) + ",\"swap\":" + DoubleToString(trades[i].swap, 2) + ",\"netProfit\":" + DoubleToString(trades[i].net_profit, 2) + ",";
+         payload += "\"openedAt\":" + KocelJsonString(trades[i].open_time + "Z") + ",\"closedAt\":" + KocelJsonString(trades[i].close_time + "Z") + "}";
+      }
+      payload += "]}";
+      return payload;
+   }
+
 public:
+   bool LiveState(const KocelMt5AccountSnapshot &snapshot,
+                  const KocelMt5Position &positions[], const int pos_count,
+                  const KocelMt5Order &orders[], const int order_count,
+                  const KocelMt5ClosedTrade &trades[], const int trade_count,
+                  string &message)
+   {
+      message = "";
+      if(m_bridge_token == "")
+      {
+         message = "No Bridge session token is active.";
+         return false;
+      }
+
+      KocelHttpResponse response;
+      const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_LIVE_STATE,
+         LiveStatePayload(snapshot, positions, pos_count, orders, order_count, trades, trade_count),
+         m_bridge_token, response);
+      m_last_response = response;
+      if(!http_ok)
+      {
+         message = response.error_message;
+         return false;
+      }
+      string data = "";
+      if(!ParseEnvelope(response, data, message))
+         return false;
+      KocelJsonGetString(data, "connectionId", m_connection_id);
+      message = "Live state received.";
+      return true;
+   }
+
    bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, string &message)
    {
       message = "";

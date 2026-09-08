@@ -1527,6 +1527,8 @@ export type Database = {
           id: string
           net_profit: number | null
           opened_at: string | null
+          order_ticket: number | null
+          position_ticket: number | null
           profit: number | null
           source: string
           status: string
@@ -1552,6 +1554,8 @@ export type Database = {
           id?: string
           net_profit?: number | null
           opened_at?: string | null
+          order_ticket?: number | null
+          position_ticket?: number | null
           profit?: number | null
           source?: string
           status?: string
@@ -1577,6 +1581,8 @@ export type Database = {
           id?: string
           net_profit?: number | null
           opened_at?: string | null
+          order_ticket?: number | null
+          position_ticket?: number | null
           profit?: number | null
           source?: string
           status?: string

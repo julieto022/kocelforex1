@@ -11,6 +11,7 @@ const int    KOCEL_PROTOCOL_VERSION = 1;
 const string KOCEL_ENDPOINT_REGISTER     = "/api/public/bridge/register";
 const string KOCEL_ENDPOINT_AUTHENTICATE = "/api/public/bridge/authenticate";
 const string KOCEL_ENDPOINT_HEARTBEAT    = "/api/public/bridge/heartbeat";
+const string KOCEL_ENDPOINT_LIVE_STATE   = "/api/public/bridge/live-state";
 const string KOCEL_ENDPOINT_STATUS       = "/api/public/bridge/status";
 const string KOCEL_ENDPOINT_DISCONNECT   = "/api/public/bridge/disconnect";
 const string KOCEL_ENDPOINT_COMMAND_POLL = "/api/public/bridge/commands/poll";
@@ -30,6 +31,7 @@ const int KOCEL_COMMAND_HISTORY_LIMIT = 200;
 const int KOCEL_MAX_NETWORK_FAILURES = 3;
 const int KOCEL_MAX_BACKOFF_SECONDS = 60;
 const int KOCEL_STATUS_INTERVAL_SECONDS = 60;
+const int KOCEL_CLOSED_HISTORY_LOOKBACK_SECONDS = 604800;
 
 const string KOCEL_OBJECT_PREFIX = "KocelBridge_";
 const string KOCEL_UI_FONT = "Segoe UI";

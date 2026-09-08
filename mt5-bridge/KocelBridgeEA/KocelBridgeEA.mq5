@@ -49,7 +49,12 @@ datetime g_next_heartbeat = 0;
 datetime g_next_status = 0;
 datetime g_next_command_poll = 0;
 datetime g_next_network_retry = 0;
+datetime g_next_fast_sync = 0;
+datetime g_closed_history_from = 0;
 int g_network_failures = 0;
+int g_fast_sync_failures = 0;
+string g_last_fast_fingerprint = "";
+KocelMt5ClosedTrade g_pending_closed_trades[];
 string g_kocel_status = "Not Connected";
 
 string KocelLocalConnectionText()
@@ -102,6 +107,140 @@ void KocelScheduleRetry()
    g_next_network_retry = TimeLocal() + delay_seconds;
 }
 
+void KocelScheduleFastRetry()
+{
+   g_fast_sync_failures++;
+   int delay_seconds = g_fast_sync_failures;
+   if(delay_seconds > KOCEL_MAX_BACKOFF_SECONDS)
+      delay_seconds = KOCEL_MAX_BACKOFF_SECONDS;
+   g_next_fast_sync = TimeLocal() + delay_seconds;
+}
+
+void KocelHandleSessionFailure(const string message);
+
+int KocelPendingClosedTradeIndex(const ulong position_ticket)
+{
+   for(int i = 0; i < ArraySize(g_pending_closed_trades); i++)
+      if(g_pending_closed_trades[i].position_ticket == position_ticket)
+         return i;
+   return -1;
+}
+
+void KocelCollectClosedTrades()
+{
+   const datetime now = TimeCurrent();
+   if(now <= 0)
+      return;
+   if(g_closed_history_from <= 0)
+      g_closed_history_from = now - KOCEL_CLOSED_HISTORY_LOOKBACK_SECONDS;
+
+   KocelMt5ClosedTrade found[];
+   int found_count = 0;
+   if(!g_terminal.ReadClosedTrades(g_closed_history_from, found, found_count))
+   {
+      g_logger.Warning("MT5 closed trade history could not be read; retry scheduled.");
+      ArrayFree(found);
+      return;
+   }
+
+   for(int i = 0; i < found_count; i++)
+   {
+      const int existing = KocelPendingClosedTradeIndex(found[i].position_ticket);
+      if(existing >= 0)
+         g_pending_closed_trades[existing] = found[i];
+      else
+      {
+         const int size = ArraySize(g_pending_closed_trades);
+         ArrayResize(g_pending_closed_trades, size + 1);
+         g_pending_closed_trades[size] = found[i];
+         g_logger.Info("New MT5 closed deal detected.");
+      }
+   }
+
+   g_closed_history_from = now + 1;
+   ArrayFree(found);
+}
+
+string KocelFastStateFingerprint(const KocelMt5AccountSnapshot &snapshot,
+                                 const KocelMt5Position &positions[], const int pos_count,
+                                 const KocelMt5Order &orders[], const int order_count)
+{
+   string fingerprint = DoubleToString(snapshot.balance, 2) + "|" + DoubleToString(snapshot.equity, 2) + "|";
+   fingerprint += DoubleToString(snapshot.margin, 2) + "|" + DoubleToString(snapshot.free_margin, 2) + "|";
+   fingerprint += DoubleToString(snapshot.margin_level, 2) + "|" + DoubleToString(snapshot.profit, 2) + "|";
+   fingerprint += IntegerToString(pos_count) + "|";
+   for(int i = 0; i < pos_count; i++)
+   {
+      fingerprint += StringFormat("%I64u", positions[i].ticket) + ":" + positions[i].symbol + ":" + positions[i].type + ":";
+      fingerprint += DoubleToString(positions[i].volume, 2) + ":" + DoubleToString(positions[i].open_price, 5) + ":";
+      fingerprint += DoubleToString(positions[i].current_price, 5) + ":" + DoubleToString(positions[i].stop_loss, 5) + ":";
+      fingerprint += DoubleToString(positions[i].take_profit, 5) + ":" + DoubleToString(positions[i].current_profit, 2) + ":" + DoubleToString(positions[i].swap, 2) + "|";
+   }
+   fingerprint += IntegerToString(order_count) + "|";
+   for(int i = 0; i < order_count; i++)
+   {
+      fingerprint += StringFormat("%I64u", orders[i].ticket) + ":" + orders[i].symbol + ":" + orders[i].type + ":";
+      fingerprint += DoubleToString(orders[i].volume, 2) + ":" + DoubleToString(orders[i].price, 5) + ":";
+      fingerprint += DoubleToString(orders[i].stop_loss, 5) + ":" + DoubleToString(orders[i].take_profit, 5) + ":" + orders[i].current_state + "|";
+   }
+   fingerprint += IntegerToString(ArraySize(g_pending_closed_trades)) + "|";
+   for(int i = 0; i < ArraySize(g_pending_closed_trades); i++)
+      fingerprint += StringFormat("%I64u:%I64u:%s:%s", g_pending_closed_trades[i].position_ticket, g_pending_closed_trades[i].deal_ticket, g_pending_closed_trades[i].close_time, DoubleToString(g_pending_closed_trades[i].net_profit, 2)) + "|";
+   return fingerprint;
+}
+
+void KocelFastStateSync(const datetime now)
+{
+   if(g_state.Current() != KOCEL_STATE_CONNECTED || (g_next_fast_sync != 0 && now < g_next_fast_sync))
+      return;
+
+   KocelCollectClosedTrades();
+   KocelMt5AccountSnapshot snapshot;
+   g_terminal.ReadAccountSnapshot(snapshot);
+   KocelMt5Position positions[];
+   KocelMt5Order orders[];
+   int pos_count = 0;
+   int order_count = 0;
+   if(!g_terminal.ReadOpenPositions(positions, pos_count) || !g_terminal.ReadPendingOrders(orders, order_count))
+   {
+      g_logger.Warning("Fast MT5 state read failed; retry scheduled.");
+      KocelScheduleFastRetry();
+      return;
+   }
+
+   const string fingerprint = KocelFastStateFingerprint(snapshot, positions, pos_count, orders, order_count);
+   if(fingerprint == g_last_fast_fingerprint && ArraySize(g_pending_closed_trades) == 0)
+   {
+      ArrayFree(positions);
+      ArrayFree(orders);
+      return;
+   }
+
+   g_logger.Info("MT5 state change detected.");
+   g_logger.Info("Synchronizing fast MT5 state with Kocel...");
+   string message = "";
+   if(g_bridge.LiveState(snapshot, positions, pos_count, orders, order_count, g_pending_closed_trades, ArraySize(g_pending_closed_trades), message))
+   {
+      ArrayFree(g_pending_closed_trades);
+      g_last_fast_fingerprint = KocelFastStateFingerprint(snapshot, positions, pos_count, orders, order_count);
+      g_fast_sync_failures = 0;
+      g_next_fast_sync = now + 1;
+      g_logger.Info("Fast MT5 state synchronized successfully.");
+   }
+   else if(g_bridge.LastResponseStatusCode() == 401)
+   {
+      KocelHandleSessionFailure("Kocel connection was revoked or the session expired.");
+   }
+   else
+   {
+      KocelScheduleFastRetry();
+      g_logger.Warning("Fast MT5 state synchronization failed; retry scheduled.");
+   }
+
+   ArrayFree(positions);
+   ArrayFree(orders);
+}
+
 bool KocelBrowserOpen(const string authorization_url)
 {
    ResetLastError();
@@ -122,6 +261,8 @@ void KocelDisconnectLocal(const string message, const string log_message)
    g_next_poll = 0;
    g_next_heartbeat = 0;
    g_next_status = 0;
+   g_next_fast_sync = 0;
+   g_last_fast_fingerprint = "";
    g_kocel_status = "Not Connected";
    g_state.Set(KOCEL_STATE_DISCONNECTED, message);
    if(log_message != "")
@@ -294,6 +435,9 @@ int OnInit()
    g_next_poll = 0;
    g_next_heartbeat = 0;
    g_next_status = 0;
+   g_next_fast_sync = 0;
+   g_closed_history_from = TimeCurrent() - KOCEL_CLOSED_HISTORY_LOOKBACK_SECONDS;
+   g_last_fast_fingerprint = "";
 
    if(!config_ok)
    {
@@ -447,6 +591,8 @@ void OnTimer()
          ArrayFree(positions);
          ArrayFree(orders);
       }
+
+      KocelFastStateSync(now);
 
       // Phase 3.4: Poll for trade commands
       if(g_state.Current() == KOCEL_STATE_CONNECTED && (g_next_command_poll == 0 || now >= g_next_command_poll))

@@ -51,7 +51,9 @@ const liveOrderSchema = z.object({
 
 const closedTradeSchema = z.object({
   ticket: z.number().int().positive(),
+  positionTicket: z.number().int().positive().nullable().optional(),
   dealTicket: z.number().int().positive().nullable().optional(),
+  orderTicket: z.number().int().positive().nullable().optional(),
   symbol: z.string().trim().min(1).max(50),
   type: z.string().trim().min(1).max(32),
   volume: z.number().positive(),
@@ -232,6 +234,8 @@ export async function syncLiveState(
           user_id: identity.userId,
           broker_connection_id: identity.connectionId,
           ticket: String(trade.ticket),
+          position_ticket: trade.positionTicket ?? Number(trade.ticket),
+          order_ticket: trade.orderTicket ?? null,
           deal_ticket: trade.dealTicket ?? null,
           symbol: trade.symbol,
           type: trade.type,

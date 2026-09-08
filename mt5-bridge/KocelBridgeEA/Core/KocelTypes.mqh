@@ -49,6 +49,7 @@ struct KocelMt5AccountSnapshot
 {
    double balance;
    double equity;
+   double profit;
    double margin;
    double free_margin;
    double margin_level;
@@ -87,6 +88,26 @@ struct KocelMt5Order
    string created_at;
 };
 
+struct KocelMt5ClosedTrade
+{
+   ulong position_ticket;
+   ulong deal_ticket;
+   ulong order_ticket;
+   string symbol;
+   string type;
+   double volume;
+   double open_price;
+   double close_price;
+   double profit;
+   double commission;
+   double swap;
+   double net_profit;
+   long magic;
+   string comment;
+   string open_time;
+   string close_time;
+};
+
 struct KocelHttpResponse
 {
    int status_code;
@@ -118,6 +139,7 @@ void KocelResetAccountSnapshot(KocelMt5AccountSnapshot &snapshot)
 {
    snapshot.balance = 0.0;
    snapshot.equity = 0.0;
+   snapshot.profit = 0.0;
    snapshot.margin = 0.0;
    snapshot.free_margin = 0.0;
    snapshot.margin_level = 0.0;
@@ -154,6 +176,26 @@ void KocelResetOrder(KocelMt5Order &order)
    order.current_state = "";
    order.magic = 0;
    order.created_at = "";
+}
+
+void KocelResetClosedTrade(KocelMt5ClosedTrade &trade)
+{
+   trade.position_ticket = 0;
+   trade.deal_ticket = 0;
+   trade.order_ticket = 0;
+   trade.symbol = "";
+   trade.type = "";
+   trade.volume = 0.0;
+   trade.open_price = 0.0;
+   trade.close_price = 0.0;
+   trade.profit = 0.0;
+   trade.commission = 0.0;
+   trade.swap = 0.0;
+   trade.net_profit = 0.0;
+   trade.magic = 0;
+   trade.comment = "";
+   trade.open_time = "";
+   trade.close_time = "";
 }
 
 void KocelResetHttpResponse(KocelHttpResponse &response)
