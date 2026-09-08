@@ -43,5 +43,20 @@ export function isApiError(error: unknown): error is ApiError {
 /** Maps any thrown value to a client-safe ApiError. */
 export function toApiError(error: unknown): ApiError {
   if (isApiError(error)) return error;
+
+  const databaseError = error as { code?: string; message?: string } | null;
+  switch (databaseError?.code) {
+    case "42501":
+      return forbidden("You do not have permission to update these settings.");
+    case "23505":
+      return conflict("These settings already exist. Please try saving again.");
+    case "23514":
+      return invalid("One or more settings values are outside the allowed range.");
+    case "42P01":
+    case "PGRST205":
+      return internal("Settings are not available yet. Please try again shortly.");
+    case "42703":
+      return internal("The settings schema needs to be updated before saving.");
+  }
   return internal();
 }

@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_app/settings/trading")({
   component: TradingSettings,
 });
 
-const riskProfiles = ["conservative", "balanced", "aggressive"];
+const riskProfiles = ["CONSERVATIVE", "BALANCED", "AGGRESSIVE"];
 
 function TradingSettings() {
   const { user, settings, refresh } = useAuth();
@@ -86,6 +86,22 @@ function TradingSettings() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const saveRiskSettings = () => {
+    const requiredNumbers = [
+      ["Maximum lot size", risk.maxLotSize],
+      ["Maximum open positions", risk.maxOpenPositions],
+      ["Maximum positions per symbol", risk.maxPositionsPerSymbol],
+      ["Minimum free margin", risk.minimumFreeMargin],
+      ["Maximum margin usage", risk.maximumMarginUsagePercent],
+    ] as const;
+    const invalidField = requiredNumbers.find(([, value]) => !Number.isFinite(Number(value)));
+    if (invalidField) {
+      toast.error(`${invalidField[0]} must be a valid number.`);
+      return;
+    }
+    riskMutation.mutate();
+  };
+
   const mutation = useMutation({
     mutationFn: (patch: Record<string, unknown>) => updateSettings(user!.id, patch),
     onSuccess: () => {
@@ -104,7 +120,7 @@ function TradingSettings() {
         <div className="space-y-1.5">
           <Label>Default risk profile</Label>
           <Select
-            value={settings?.default_risk_profile ?? "balanced"}
+            value={settings?.default_risk_profile?.toUpperCase() ?? "BALANCED"}
             onValueChange={(value) => mutation.mutate({ default_risk_profile: value })}
           >
             <SelectTrigger>
@@ -179,7 +195,7 @@ function TradingSettings() {
             </div>
           ))}
         </div>
-        <Button disabled={!activeConnectionId || riskMutation.isPending} onClick={() => riskMutation.mutate()}>
+        <Button disabled={!activeConnectionId || riskMutation.isPending} onClick={saveRiskSettings}>
           {riskMutation.isPending ? "Saving..." : "Save risk settings"}
         </Button>
       </div>

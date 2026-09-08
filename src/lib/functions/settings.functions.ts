@@ -18,13 +18,18 @@ export const getSettings = createServerFn({ method: "GET" })
     return data;
   });
 
-const settingsSchema = z.object({
+export const settingsSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
   timezone: z.string().trim().max(64).optional(),
   language: z.string().trim().max(16).optional(),
   date_format: z.string().trim().max(24).optional(),
   default_currency: z.string().trim().max(8).optional(),
-  default_risk_profile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]).optional(),
+  default_risk_profile: z
+    .preprocess(
+      (value) => (typeof value === "string" ? value.toUpperCase() : value),
+      z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]),
+    )
+    .optional(),
   active_connection_id: z.string().uuid().nullish(),
   notifications: z.record(z.string(), z.unknown()).optional(),
 });
@@ -41,8 +46,7 @@ export const updateSettings = createServerFn({ method: "POST" })
 
     const { error } = await supabase
       .from("user_settings")
-      .update(patch as never)
-      .eq("user_id", userId);
+      .upsert({ user_id: userId, ...patch } as never, { onConflict: "user_id" });
     if (error) throw toApiError(error);
     return { ok: true as const };
   });
