@@ -103,13 +103,8 @@ function DashboardPage() {
 
           <TradingPanel />
 
-          <SectionCard title="Open positions" bodyClassName="p-0 sm:p-0">
-            <EmptyState
-              icon={Activity}
-              title="No open positions"
-              description="Positions are now synced from MT5. Refresh or wait for the next heartbeat update."
-            />
-          </SectionCard>
+          <PositionsList />
+
         </>
       )}
 
