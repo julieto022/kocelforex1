@@ -1,18 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Activity, PlugZap, Wallet } from "lucide-react";
+import { PlugZap, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import { ConnectWizard } from "@/components/kocel/connect-wizard";
 import { DashboardWidgets } from "@/components/kocel/dashboard-widgets";
 import { PageHeader } from "@/components/kocel/page-header";
+import { PositionsList } from "@/components/kocel/positions-list";
 import { EmptyState, SectionCard } from "@/components/kocel/states";
 import { BridgeStatusBadge } from "@/components/kocel/status-badge";
 import { TradingPanel } from "@/components/kocel/trading-panel";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
 import { maskLogin } from "@/services/mt5";
+
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
