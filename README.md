@@ -1591,7 +1591,7 @@ Do not move the application toward a Deriv-only architecture. Kocel Forex Hub mu
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://kocelforexhub.lovable.app
+Production deployment is configured separately through Vercel and the target Supabase project.
 
 ## Build with Lovable
 
