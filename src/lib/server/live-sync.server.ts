@@ -234,9 +234,9 @@ export async function syncLiveState(
           user_id: identity.userId,
           broker_connection_id: identity.connectionId,
           ticket: String(trade.ticket),
-          position_ticket: trade.positionTicket ?? Number(trade.ticket),
-          order_ticket: trade.orderTicket ?? null,
-          deal_ticket: trade.dealTicket ?? null,
+          position_ticket: typeof trade.positionTicket === "number" ? trade.positionTicket : Number(trade.ticket),
+          order_ticket: typeof trade.orderTicket === "number" ? trade.orderTicket : null,
+          deal_ticket: typeof trade.dealTicket === "number" ? trade.dealTicket : null,
           symbol: trade.symbol,
           type: trade.type,
           volume: trade.volume,
@@ -251,6 +251,26 @@ export async function syncLiveState(
           source: "MT5",
           opened_at: trade.openedAt ?? null,
           closed_at: trade.closedAt,
+        } satisfies {
+          user_id: string;
+          broker_connection_id: string;
+          ticket: string;
+          position_ticket: number;
+          order_ticket: number | null;
+          deal_ticket: number | null;
+          symbol: string;
+          type: string;
+          volume: number;
+          entry_price: number | null;
+          exit_price: number | null;
+          profit: number | null;
+          commission: number | null;
+          swap: number | null;
+          net_profit: number | null;
+          status: string;
+          source: string;
+          opened_at: string | null;
+          closed_at: string;
         })),
       );
       if (error) {

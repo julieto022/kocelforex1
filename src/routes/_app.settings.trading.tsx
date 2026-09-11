@@ -49,17 +49,17 @@ function TradingSettings() {
     void getRiskSettings({ data: { connectionId: activeConnectionId } }).then((data) => {
       if (!data) return;
       setRisk({
-        maxLotSize: String(data.max_lot_size),
-        maxOpenPositions: String(data.max_open_positions),
-        maxPositionsPerSymbol: String(data.max_positions_per_symbol),
+        maxLotSize: String(data.max_lot_size ?? 1),
+        maxOpenPositions: String(data.max_open_positions ?? 10),
+        maxPositionsPerSymbol: String(data.max_positions_per_symbol ?? 3),
         maxDailyLoss: data.max_daily_loss == null ? "" : String(data.max_daily_loss),
         maxDailyLossPercent: data.max_daily_loss_percent == null ? "" : String(data.max_daily_loss_percent),
         maxTradeRiskPercent: data.max_trade_risk_percent == null ? "" : String(data.max_trade_risk_percent),
-        minimumFreeMargin: String(data.minimum_free_margin),
-        maximumMarginUsagePercent: String(data.maximum_margin_usage_percent),
-        requireStopLoss: data.require_stop_loss,
-        manualTradingEnabled: data.manual_trading_enabled,
-        emergencyStopEnabled: data.emergency_stop_enabled,
+        minimumFreeMargin: String(data.minimum_free_margin ?? 0),
+        maximumMarginUsagePercent: String(data.maximum_margin_usage_percent ?? 80),
+        requireStopLoss: Boolean(data.require_stop_loss),
+        manualTradingEnabled: Boolean(data.manual_trading_enabled),
+        emergencyStopEnabled: Boolean(data.emergency_stop_enabled),
       });
     });
   }, [activeConnectionId]);

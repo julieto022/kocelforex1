@@ -63,12 +63,16 @@ export const tradeExecutionRequestSchema = z
         }
         break;
       case "MODIFY_POSITION":
-      case "MOVE_TO_BREAK_EVEN":
         if (!request.positionTicket || request.positionTicket <= 0) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["positionTicket"], message: "Position ticket is required." });
         }
         if (request.stopLoss === undefined && request.takeProfit === undefined) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, message: "At least one of stopLoss or takeProfit must be provided." });
+        }
+        break;
+      case "MOVE_TO_BREAK_EVEN":
+        if (!request.positionTicket || request.positionTicket <= 0) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["positionTicket"], message: "Position ticket is required." });
         }
         break;
       case "PARTIAL_CLOSE":
@@ -460,13 +464,18 @@ async function validateOpenRisk(
   return null;
 }
 
-async function recordRiskEvent(userId: string, connectionId: string, event: string, message: string) {
+async function recordRiskEvent(
+  userId: string,
+  connectionId: string,
+  event: "MAX_LOT_EXCEEDED" | "MANUAL_TRADING_DISABLED" | "EMERGENCY_STOP_ACTIVE" | "MAX_POSITIONS_REACHED" | "MAX_POSITIONS_PER_SYMBOL" | "MINIMUM_FREE_MARGIN" | "MARGIN_PROTECTION_TRIGGERED" | "DAILY_LOSS_LIMIT_REACHED",
+  message: string,
+) {
   await recordAudit({
     userId,
-    action: event,
+    action: "RISK_ALERT",
     entityType: "broker_connection",
     entityId: connectionId,
-    metadata: { safeMessage: message },
+    metadata: { safeMessage: message, riskEvent: event },
   });
 }
 

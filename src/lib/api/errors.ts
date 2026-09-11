@@ -45,18 +45,60 @@ export function toApiError(error: unknown): ApiError {
   if (isApiError(error)) return error;
 
   const databaseError = error as { code?: string; message?: string } | null;
-  switch (databaseError?.code) {
-    case "42501":
-      return forbidden("You do not have permission to update these settings.");
-    case "23505":
-      return conflict("These settings already exist. Please try saving again.");
-    case "23514":
-      return invalid("One or more settings values are outside the allowed range.");
-    case "42P01":
-    case "PGRST205":
-      return internal("Settings are not available yet. Please try again shortly.");
-    case "42703":
-      return internal("The settings schema needs to be updated before saving.");
+  const code = (databaseError?.code ?? "").toUpperCase();
+  const message = (databaseError?.message ?? "").toLowerCase();
+
+  if (
+    ["PGRST301", "PGRST302", "PGRST303", "401"].includes(code) ||
+    message.includes("jwt expired") ||
+    message.includes("token expired") ||
+    message.includes("invalid token") ||
+    message.includes("unauthorized") ||
+    message.includes("permission denied for table \"user_settings\"")
+  ) {
+    return unauthenticated("Your session has expired. Please sign in again.");
   }
-  return internal();
+
+  if (
+    code === "42501" ||
+    message.includes("permission denied") ||
+    message.includes("row level security") ||
+    message.includes("rls")
+  ) {
+    return forbidden("You do not have permission to access these Settings.");
+  }
+
+  if (
+    code === "23505" ||
+    message.includes("duplicate") ||
+    message.includes("already exists")
+  ) {
+    return conflict("These settings already exist. Please try saving again.");
+  }
+
+  if (code === "23514" || message.includes("outside the allowed range")) {
+    return invalid("Some Settings values are invalid. Please review them.");
+  }
+
+  if (
+    ["42P01", "PGRST205", "PGRST204", "42703"].includes(code) ||
+    message.includes("relation \"user_settings\"") ||
+    message.includes("does not exist") ||
+    message.includes("table \"user_settings\"") ||
+    message.includes("schema")
+  ) {
+    return internal("Unable to load Settings right now. Please try again.");
+  }
+
+  if (
+    message.includes("network") ||
+    message.includes("fetch failed") ||
+    message.includes("timeout") ||
+    message.includes("service unavailable") ||
+    message.includes("failed to fetch")
+  ) {
+    return internal("Unable to load Settings right now. Please try again.");
+  }
+
+  return internal("Something went wrong while loading your Settings.");
 }
