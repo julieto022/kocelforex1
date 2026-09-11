@@ -178,7 +178,12 @@ export async function executeTradeCommand(
     const risk = await getRiskSettings(db, userId, request.connectionId);
     const riskFailure = await validateOpenRisk(db, userId, request, connection, risk);
     if (riskFailure) {
-      await recordRiskEvent(userId, request.connectionId, riskFailure.code, riskFailure.message);
+      await recordRiskEvent(
+    userId,
+    request.connectionId,
+    riskFailure.code as any,
+    riskFailure.message,
+  );
       return {
         commandId,
         status: "REJECTED",

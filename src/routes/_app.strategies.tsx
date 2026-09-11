@@ -45,7 +45,16 @@ function StrategiesPage() {
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{strategy.description}</p>
               <p className="num mt-3 text-xs text-muted-foreground">
-                {[strategy.timeframe, strategy.markets.join(", ")].filter(Boolean).join(" · ")}
+                {[
+                  Array.isArray((strategy as any).configuration?.timeframes)
+                    ? (strategy as any).configuration.timeframes.join(", ")
+                    : null,
+                  Array.isArray((strategy as any).configuration?.symbols)
+                    ? (strategy as any).configuration.symbols.join(", ")
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "No timeframe configured"}
               </p>
             </article>
           ))}

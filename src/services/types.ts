@@ -162,14 +162,52 @@ export type UserSettings = {
   notifications: NotificationPreferences;
 };
 
+export type StrategyCategory =
+  | "scalping"
+  | "day_trading"
+  | "swing_trading"
+  | "position_trading"
+  | "trend_following"
+  | "range_trading"
+  | "breakout"
+  | "price_action"
+  | "nfp_news"
+  | "carry"
+  | "grid"
+  | "algorithmic_hft";
+
+export type StrategyStatus = "ACTIVE" | "INACTIVE" | "DRAFT" | "ARCHIVED";
+export type StrategyType = "manual" | "algorithmic" | "hybrid";
+
+export type StrategyConfiguration = {
+  entry?: Record<string, unknown>;
+  exit?: Record<string, unknown>;
+  indicators?: Record<string, unknown>;
+  filters?: Record<string, unknown>;
+  risk?: Record<string, unknown>;
+  sessions?: Record<string, unknown>;
+  timeframes?: string[];
+  symbols?: string[];
+  [key: string]: unknown;
+};
+
 export type Strategy = {
   id: string;
+  user_id: string | null;
   name: string;
   slug: string;
-  description: string;
-  timeframe: string | null;
-  markets: string[];
-  status: string;
+  description: string | null;
+  category: StrategyCategory | string;
+  subcategory: string | null;
+  strategy_type: StrategyType | string;
+  status: StrategyStatus | string;
+  is_builtin: boolean;
+  is_active: boolean;
+  version: string;
+  configuration: StrategyConfiguration;
+  configuration_schema: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Bot = {

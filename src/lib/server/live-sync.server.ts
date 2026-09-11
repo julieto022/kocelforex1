@@ -251,27 +251,7 @@ export async function syncLiveState(
           source: "MT5",
           opened_at: trade.openedAt ?? null,
           closed_at: trade.closedAt,
-        } satisfies {
-          user_id: string;
-          broker_connection_id: string;
-          ticket: string;
-          position_ticket: number;
-          order_ticket: number | null;
-          deal_ticket: number | null;
-          symbol: string;
-          type: string;
-          volume: number;
-          entry_price: number | null;
-          exit_price: number | null;
-          profit: number | null;
-          commission: number | null;
-          swap: number | null;
-          net_profit: number | null;
-          status: string;
-          source: string;
-          opened_at: string | null;
-          closed_at: string;
-        })),
+        }) as any),
       );
       if (error) {
         logger.error("bridge", "live sync closed trades failed", { error: error.message });

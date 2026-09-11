@@ -36,6 +36,9 @@ GRANT SELECT, DELETE ON public.user_sessions TO authenticated;
 GRANT ALL ON public.user_sessions TO service_role;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "own sessions read" ON public.user_sessions;
+DROP POLICY IF EXISTS "own sessions revoke" ON public.user_sessions;
+
 CREATE POLICY "own sessions read" ON public.user_sessions
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "own sessions revoke" ON public.user_sessions
@@ -60,6 +63,8 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 GRANT SELECT ON public.audit_logs TO authenticated;
 GRANT ALL ON public.audit_logs TO service_role;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "own audit logs read" ON public.audit_logs;
 
 CREATE POLICY "own audit logs read" ON public.audit_logs
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
@@ -133,6 +138,8 @@ GRANT SELECT ON public.market_symbols TO authenticated;
 GRANT ALL ON public.market_symbols TO service_role;
 ALTER TABLE public.market_symbols ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "own market symbols read" ON public.market_symbols;
+
 CREATE POLICY "own market symbols read" ON public.market_symbols
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
@@ -153,11 +160,47 @@ CREATE INDEX IF NOT EXISTS bots_status_idx ON public.bots (status);
 
 -- ---------- STRATEGIES ----------
 ALTER TABLE public.strategies
+  ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT 'scalping',
+  ADD COLUMN IF NOT EXISTS subcategory text,
+  ADD COLUMN IF NOT EXISTS strategy_type text NOT NULL DEFAULT 'manual',
+  ADD COLUMN IF NOT EXISTS is_builtin boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS version text NOT NULL DEFAULT '1.0',
   ADD COLUMN IF NOT EXISTS timeframes jsonb NOT NULL DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS configuration_schema jsonb NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
+ALTER TABLE public.strategies ALTER COLUMN status SET DEFAULT 'DRAFT';
+ALTER TABLE public.strategies ALTER COLUMN status SET NOT NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS strategies_slug_key ON public.strategies (slug);
+CREATE INDEX IF NOT EXISTS strategies_user_id_idx ON public.strategies (user_id);
+CREATE INDEX IF NOT EXISTS strategies_category_idx ON public.strategies (category);
+CREATE INDEX IF NOT EXISTS strategies_status_idx ON public.strategies (status);
+CREATE INDEX IF NOT EXISTS strategies_builtin_idx ON public.strategies (is_builtin);
+CREATE INDEX IF NOT EXISTS strategies_updated_at_idx ON public.strategies (updated_at DESC);
+
+ALTER TABLE public.strategies ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.strategies FROM PUBLIC, anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.strategies TO authenticated;
+GRANT ALL ON public.strategies TO service_role;
+
+DROP POLICY IF EXISTS strategies_owner_select ON public.strategies;
+CREATE POLICY strategies_owner_select ON public.strategies
+  FOR SELECT TO authenticated USING (user_id = auth.uid() OR is_builtin = true);
+
+DROP POLICY IF EXISTS strategies_owner_insert ON public.strategies;
+CREATE POLICY strategies_owner_insert ON public.strategies
+  FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS strategies_owner_update ON public.strategies;
+CREATE POLICY strategies_owner_update ON public.strategies
+  FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS strategies_owner_delete ON public.strategies;
+CREATE POLICY strategies_owner_delete ON public.strategies
+  FOR DELETE TO authenticated USING (user_id = auth.uid() AND is_builtin = false);
 
 DROP TRIGGER IF EXISTS strategies_updated_at ON public.strategies;
 CREATE TRIGGER strategies_updated_at BEFORE UPDATE ON public.strategies
@@ -236,6 +279,8 @@ GRANT SELECT ON public.nfp_events TO anon, authenticated;
 GRANT ALL ON public.nfp_events TO service_role;
 ALTER TABLE public.nfp_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "nfp events readable" ON public.nfp_events;
+
 CREATE POLICY "nfp events readable" ON public.nfp_events
   FOR SELECT TO anon, authenticated USING (true);
 
@@ -308,6 +353,10 @@ CREATE TABLE IF NOT EXISTS public.community_saves (
 GRANT SELECT, INSERT, DELETE ON public.community_saves TO authenticated;
 GRANT ALL ON public.community_saves TO service_role;
 ALTER TABLE public.community_saves ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "own saves read" ON public.community_saves;
+DROP POLICY IF EXISTS "own saves insert" ON public.community_saves;
+DROP POLICY IF EXISTS "own saves delete" ON public.community_saves;
 
 CREATE POLICY "own saves read" ON public.community_saves
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
