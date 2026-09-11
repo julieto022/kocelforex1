@@ -82,12 +82,30 @@ export function toApiError(error: unknown): ApiError {
 
   if (
     ["42P01", "PGRST205", "PGRST204", "42703"].includes(code) ||
-    message.includes("relation \"user_settings\"") ||
     message.includes("does not exist") ||
-    message.includes("table \"user_settings\"") ||
     message.includes("schema")
   ) {
-    return internal("Unable to load Settings right now. Please try again.");
+    if (
+      message.includes("trading_risk_settings") ||
+      message.includes("table \"trading_risk_settings\"") ||
+      message.includes("relation \"trading_risk_settings\"")
+    ) {
+      return internal(
+        "The Trading Risk Settings table is missing or not migrated yet. Please apply the Supabase migration for trading_risk_settings.",
+      );
+    }
+
+    if (
+      message.includes("user_settings") ||
+      message.includes("table \"user_settings\"") ||
+      message.includes("relation \"user_settings\"")
+    ) {
+      return internal(
+        "The user_settings table is missing or not migrated yet. Please apply the Supabase migration for user_settings.",
+      );
+    }
+
+    return internal("The Settings database schema is missing or out of date. Please apply the required Supabase migrations.");
   }
 
   if (

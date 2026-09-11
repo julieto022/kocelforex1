@@ -23,9 +23,19 @@ describe("settings error handling", () => {
     expect(error.message).toBe("Your session has expired. Please sign in again.");
   });
 
-  it("does not hide temporary database failures behind the generic settings message", () => {
+  it("shows the missing table migration message for user_settings schema errors", () => {
     const error = toApiError({ code: "PGRST205", message: "relation \"user_settings\" does not exist" });
 
-    expect(error.message).toBe("Unable to load Settings right now. Please try again.");
+    expect(error.message).toBe(
+      "The user_settings table is missing or not migrated yet. Please apply the Supabase migration for user_settings.",
+    );
+  });
+
+  it("shows the migration message for missing trading risk settings schema", () => {
+    const error = toApiError({ code: "42P01", message: "relation \"trading_risk_settings\" does not exist" });
+
+    expect(error.message).toBe(
+      "The Trading Risk Settings table is missing or not migrated yet. Please apply the Supabase migration for trading_risk_settings.",
+    );
   });
 });
