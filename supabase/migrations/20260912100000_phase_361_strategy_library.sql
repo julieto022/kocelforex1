@@ -35,6 +35,15 @@ ALTER TABLE public.strategies
   ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'available',
   ADD COLUMN IF NOT EXISTS configuration_schema jsonb NOT NULL DEFAULT '{}'::jsonb;
 
+-- The table may already carry legacy ownership metadata. Official strategies
+-- remain system-owned even when those compatibility columns exist.
+ALTER TABLE public.strategies
+  ADD COLUMN IF NOT EXISTS is_builtin boolean NOT NULL DEFAULT true;
+UPDATE public.strategies
+SET user_id = NULL,
+    is_builtin = true
+WHERE is_builtin IS DISTINCT FROM true;
+
 CREATE UNIQUE INDEX IF NOT EXISTS strategies_slug_key ON public.strategies (slug);
 CREATE INDEX IF NOT EXISTS strategies_active_category_idx
   ON public.strategies (category, name)
@@ -51,6 +60,10 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.str
 ALTER TABLE public.strategies ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Authenticated users can read active strategies" ON public.strategies;
+DROP POLICY IF EXISTS strategies_owner_select ON public.strategies;
+DROP POLICY IF EXISTS strategies_owner_insert ON public.strategies;
+DROP POLICY IF EXISTS strategies_owner_update ON public.strategies;
+DROP POLICY IF EXISTS strategies_owner_delete ON public.strategies;
 CREATE POLICY "Authenticated users can read active strategies"
   ON public.strategies
   FOR SELECT
@@ -76,7 +89,7 @@ VALUES
    'Trend pullbacks around dynamic EMA support or resistance.', true,
    '{"timeframes":["M5","M15"],"indicators":["EMA 20","EMA 50"],"entry_conditions":["pullback rejection"],"exit_conditions":["trend invalidation"],"filters":["spread"],"risk_parameters":{}}'::jsonb,
    'M5', '["M5","M15"]'::jsonb, '["forex","metals","indices"]'::jsonb, 'available', '{}'::jsonb),
-  ('Price Action', 'scaler-price-action', 'Scalping',
+  ('Price Action', 'price-action', 'Scalping',
    'Uses market structure and candlestick behavior to frame short-term entries.',
    'Short-term entries from clean market structure.', true,
    '{"timeframes":["M5","M15"],"indicators":[],"entry_conditions":["structure break","candle confirmation"],"exit_conditions":["structure failure"],"filters":["session"],"risk_parameters":{}}'::jsonb,

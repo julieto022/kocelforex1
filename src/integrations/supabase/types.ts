@@ -1477,6 +1477,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          is_builtin: boolean
           is_active: boolean
           markets: Json
           name: string
@@ -1494,6 +1495,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          is_builtin?: boolean
           is_active?: boolean
           markets?: Json
           name: string
@@ -1511,6 +1513,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          is_builtin?: boolean
           is_active?: boolean
           markets?: Json
           name?: string
