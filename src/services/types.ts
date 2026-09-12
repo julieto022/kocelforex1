@@ -167,9 +167,12 @@ export type Strategy = {
   name: string;
   slug: string;
   description: string;
-  timeframe: string | null;
-  markets: string[];
-  status: string;
+  short_description: string;
+  category: string;
+  is_active: boolean;
+  configuration: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Bot = {

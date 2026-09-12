@@ -10,10 +10,8 @@ info:
     Application features use typed server functions
     instead of HTTP and are therefore not described here.
 servers:
-  - url: https://kocelforexhub.lovable.app
+  - url: https://kocelforex1.vercel.app
     description: Production
-  - url: https://kocelforexhub-dev.lovable.app
-    description: Preview
 
 components:
   securitySchemes:

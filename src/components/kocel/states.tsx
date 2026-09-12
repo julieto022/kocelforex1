@@ -83,11 +83,13 @@ export function EmptyState({
 export function ErrorState({
   title = "Something didn't load",
   description = "Please check your connection and try again.",
+  errorCode,
   onRetry,
   secondary,
 }: {
   title?: string | undefined;
   description?: string | undefined;
+  errorCode?: string | undefined;
   onRetry?: (() => void) | undefined;
   secondary?: ReactNode | undefined;
 }) {
@@ -98,6 +100,7 @@ export function ErrorState({
       </span>
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <p className="mt-1.5 max-w-md text-sm text-muted-foreground">{description}</p>
+      {errorCode && <p className="mt-2 text-xs font-medium text-muted-foreground">Code: {errorCode}</p>}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {onRetry && (
           <Button size="sm" variant="outline" onClick={onRetry}>

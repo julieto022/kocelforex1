@@ -482,11 +482,11 @@ export const bridgeService: BridgeService = {
 };
 
 function canonicalAppUrl(): string {
-  const preferredAppUrl = "https://kocelforexhub.lovable.app";
+  const preferredAppUrl = "https://kocelforex1.vercel.app";
   const raw = (process.env["PUBLIC_APP_URL"] || preferredAppUrl).trim();
 
   try {
-    const candidate = raw.includes("kocelforex1") ? preferredAppUrl : raw;
+    const candidate = raw.includes("lovable.app") ? preferredAppUrl : raw;
     const url = new URL(candidate);
     if (!url.protocol.startsWith("http")) throw new Error("invalid protocol");
     return url.origin;

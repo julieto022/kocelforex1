@@ -1471,42 +1471,51 @@ export type Database = {
       }
       strategies: {
         Row: {
+          category: string
           configuration: Json
           configuration_schema: Json
           created_at: string
           description: string
           id: string
+          is_active: boolean
           markets: Json
           name: string
           slug: string
+          short_description: string
           status: string
           timeframe: string | null
           timeframes: Json
           updated_at: string
         }
         Insert: {
+          category?: string
           configuration?: Json
           configuration_schema?: Json
           created_at?: string
           description: string
           id?: string
+          is_active?: boolean
           markets?: Json
           name: string
           slug: string
+          short_description?: string
           status?: string
           timeframe?: string | null
           timeframes?: Json
           updated_at?: string
         }
         Update: {
+          category?: string
           configuration?: Json
           configuration_schema?: Json
           created_at?: string
           description?: string
           id?: string
+          is_active?: boolean
           markets?: Json
           name?: string
           slug?: string
+          short_description?: string
           status?: string
           timeframe?: string | null
           timeframes?: Json
