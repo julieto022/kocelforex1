@@ -1,4 +1,4 @@
-CREATE TABLE public.mt5_authorization_requests (
+CREATE TABLE IF NOT EXISTS public.mt5_authorization_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   mt5_login text NOT NULL,
   server text NOT NULL,
@@ -24,13 +24,14 @@ ALTER TABLE public.mt5_authorization_requests ENABLE ROW LEVEL SECURITY;
 -- Intentionally no policies: this table is written and read only by trusted
 -- server code (service role). Neither anon nor authenticated may reach it.
 
-CREATE UNIQUE INDEX mt5_auth_requests_poll_token_hash_idx
+CREATE UNIQUE INDEX IF NOT EXISTS mt5_auth_requests_poll_token_hash_idx
   ON public.mt5_authorization_requests (poll_token_hash);
-CREATE INDEX mt5_auth_requests_status_idx
+CREATE INDEX IF NOT EXISTS mt5_auth_requests_status_idx
   ON public.mt5_authorization_requests (status, expires_at);
-CREATE INDEX mt5_auth_requests_user_idx
+CREATE INDEX IF NOT EXISTS mt5_auth_requests_user_idx
   ON public.mt5_authorization_requests (user_id);
 
+DROP TRIGGER IF EXISTS mt5_authorization_requests_set_updated_at ON public.mt5_authorization_requests;
 CREATE TRIGGER mt5_authorization_requests_set_updated_at
   BEFORE UPDATE ON public.mt5_authorization_requests
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
