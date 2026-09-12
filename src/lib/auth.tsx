@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const settingsQuery = useQuery({
     queryKey: ["settings", userId],
     queryFn: () => getSettings(userId!),
-    enabled: Boolean(userId),
+    enabled: !initializing && Boolean(userId),
   });
 
   const value = useMemo<AuthContextValue>(

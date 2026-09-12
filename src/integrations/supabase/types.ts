@@ -1536,8 +1536,6 @@ export type Database = {
           id: string
           net_profit: number | null
           opened_at: string | null
-          order_ticket: number | null
-          position_ticket: number | null
           profit: number | null
           source: string
           status: string
@@ -1563,8 +1561,6 @@ export type Database = {
           id?: string
           net_profit?: number | null
           opened_at?: string | null
-          order_ticket?: number | null
-          position_ticket?: number | null
           profit?: number | null
           source?: string
           status?: string
@@ -1590,8 +1586,6 @@ export type Database = {
           id?: string
           net_profit?: number | null
           opened_at?: string | null
-          order_ticket?: number | null
-          position_ticket?: number | null
           profit?: number | null
           source?: string
           status?: string
@@ -1616,6 +1610,71 @@ export type Database = {
           {
             foreignKeyName: "trades_broker_connection_id_fkey"
             columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trading_risk_settings: {
+        Row: {
+          connection_id: string
+          created_at: string
+          emergency_stop_enabled: boolean
+          id: string
+          manual_trading_enabled: boolean
+          max_daily_loss: number | null
+          max_daily_loss_percent: number | null
+          max_lot_size: number
+          max_open_positions: number
+          max_positions_per_symbol: number
+          max_trade_risk_percent: number | null
+          maximum_margin_usage_percent: number
+          minimum_free_margin: number
+          require_stop_loss: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          emergency_stop_enabled?: boolean
+          id?: string
+          manual_trading_enabled?: boolean
+          max_daily_loss?: number | null
+          max_daily_loss_percent?: number | null
+          max_lot_size?: number
+          max_open_positions?: number
+          max_positions_per_symbol?: number
+          max_trade_risk_percent?: number | null
+          maximum_margin_usage_percent?: number
+          minimum_free_margin?: number
+          require_stop_loss?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          emergency_stop_enabled?: boolean
+          id?: string
+          manual_trading_enabled?: boolean
+          max_daily_loss?: number | null
+          max_daily_loss_percent?: number | null
+          max_lot_size?: number
+          max_open_positions?: number
+          max_positions_per_symbol?: number
+          max_trade_risk_percent?: number | null
+          maximum_margin_usage_percent?: number
+          minimum_free_margin?: number
+          require_stop_loss?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trading_risk_settings_connection_id_fkey"
+            columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "broker_connections"
             referencedColumns: ["id"]
@@ -1707,63 +1766,6 @@ export type Database = {
           notifications?: Json
           theme?: string
           timezone?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      trading_risk_settings: {
-        Row: {
-          connection_id: string
-          created_at: string
-          emergency_stop_enabled: boolean
-          id: string
-          manual_trading_enabled: boolean
-          max_daily_loss: number | null
-          max_daily_loss_percent: number | null
-          max_lot_size: number
-          max_open_positions: number
-          max_positions_per_symbol: number
-          max_trade_risk_percent: number | null
-          maximum_margin_usage_percent: number
-          minimum_free_margin: number
-          require_stop_loss: boolean
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          connection_id: string
-          created_at?: string
-          emergency_stop_enabled?: boolean
-          id?: string
-          manual_trading_enabled?: boolean
-          max_daily_loss?: number | null
-          max_daily_loss_percent?: number | null
-          max_lot_size?: number
-          max_open_positions?: number
-          max_positions_per_symbol?: number
-          max_trade_risk_percent?: number | null
-          maximum_margin_usage_percent?: number
-          minimum_free_margin?: number
-          require_stop_loss?: boolean
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          connection_id?: string
-          created_at?: string
-          emergency_stop_enabled?: boolean
-          id?: string
-          manual_trading_enabled?: boolean
-          max_daily_loss?: number | null
-          max_daily_loss_percent?: number | null
-          max_lot_size?: number
-          max_open_positions?: number
-          max_positions_per_symbol?: number
-          max_trade_risk_percent?: number | null
-          maximum_margin_usage_percent?: number
-          minimum_free_margin?: number
-          require_stop_loss?: boolean
           updated_at?: string
           user_id?: string
         }

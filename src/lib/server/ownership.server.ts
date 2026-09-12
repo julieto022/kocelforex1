@@ -18,7 +18,8 @@ export type OwnedTable =
   | "notifications"
   | "community_posts"
   | "community_comments"
-  | "market_symbols";
+  | "market_symbols"
+  | "strategies";
 
 /**
  * Verifies that `id` exists AND belongs to `userId`.
@@ -38,7 +39,10 @@ export async function requireOwnership(
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !data || data.user_id !== userId) throw notFound();
+  if (error || !data) throw notFound();
+
+  const row = data as { user_id?: string | null };
+  if (row.user_id !== userId) throw notFound();
 }
 
 /** Guards a broker_connection reference supplied by the client. */

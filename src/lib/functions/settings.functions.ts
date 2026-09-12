@@ -15,7 +15,27 @@ export const getSettings = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw toApiError(error);
-    return data;
+    if (data) return data;
+
+    const fallback = {
+      user_id: userId,
+      theme: "system",
+      timezone: "UTC",
+      language: "en",
+      date_format: "YYYY-MM-DD",
+      default_currency: "USD",
+      default_risk_profile: "BALANCED",
+      active_connection_id: null,
+      notifications: { trade: true, bot: true, connection: true, risk: true, email: true, push: true },
+    };
+
+    const { data: created, error: createError } = await supabase
+      .from("user_settings")
+      .upsert(fallback as never, { onConflict: "user_id" })
+      .select()
+      .maybeSingle();
+    if (createError) throw toApiError(createError);
+    return created ?? fallback;
   });
 
 export const settingsSchema = z.object({

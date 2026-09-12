@@ -39,7 +39,31 @@ export const getRiskSettings = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw toApiError(error);
-    return settings;
+    if (settings) return settings;
+
+    const defaultSettings = {
+      user_id: userId,
+      connection_id: data.connectionId,
+      max_lot_size: 1,
+      max_open_positions: 10,
+      max_positions_per_symbol: 3,
+      max_daily_loss: null,
+      max_daily_loss_percent: null,
+      max_trade_risk_percent: null,
+      minimum_free_margin: 0,
+      maximum_margin_usage_percent: 80,
+      require_stop_loss: false,
+      manual_trading_enabled: true,
+      emergency_stop_enabled: false,
+    };
+
+    const { data: created, error: createError } = await supabase
+      .from("trading_risk_settings")
+      .upsert(defaultSettings, { onConflict: "user_id,connection_id" })
+      .select()
+      .maybeSingle();
+    if (createError) throw toApiError(createError);
+    return created ?? defaultSettings;
   });
 
 export const updateRiskSettings = createServerFn({ method: "POST" })
@@ -82,6 +106,28 @@ export const updateRiskSettings = createServerFn({ method: "POST" })
         ? { emergency_stop_enabled: data.emergencyStopEnabled }
         : {}),
     };
+
+    const { data: existing } = await supabase
+      .from("trading_risk_settings")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("connection_id", data.connectionId)
+      .maybeSingle();
+
+    if (!existing) {
+      const { error: insertError } = await supabase.from("trading_risk_settings").insert({
+        ...patch,
+        max_lot_size: patch.max_lot_size ?? 1,
+        max_open_positions: patch.max_open_positions ?? 10,
+        max_positions_per_symbol: patch.max_positions_per_symbol ?? 3,
+        minimum_free_margin: patch.minimum_free_margin ?? 0,
+        maximum_margin_usage_percent: patch.maximum_margin_usage_percent ?? 80,
+        require_stop_loss: patch.require_stop_loss ?? false,
+        manual_trading_enabled: patch.manual_trading_enabled ?? true,
+        emergency_stop_enabled: patch.emergency_stop_enabled ?? false,
+      });
+      if (insertError) throw toApiError(insertError);
+    }
 
     const { error } = await supabase
       .from("trading_risk_settings")

@@ -234,9 +234,9 @@ export async function syncLiveState(
           user_id: identity.userId,
           broker_connection_id: identity.connectionId,
           ticket: String(trade.ticket),
-          position_ticket: trade.positionTicket ?? Number(trade.ticket),
-          order_ticket: trade.orderTicket ?? null,
-          deal_ticket: trade.dealTicket ?? null,
+          position_ticket: typeof trade.positionTicket === "number" ? trade.positionTicket : Number(trade.ticket),
+          order_ticket: typeof trade.orderTicket === "number" ? trade.orderTicket : null,
+          deal_ticket: typeof trade.dealTicket === "number" ? trade.dealTicket : null,
           symbol: trade.symbol,
           type: trade.type,
           volume: trade.volume,
@@ -251,7 +251,7 @@ export async function syncLiveState(
           source: "MT5",
           opened_at: trade.openedAt ?? null,
           closed_at: trade.closedAt,
-        })),
+        }) as any),
       );
       if (error) {
         logger.error("bridge", "live sync closed trades failed", { error: error.message });
