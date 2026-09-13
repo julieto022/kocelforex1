@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Edit3, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -33,7 +33,7 @@ import { deleteBot, getBots, updateBot } from "@/services/bots";
 import { getStrategies } from "@/services/strategies";
 
 export const Route = createFileRoute("/_app/bots")({
-  component: BotsPage,
+  component: BotsRoute,
 });
 
 function BotsPage() {
@@ -355,4 +355,10 @@ function BotsPage() {
       </AlertDialog>
     </div>
   );
+}
+
+function BotsRoute() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  return pathname === "/bots" ? <BotsPage /> : <Outlet />;
 }
