@@ -12,7 +12,7 @@ const createSchema = z.object({
   name: z.string().trim().min(2).max(60),
   symbol: z.string().trim().min(2).max(20),
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]),
-  timeframe: z.string().trim().max(10).nullish(),
+  timeframe: z.string().trim().min(1).max(10),
   brokerConnectionId: z.string().uuid(),
   strategyId: z.string().uuid(),
   configuration: z.record(z.string(), z.unknown()).default({}),
@@ -24,6 +24,24 @@ export const createBot = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await requireConnectionOwnership(supabase, data.brokerConnectionId, userId);
+
+    const { data: strategy, error: strategyError } = await supabase
+      .from("strategies")
+      .select("id")
+      .eq("id", data.strategyId)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (strategyError || !strategy) throw invalid("This strategy is not available.");
+
+    const { data: marketSymbol, error: symbolError } = await supabase
+      .from("market_symbols")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("broker_connection_id", data.brokerConnectionId)
+      .eq("symbol", data.symbol.toUpperCase())
+      .eq("status", "enabled")
+      .maybeSingle();
+    if (symbolError || !marketSymbol) throw invalid("This symbol is not available for the selected MT5 account.");
 
     const { data: row, error } = await supabase
       .from("bots")

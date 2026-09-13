@@ -1,7 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/kocel/page-header";
@@ -20,20 +20,31 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
 import { createBot, validateBotInput } from "@/services/bots";
+import { getMT5Symbols } from "@/services/mt5";
 import { getStrategies } from "@/services/strategies";
 
 export const Route = createFileRoute("/_app/bots/create")({
   component: CreateBotPage,
+  errorComponent: CreateBotError,
 });
 
 const riskProfiles = ["conservative", "balanced", "aggressive"];
 
 function CreateBotPage() {
-  const { user } = useAuth();
-  const { connections, active } = useConnections();
+  const { user, settings } = useAuth();
+  const {
+    connections,
+    active,
+    isLoading: connectionsLoading,
+    isError: connectionsError,
+  } = useConnections();
   const navigate = useNavigate();
 
-  const strategiesQuery = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
+  const strategiesQuery = useQuery({
+    queryKey: ["strategies"],
+    queryFn: getStrategies,
+    retry: 1,
+  });
 
   const [form, setForm] = useState({
     name: "",
@@ -44,16 +55,29 @@ function CreateBotPage() {
     timeframe: "",
   });
 
-  const scalpingStrategies = useMemo(
-    () =>
-      (strategiesQuery.data ?? []).filter(
-        (strategy) => strategy.category === "Scalping" && strategy.is_active,
-      ),
-    [strategiesQuery.data],
-  );
+  const strategies = useMemo(() => strategiesQuery.data ?? [], [strategiesQuery.data]);
 
-  const selectedStrategy = scalpingStrategies.find((strategy) => strategy.id === form.strategyId) ?? null;
+  const symbolsQuery = useQuery({
+    queryKey: ["market-symbols", form.connectionId],
+    queryFn: () => getMT5Symbols(form.connectionId),
+    enabled: Boolean(form.connectionId),
+    retry: 1,
+  });
+
+  const selectedStrategy = strategies.find((strategy) => strategy.id === form.strategyId) ?? null;
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!form.connectionId && active?.id) {
+      setForm((current) => ({ ...current, connectionId: active.id }));
+    }
+  }, [active?.id, form.connectionId]);
+
+  useEffect(() => {
+    if (!form.riskProfile && settings?.default_risk_profile) {
+      setForm((current) => ({ ...current, riskProfile: settings.default_risk_profile.toLowerCase() }));
+    }
+  }, [form.riskProfile, settings?.default_risk_profile]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -102,6 +126,10 @@ function CreateBotPage() {
               setError(validation.message);
               return;
             }
+            if (!form.timeframe) {
+              setError("Choose a timeframe for this bot.");
+              return;
+            }
             setError(null);
             mutation.mutate();
           }}
@@ -119,14 +147,37 @@ function CreateBotPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="symbol">Symbol</Label>
-              <Input
-                id="symbol"
-                placeholder="BTCUSD"
+              <Label>Symbol</Label>
+              <Select
                 value={form.symbol}
-                onChange={(event) => setForm({ ...form, symbol: event.target.value })}
-                maxLength={20}
-              />
+                onValueChange={(value) => setForm({ ...form, symbol: value })}
+                disabled={!form.connectionId || symbolsQuery.isLoading || symbolsQuery.isError}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a symbol from MT5" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(symbolsQuery.data ?? []).map((marketSymbol) => (
+                    <SelectItem key={marketSymbol.id} value={marketSymbol.symbol}>
+                      {marketSymbol.display_name || marketSymbol.symbol}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!form.connectionId && (
+                <p className="text-xs text-muted-foreground">Select an MT5 account first.</p>
+              )}
+              {symbolsQuery.isLoading && (
+                <p className="text-xs text-muted-foreground">Loading symbols...</p>
+              )}
+              {symbolsQuery.isError && (
+                <p className="text-xs text-destructive">Unable to load symbols. Please retry.</p>
+              )}
+              {symbolsQuery.isSuccess && symbolsQuery.data.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No MT5 symbols are available for this account yet.
+                </p>
+              )}
             </div>
           </div>
 
@@ -157,15 +208,24 @@ function CreateBotPage() {
 
             {strategiesQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading strategies...</p>
-            ) : scalpingStrategies.length === 0 ? (
-              <p className="text-sm text-destructive">No active scalping strategies are available.</p>
+            ) : strategiesQuery.isError ? (
+              <p className="text-sm text-destructive">Unable to load strategies. Please retry.</p>
+            ) : strategies.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No Kocel strategies are currently available.</p>
             ) : (
               <RadioGroup
                 value={form.strategyId}
-                onValueChange={(value) => setForm({ ...form, strategyId: value })}
+                onValueChange={(value) => {
+                  const strategy = strategies.find((item) => item.id === value);
+                  setForm({
+                    ...form,
+                    strategyId: value,
+                    timeframe: strategy?.timeframes?.[0] ?? "",
+                  });
+                }}
                 className="grid gap-3"
               >
-                {scalpingStrategies.map((strategy) => {
+                {strategies.map((strategy) => {
                   const isSelected = form.strategyId === strategy.id;
                   return (
                     <label
@@ -231,6 +291,17 @@ function CreateBotPage() {
                 ))}
               </SelectContent>
             </Select>
+            {connectionsLoading && (
+              <p className="text-xs text-muted-foreground">Loading MT5 accounts...</p>
+            )}
+            {connectionsError && (
+              <p className="text-xs text-destructive">Unable to load MT5 accounts. Please retry.</p>
+            )}
+            {!connectionsLoading && !connectionsError && connections.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No MT5 account connected yet. <Link to="/settings/mt5">Connect an account</Link>.
+              </p>
+            )}
           </div>
 
           {selectedStrategy && (
@@ -257,7 +328,15 @@ function CreateBotPage() {
           {error && <p className="text-xs text-destructive">{error}</p>}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={mutation.isPending || strategiesQuery.isLoading}>
+            <Button
+              type="submit"
+              disabled={
+                mutation.isPending ||
+                strategiesQuery.isLoading ||
+                symbolsQuery.isLoading ||
+                connectionsLoading
+              }
+            >
               {mutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
               Create Bot
             </Button>
@@ -266,6 +345,25 @@ function CreateBotPage() {
             </Button>
           </div>
         </form>
+      </SectionCard>
+    </div>
+  );
+}
+
+function CreateBotError({ reset }: { reset: () => void }) {
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Create Bot"
+        description="Create an automated trading bot using one of Kocel's predefined strategies."
+      />
+      <SectionCard title="Create Bot could not be loaded.">
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">An unexpected error stopped this page from loading.</p>
+          <Button type="button" onClick={reset}>
+            Retry
+          </Button>
+        </div>
       </SectionCard>
     </div>
   );

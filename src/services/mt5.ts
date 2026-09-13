@@ -28,6 +28,17 @@ export async function getMT5Connection(id: string): Promise<BrokerConnection | n
   return (data as unknown as BrokerConnection) ?? null;
 }
 
+export async function getMT5Symbols(connectionId: string) {
+  const { data, error } = await supabase
+    .from("market_symbols")
+    .select("id, symbol, display_name, asset_class, status")
+    .eq("broker_connection_id", connectionId)
+    .eq("status", "enabled")
+    .order("symbol", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 async function requireConnection(id: string): Promise<BrokerConnection> {
   const connection = await getMT5Connection(id);
   if (!connection) throw new Error("We couldn't load that connection.");
