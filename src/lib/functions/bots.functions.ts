@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { BOT_STATUSES } from "@/lib/api/constants";
-import { invalid, toApiError } from "@/lib/api/errors";
+import { invalid, toBotApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/api/logger";
 import { recordAudit } from "@/lib/server/audit.server";
 import { pushNotification } from "@/lib/server/notify.server";
 import { requireConnectionOwnership, requireOwnership } from "@/lib/server/ownership.server";
@@ -18,6 +19,32 @@ const createSchema = z.object({
   configuration: z.record(z.string(), z.unknown()).default({}),
 });
 
+function logBotDatabaseError(
+  operation: string,
+  userId: string,
+  error: unknown,
+  payloadKeys?: string[],
+) {
+  const databaseError = error as {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+    status?: number;
+  };
+  logger.error("database", "Bot operation failed", {
+    operation,
+    table: "bots",
+    userId,
+    code: databaseError.code,
+    message: databaseError.message,
+    details: databaseError.details,
+    hint: databaseError.hint,
+    status: databaseError.status,
+    payloadKeys,
+  });
+}
+
 export const createBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => createSchema.parse(data))
@@ -31,7 +58,11 @@ export const createBot = createServerFn({ method: "POST" })
       .eq("id", data.strategyId)
       .eq("is_active", true)
       .maybeSingle();
-    if (strategyError || !strategy) throw invalid("This strategy is not available.");
+    if (strategyError) {
+      logBotDatabaseError("strategies.select", userId, strategyError, ["id", "is_active"]);
+      throw toBotApiError(strategyError);
+    }
+    if (!strategy) throw invalid("This strategy is not available.");
 
     const { data: row, error } = await supabase
       .from("bots")
@@ -48,7 +79,20 @@ export const createBot = createServerFn({ method: "POST" })
       })
       .select("*")
       .single();
-    if (error) throw toApiError(error);
+    if (error) {
+      logBotDatabaseError("bots.insert", userId, error, [
+        "user_id",
+        "name",
+        "symbol",
+        "risk_profile",
+        "timeframe",
+        "broker_connection_id",
+        "strategy_id",
+        "status",
+        "configuration",
+      ]);
+      throw toBotApiError(error);
+    }
 
     await recordAudit({ userId, action: "BOT_CREATED", entityType: "bot", entityId: row.id });
     return row;
@@ -82,7 +126,11 @@ export const updateBot = createServerFn({ method: "POST" })
         .eq("id", data.strategyId)
         .eq("is_active", true)
         .maybeSingle();
-      if (strategyError || !strategy) throw invalid("This strategy is not available.");
+      if (strategyError) {
+        logBotDatabaseError("strategies.select", userId, strategyError, ["id", "is_active"]);
+        throw toBotApiError(strategyError);
+      }
+      if (!strategy) throw invalid("This strategy is not available.");
     }
 
     const patch: Record<string, unknown> = {};
@@ -99,7 +147,10 @@ export const updateBot = createServerFn({ method: "POST" })
       .from("bots")
       .update(patch as never)
       .eq("id", data.botId);
-    if (error) throw toApiError(error);
+    if (error) {
+      logBotDatabaseError("bots.update", userId, error, Object.keys(patch));
+      throw toBotApiError(error);
+    }
 
     await recordAudit({ userId, action: "BOT_UPDATED", entityType: "bot", entityId: data.botId });
     return { ok: true as const };
@@ -126,7 +177,10 @@ export const setBotStatus = createServerFn({ method: "POST" })
       .select("id, name, broker_connection_id, broker_connections:broker_connection_id(status)")
       .eq("id", data.botId)
       .single();
-    if (readError) throw toApiError(readError);
+    if (readError) {
+      logBotDatabaseError("bots.status.read", userId, readError, ["id", "name", "broker_connection_id"]);
+      throw toBotApiError(readError);
+    }
 
     const connected =
       (bot as unknown as { broker_connections: { status: string } | null }).broker_connections
@@ -134,7 +188,10 @@ export const setBotStatus = createServerFn({ method: "POST" })
     const status = data.status === "RUNNING" && !connected ? "WAITING" : data.status;
 
     const { error } = await supabase.from("bots").update({ status }).eq("id", data.botId);
-    if (error) throw toApiError(error);
+    if (error) {
+      logBotDatabaseError("bots.status.update", userId, error, ["status"]);
+      throw toBotApiError(error);
+    }
 
     await recordAudit({
       userId,
@@ -160,7 +217,10 @@ export const deleteBot = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await requireOwnership(supabase, "bots", data.botId, userId);
     const { error } = await supabase.from("bots").delete().eq("id", data.botId);
-    if (error) throw toApiError(error);
+    if (error) {
+      logBotDatabaseError("bots.delete", userId, error, ["botId"]);
+      throw toBotApiError(error);
+    }
     await recordAudit({ userId, action: "BOT_DELETED", entityType: "bot", entityId: data.botId });
     return { ok: true as const };
   });

@@ -120,3 +120,30 @@ export function toApiError(error: unknown): ApiError {
 
   return internal("Something went wrong while loading your Settings.");
 }
+
+/** Maps database failures from bot operations to bot-specific safe messages. */
+export function toBotApiError(error: unknown): ApiError {
+  const databaseError = error as { code?: string; message?: string } | null;
+  const code = (databaseError?.code ?? "").toUpperCase();
+  const message = (databaseError?.message ?? "").toLowerCase();
+
+  if (["PGRST301", "PGRST302", "PGRST303", "401"].includes(code) || message.includes("unauthorized")) {
+    return unauthenticated("Your session has expired. Please sign in again.");
+  }
+  if (code === "42501" || message.includes("permission denied") || message.includes("row level security")) {
+    return forbidden("You do not have permission to create or update this bot.");
+  }
+  if (code === "23503") {
+    return invalid("The selected strategy or MT5 account is no longer available.");
+  }
+  if (code === "23505") {
+    return conflict("A bot with this name already exists.");
+  }
+  if (code === "23502" || ["42P01", "PGRST204", "PGRST205", "42703"].includes(code)) {
+    return internal("Bot creation is temporarily unavailable. Please try again.");
+  }
+  if (message.includes("network") || message.includes("fetch failed") || message.includes("timeout")) {
+    return internal("Unable to create the bot right now. Please try again.");
+  }
+  return internal("Unable to create the bot. Please try again.");
+}
