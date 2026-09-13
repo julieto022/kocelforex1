@@ -69,14 +69,13 @@ function EditBotPage() {
     });
   }, [botQuery.data]);
 
-  const scalpingStrategies = useMemo(
-    () => (strategiesQuery.data ?? []).filter((strategy) => strategy.category === "Scalping" && strategy.is_active),
+  const availableStrategies = useMemo(
+    () => (strategiesQuery.data ?? []).filter((strategy) => strategy.is_active),
     [strategiesQuery.data],
   );
 
   const selectedStrategy =
-    scalpingStrategies.find((strategy) => strategy.id === form.strategyId) ??
-    (strategiesQuery.data ?? []).find((strategy) => strategy.id === form.strategyId) ??
+    availableStrategies.find((strategy) => strategy.id === form.strategyId) ??
     null;
 
   const mutation = useMutation({
@@ -179,15 +178,15 @@ function EditBotPage() {
 
             {strategiesQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading strategies...</p>
-            ) : scalpingStrategies.length === 0 ? (
-              <p className="text-sm text-destructive">No active scalping strategies are available.</p>
+            ) : availableStrategies.length === 0 ? (
+              <p className="text-sm text-destructive">No active strategies are available.</p>
             ) : (
               <RadioGroup
                 value={form.strategyId}
                 onValueChange={(value) => setForm({ ...form, strategyId: value })}
                 className="grid gap-3"
               >
-                {scalpingStrategies.map((strategy) => {
+                {availableStrategies.map((strategy) => {
                   const isSelected = form.strategyId === strategy.id;
                   return (
                     <label
