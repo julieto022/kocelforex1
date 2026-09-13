@@ -7,6 +7,22 @@ import {
 } from "@/lib/functions/bots.functions";
 import type { Bot } from "./types";
 
+export function extractSupabaseErrorMeta(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+  status?: number;
+}) {
+  return {
+    code: error.code ?? "UNKNOWN",
+    message: error.message ?? "Unknown error",
+    details: error.details ?? "No additional details provided.",
+    hint: error.hint ?? "No hint provided.",
+    status: error.status ?? 500,
+  };
+}
+
 export type CreateBotInput = {
   name: string;
   symbol: string;
@@ -40,26 +56,24 @@ export function validateBotInput(input: ValidateBotInput): { ok: true } | { ok: 
 }
 
 export async function getBotById(id: string): Promise<Bot | null> {
-  const { data, error } = await supabase
-    .from("bots")
-    .select(
-      `*, strategy:strategies(id, name, category, short_description), broker_connection:broker_connections(id, account_name, status, broker_name)`
-    )
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
+  const { data, error } = await supabase.from("bots").select("*").eq("id", id).maybeSingle();
+  if (error) {
+    console.error("KOCEL GET_BOT_BY_ID ERROR", extractSupabaseErrorMeta(error));
+    throw error;
+  }
   return (data as Bot) ?? null;
 }
 
 export async function getBots(userId: string): Promise<Bot[]> {
   const { data, error } = await supabase
     .from("bots")
-    .select(
-      `*, strategy:strategies(id, name, category, short_description), broker_connection:broker_connections(id, account_name, status, broker_name)`
-    )
+    .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    console.error("KOCEL GET_BOTS ERROR", extractSupabaseErrorMeta(error));
+    throw error;
+  }
   return (data ?? []) as unknown as Bot[];
 }
 

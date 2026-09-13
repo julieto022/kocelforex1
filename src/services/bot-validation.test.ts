@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateBotInput } from "./bots";
+import { extractSupabaseErrorMeta, validateBotInput } from "./bots";
 
 describe("bot validation", () => {
   it("requires a bot name, a strategy, and an MT5 connection", () => {
@@ -26,5 +26,23 @@ describe("bot validation", () => {
         connectionId: "550e8400-e29b-41d4-a716-446655440001",
       }),
     ).toMatchObject({ ok: true });
+  });
+
+  it("extracts the exact supabase error metadata for bot query failures", () => {
+    expect(
+      extractSupabaseErrorMeta({
+        code: "PGRST205",
+        message: "Could not find the table 'public.bots' in the schema cache",
+        details: "The table does not exist",
+        hint: "Create the table or update the schema cache.",
+        status: 404,
+      }),
+    ).toEqual({
+      code: "PGRST205",
+      message: "Could not find the table 'public.bots' in the schema cache",
+      details: "The table does not exist",
+      hint: "Create the table or update the schema cache.",
+      status: 404,
+    });
   });
 });

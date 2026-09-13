@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Edit3, Plus, Save, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/kocel/page-header";
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
+import { useConnections } from "@/lib/use-connections";
 import { deleteBot, getBots, updateBot } from "@/services/bots";
 import { getStrategies } from "@/services/strategies";
 
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/_app/bots")({
 
 function BotsPage() {
   const { user } = useAuth();
+  const { connections } = useConnections();
   const queryClient = useQueryClient();
   const [botToDelete, setBotToDelete] = useState<string | null>(null);
   const [editingBotId, setEditingBotId] = useState<string | null>(null);
@@ -50,7 +52,29 @@ function BotsPage() {
 
   const botsQuery = useQuery({
     queryKey: ["bots", user?.id],
-    queryFn: () => getBots(user!.id),
+    queryFn: async () => {
+      if (!user?.id) throw new Error("No authenticated user available for bots query.");
+      try {
+        const data = await getBots(user.id);
+        return data;
+      } catch (error) {
+        const supabaseError = error as {
+          code?: string;
+          message?: string;
+          details?: string;
+          hint?: string;
+          status?: number;
+        };
+        console.error("KOCEL BOTS LOAD ERROR", {
+          code: supabaseError.code,
+          message: supabaseError.message,
+          details: supabaseError.details,
+          hint: supabaseError.hint,
+          status: supabaseError.status,
+        });
+        throw error;
+      }
+    },
     enabled: Boolean(user?.id),
   });
 
@@ -59,6 +83,16 @@ function BotsPage() {
     queryFn: getStrategies,
     enabled: Boolean(user?.id),
   });
+
+  const strategyLookup = useMemo(
+    () => Object.fromEntries((strategiesQuery.data ?? []).map((strategy) => [strategy.id, strategy])),
+    [strategiesQuery.data],
+  );
+
+  const connectionLookup = useMemo(
+    () => Object.fromEntries(connections.map((connection) => [connection.id, connection])),
+    [connections],
+  );
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["bots", user?.id] });
 
@@ -110,7 +144,20 @@ function BotsPage() {
             <CardsSkeleton count={3} />
           </div>
         ) : botsQuery.isError ? (
-          <ErrorState onRetry={() => void botsQuery.refetch()} />
+          <ErrorState
+            title="Bots Load Failed"
+            description={
+              botsQuery.error instanceof Error
+                ? botsQuery.error.message
+                : "The Bots query failed. Check the console for the exact Supabase error payload."
+            }
+            errorCode={
+              botsQuery.error && typeof botsQuery.error === "object" && "code" in botsQuery.error
+                ? String((botsQuery.error as { code?: string }).code ?? "UNKNOWN")
+                : undefined
+            }
+            onRetry={() => void botsQuery.refetch()}
+          />
         ) : (botsQuery.data ?? []).length === 0 ? (
           <EmptyState
             icon={Bot}
@@ -124,7 +171,13 @@ function BotsPage() {
           />
         ) : (
           <ul className="divide-y divide-border">
-            {(botsQuery.data ?? []).map((bot) => (
+            {(botsQuery.data ?? []).map((bot) => {
+              const strategy = bot.strategy_id ? strategyLookup[bot.strategy_id] ?? null : null;
+              const connection = bot.broker_connection_id
+                ? connectionLookup[bot.broker_connection_id] ?? null
+                : null;
+
+              return (
               <li key={bot.id} className="px-4 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
@@ -148,11 +201,11 @@ function BotsPage() {
                     <div className="mt-2 text-sm text-muted-foreground">
                       <p>
                         <span className="font-medium text-foreground">Strategy:</span>{" "}
-                        {bot.strategy?.name ?? "Unassigned"}
+                        {strategy?.name ?? "Unassigned"}
                       </p>
                       <p>
                         <span className="font-medium text-foreground">Account:</span>{" "}
-                        {bot.broker_connection?.account_name ?? "Not assigned"}
+                        {connection?.account_name ?? "Not assigned"}
                       </p>
                       <p>
                         <span className="font-medium text-foreground">Symbol:</span> {bot.symbol}
@@ -270,7 +323,8 @@ function BotsPage() {
                   </div>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </SectionCard>
