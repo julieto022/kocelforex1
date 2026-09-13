@@ -3,6 +3,13 @@
 
 BEGIN;
 
+ALTER TABLE public.market_candles
+  ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'MT5_BRIDGE',
+  ADD COLUMN IF NOT EXISTS received_at timestamptz NOT NULL DEFAULT now();
+
+CREATE INDEX IF NOT EXISTS market_candles_received_idx
+  ON public.market_candles (broker_connection_id, received_at DESC);
+
 ALTER TABLE public.strategies
   ADD COLUMN IF NOT EXISTS version text NOT NULL DEFAULT '1.0';
 

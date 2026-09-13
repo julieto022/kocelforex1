@@ -102,7 +102,8 @@ const bridgeCandleSchema = z.object({
   low: z.number().finite().nonnegative(),
   close: z.number().finite().nonnegative(),
   volume: z.number().finite().nonnegative().nullable().optional(),
-}).refine((candle) => candle.high >= candle.open && candle.high >= candle.close && candle.low <= candle.open && candle.low <= candle.close && candle.low <= candle.high, "Invalid candle OHLC relationships.");
+}).refine((candle) => candle.high >= candle.open && candle.high >= candle.close && candle.low <= candle.open && candle.low <= candle.close && candle.low <= candle.high, "Invalid candle OHLC relationships.")
+  .refine((candle) => Date.parse(candle.timestamp) <= Date.now() + 60_000, "Future-dated candles are not accepted.");
 
 const bridgeAccountSchema = z.object({
   balance: z.number().finite(),
@@ -121,7 +122,14 @@ export const bridgeHeartbeatSchema = z.object({
   account: bridgeAccountSchema.optional(),
   positions: z.array(bridgePositionSchema).max(500).optional(),
   orders: z.array(bridgeOrderSchema).max(500).optional(),
-  candles: z.array(bridgeCandleSchema).max(2_000).optional(),
+  candles: z.array(bridgeCandleSchema).max(4_000).superRefine((candles, ctx) => {
+    const seen = new Set<string>();
+    candles.forEach((candle, index) => {
+      const key = `${candle.symbol}|${candle.timeframe}|${candle.timestamp}`;
+      if (seen.has(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [index], message: "Duplicate candle." });
+      seen.add(key);
+    });
+  }).optional(),
   openTrades: z.number().int().min(0).max(10_000).optional(),
   message: z.string().trim().max(300).nullish(),
 });
@@ -354,6 +362,8 @@ export const bridgeService: BridgeService = {
           low: candle.low,
           close: candle.close,
           volume: candle.volume ?? null,
+          source: "MT5_BRIDGE",
+          received_at: now,
         })),
         { onConflict: "broker_connection_id,symbol,timeframe,timestamp", ignoreDuplicates: false },
       );

@@ -391,13 +391,15 @@ function BotsPage() {
 
 function BotAnalysisResult({ analysis }: { analysis: TradingSignal }) {
   const stateTone = analysis.direction === "BUY" ? "text-emerald-600" : analysis.direction === "SELL" ? "text-red-600" : "text-amber-600";
+  const reason = analysisReason(analysis.reason, analysis.symbol, analysis.timeframe);
+  const dataAge = analysis.dataTimestamp ? Math.max(0, Math.round((Date.now() - Date.parse(analysis.dataTimestamp)) / 1000)) : null;
   return (
     <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Market analysis</p>
           <p className="text-xs text-muted-foreground">
-            {analysis.symbol} · {analysis.timeframe} · {analysis.dataStatus === "FRESH" ? "Fresh data" : analysis.dataStatus}
+            {analysis.symbol} · {analysis.timeframe} · {analysis.dataStatus === "FRESH" ? "Fresh data" : reason}
           </p>
         </div>
         <div className="text-right">
@@ -406,17 +408,46 @@ function BotAnalysisResult({ analysis }: { analysis: TradingSignal }) {
         </div>
       </div>
       <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+        <p><span className="font-medium text-foreground">Strategy:</span> {analysis.strategyName}</p>
         <p><span className="font-medium text-foreground">Market state:</span> {analysis.marketState}</p>
-        <p><span className="font-medium text-foreground">Data timestamp:</span> {analysis.dataTimestamp ? new Date(analysis.dataTimestamp).toLocaleString() : "Unavailable"}</p>
+        <p><span className="font-medium text-foreground">Market data:</span> {analysis.candleCount} candles{analysis.latestPrice !== null ? ` · ${analysis.latestPrice}` : ""}</p>
+        <p><span className="font-medium text-foreground">Data timestamp:</span> {analysis.dataTimestamp ? new Date(analysis.dataTimestamp).toLocaleString() : reason}</p>
+        <p><span className="font-medium text-foreground">Data age:</span> {dataAge === null ? "Unavailable" : `${dataAge}s`}</p>
+        <p><span className="font-medium text-foreground">Generated:</span> {new Date(analysis.timestamp).toLocaleString()}</p>
       </div>
-      <p className="mt-3 text-sm text-muted-foreground">{analysis.reason}</p>
+      <p className="mt-3 text-sm text-muted-foreground">{reason}</p>
       {analysis.factors.length > 0 && (
         <ul className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
           {analysis.factors.map((factor) => <li key={factor}>• {factor}</li>)}
         </ul>
       )}
+      {Object.keys(analysis.indicators).length > 0 && (
+        <div className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
+          {Object.entries(analysis.indicators).map(([name, value]) => <span key={name}>{name}: {value === null ? "n/a" : value}</span>)}
+        </div>
+      )}
     </div>
   );
+}
+
+function analysisReason(code: string, symbol: string, timeframe: string): string {
+  const messages: Record<string, string> = {
+    MT5_CONNECTION_NOT_CONFIGURED: "This bot has no MT5 connection configured.",
+    MT5_CONNECTION_NOT_FOUND: "The selected MT5 connection could not be found.",
+    MT5_CONNECTION_OFFLINE: "MT5 market data is unavailable because the Bridge EA is offline.",
+    MT5_CONNECTION_AUTHORIZED: "The MT5 account is authorized but the Bridge EA is not connected.",
+    BRIDGE_HEARTBEAT_STALE: "The Kocel Bridge EA heartbeat is stale.",
+    MARKET_DATA_NOT_SYNCED: "Market data has not been synchronized from MT5 yet.",
+    MARKET_DATA_QUERY_FAILED: "The synchronized market data could not be read.",
+    SYMBOL_NOT_AVAILABLE: `${symbol} is not available on the connected MT5 account.`,
+    STALE_MARKET_DATA: `The latest ${timeframe} market data is stale.`,
+    INSUFFICIENT_DATA: `Waiting for sufficient ${timeframe} candle history.`,
+    INVALID_TIMEFRAME: `${timeframe || "This"} timeframe is not supported.`,
+    STRATEGY_NOT_FOUND: "The bot strategy could not be found.",
+    STRATEGY_INACTIVE: "The selected strategy is inactive.",
+    STRATEGY_UNAVAILABLE: "This strategy is not available to the analysis engine.",
+  };
+  return messages[code] ?? code.replaceAll("_", " ").toLowerCase();
 }
 
 function BotsRoute() {

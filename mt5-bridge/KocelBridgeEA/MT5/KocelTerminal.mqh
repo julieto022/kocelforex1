@@ -88,7 +88,7 @@ public:
       return PositionsTotal() + OrdersTotal();
    }
 
-   bool ReadMarketCandles(const string symbol, KocelMt5Candle &candles[], int &count, const int per_timeframe = 120) const
+   bool ReadMarketCandles(const string symbol, KocelMt5Candle &candles[], int &count, const bool initial_sync, const int per_timeframe = 400) const
    {
       ArrayFree(candles);
       count = 0;
@@ -100,7 +100,8 @@ public:
       {
          MqlRates rates[];
          ArraySetAsSeries(rates, false);
-         const int copied = CopyRates(symbol, timeframes[timeframe_index], 1, per_timeframe, rates);
+         const int requested = initial_sync ? per_timeframe : 2;
+         const int copied = CopyRates(symbol, timeframes[timeframe_index], 1, requested, rates);
          if(copied <= 0)
             continue;
 

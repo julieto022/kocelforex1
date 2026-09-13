@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS public.market_candles (
   low numeric NOT NULL,
   close numeric NOT NULL,
   volume numeric,
+  source text NOT NULL DEFAULT 'MT5_BRIDGE',
+  received_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT market_candles_timeframe_check
@@ -132,6 +134,9 @@ CREATE INDEX IF NOT EXISTS market_candles_lookup_idx
 
 CREATE INDEX IF NOT EXISTS market_candles_user_lookup_idx
   ON public.market_candles (user_id, symbol, timeframe, timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS market_candles_received_idx
+  ON public.market_candles (broker_connection_id, received_at DESC);
 
 ALTER TABLE public.market_candles ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON TABLE public.market_candles TO authenticated;

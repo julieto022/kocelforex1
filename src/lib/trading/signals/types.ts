@@ -4,6 +4,7 @@ export type TradingSignal = {
   id: string;
   botId: string;
   strategyId: string;
+  strategyName: string;
   connectionId: string;
   symbol: string;
   timeframe: string;
@@ -19,5 +20,8 @@ export type TradingSignal = {
   marketState: MarketState;
   dataTimestamp: string | null;
   dataStatus: "FRESH" | "STALE" | "UNAVAILABLE";
+  candleCount: number;
+  latestPrice: number | null;
+  indicators: Record<string, number | null>;
   strategyVersion: string;
 };

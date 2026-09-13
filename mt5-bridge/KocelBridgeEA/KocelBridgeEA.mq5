@@ -41,6 +41,7 @@ KocelMt5AccountInfo g_account_info;
 bool g_panel_ready = false;
 bool g_terminal_status_known = false;
 bool g_last_account_available = false;
+bool g_market_history_synced = false;
 long g_last_account_login = 0;
 string g_last_account_server = "";
 datetime g_next_terminal_refresh = 0;
@@ -262,6 +263,7 @@ void KocelDisconnectLocal(const string message, const string log_message)
    g_next_heartbeat = 0;
    g_next_status = 0;
    g_next_fast_sync = 0;
+   g_market_history_synced = false;
    g_last_fast_fingerprint = "";
    g_kocel_status = "Not Connected";
    g_state.Set(KOCEL_STATE_DISCONNECTED, message);
@@ -571,13 +573,15 @@ void OnTimer()
          string message = "";
          // The EA reports the exact broker symbol of its attached chart;
          // the backend matches this value to the bot's manually entered symbol.
-         if(!g_terminal.ReadMarketCandles(_Symbol, candles, candle_count))
+         if(!g_terminal.ReadMarketCandles(_Symbol, candles, candle_count, !g_market_history_synced))
          {
             g_logger.Warning("MT5 candle history could not be read; heartbeat will report no candles.");
          }
 
          if(g_bridge.Heartbeat(snapshot, positions, pos_count, orders, order_count, candles, candle_count, message))
          {
+            if(candle_count > 0)
+               g_market_history_synced = true;
             g_next_heartbeat = now + g_bridge.HeartbeatSeconds();
             KocelResetRetry();
             g_kocel_status = "Connected";

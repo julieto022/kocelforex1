@@ -57,6 +57,9 @@ export function validateMarketCandles(candles: MarketCandle[], minimum = 2): Mar
     if (!Number.isFinite(timestamp)) {
       return { ok: false, code: "INVALID_TIMESTAMP", message: "Every candle must have a valid timestamp." };
     }
+    if (timestamp > Date.now() + 60_000) {
+      return { ok: false, code: "INVALID_TIMESTAMP", message: "Future-dated candles are not accepted." };
+    }
     if (timestamp === previousTimestamp) {
       return { ok: false, code: "DUPLICATE_TIMESTAMP", message: "Candle timestamps must be unique." };
     }

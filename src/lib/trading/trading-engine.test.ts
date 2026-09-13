@@ -23,6 +23,11 @@ describe("market data normalization", () => {
     expect(validateMarketCandles([{ ...candles([100])[0]!, high: 99 }])).toMatchObject({ ok: false, code: "INVALID_OHLC" });
   });
 
+  it("rejects future-dated candles", () => {
+    const future = { ...candles([100])[0]!, timestamp: new Date(Date.now() + 120_000).toISOString() };
+    expect(validateMarketCandles([future])).toMatchObject({ ok: false, code: "INVALID_TIMESTAMP" });
+  });
+
   it("rejects unsupported timeframes without manufacturing data", () => {
     const normalized = normalizeMarketData("EURUSDm", "TICK", candles([100, 101]));
     expect(normalized.quality.ok).toBe(false);

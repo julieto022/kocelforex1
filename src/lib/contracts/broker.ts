@@ -143,6 +143,7 @@ export type BridgeCandle = {
   low: number;
   close: number;
   volume?: number | null;
+  source?: "MT5_BRIDGE";
 };
 
 export type BridgeStatus = {
