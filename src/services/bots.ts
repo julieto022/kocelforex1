@@ -89,7 +89,7 @@ export async function createBot(_userId: string, input: CreateBotInput): Promise
   const bot = await createBotFn({
     data: {
       name: input.name.trim(),
-      symbol: input.symbol.trim().toUpperCase(),
+      symbol: input.symbol.trim(),
       riskProfile: input.riskProfile.toUpperCase() as "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE",
       timeframe: input.timeframe ?? null,
       brokerConnectionId: input.brokerConnectionId,
@@ -113,7 +113,7 @@ export async function updateBot(
 ) {
   const next = { ...patch };
   if (next.name !== undefined) next.name = next.name.trim();
-  if (next.symbol !== undefined) next.symbol = next.symbol.trim().toUpperCase();
+  if (next.symbol !== undefined) next.symbol = next.symbol.trim();
   if (next.riskProfile !== undefined) {
     next.riskProfile = next.riskProfile.toUpperCase() as "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE";
   }

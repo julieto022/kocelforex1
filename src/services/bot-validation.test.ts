@@ -28,6 +28,26 @@ describe("bot validation", () => {
     ).toMatchObject({ ok: true });
   });
 
+  it("accepts broker-specific symbol suffixes and punctuation", () => {
+    expect(
+      validateBotInput({
+        name: "Gold Bot",
+        symbol: "XAUUSDm",
+        strategyId: "550e8400-e29b-41d4-a716-446655440000",
+        connectionId: "550e8400-e29b-41d4-a716-446655440001",
+      }),
+    ).toMatchObject({ ok: true });
+
+    expect(
+      validateBotInput({
+        name: "Index Bot",
+        symbol: "NAS100.cash",
+        strategyId: "550e8400-e29b-41d4-a716-446655440000",
+        connectionId: "550e8400-e29b-41d4-a716-446655440001",
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
   it("extracts the exact supabase error metadata for bot query failures", () => {
     expect(
       extractSupabaseErrorMeta({

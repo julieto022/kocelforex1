@@ -20,7 +20,6 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
 import { createBot, validateBotInput } from "@/services/bots";
-import { getMT5Symbols } from "@/services/mt5";
 import { getStrategies } from "@/services/strategies";
 
 export const Route = createFileRoute("/_app/bots/create")({
@@ -56,13 +55,6 @@ function CreateBotPage() {
   });
 
   const strategies = useMemo(() => strategiesQuery.data ?? [], [strategiesQuery.data]);
-
-  const symbolsQuery = useQuery({
-    queryKey: ["market-symbols", form.connectionId],
-    queryFn: () => getMT5Symbols(form.connectionId),
-    enabled: Boolean(form.connectionId),
-    retry: 1,
-  });
 
   const selectedStrategy = strategies.find((strategy) => strategy.id === form.strategyId) ?? null;
   const [error, setError] = useState<string | null>(null);
@@ -147,37 +139,18 @@ function CreateBotPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Symbol</Label>
-              <Select
+              <Label htmlFor="symbol">Symbol</Label>
+              <Input
+                id="symbol"
                 value={form.symbol}
-                onValueChange={(value) => setForm({ ...form, symbol: value })}
-                disabled={!form.connectionId || symbolsQuery.isLoading || symbolsQuery.isError}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a symbol from MT5" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(symbolsQuery.data ?? []).map((marketSymbol) => (
-                    <SelectItem key={marketSymbol.id} value={marketSymbol.symbol}>
-                      {marketSymbol.display_name || marketSymbol.symbol}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!form.connectionId && (
-                <p className="text-xs text-muted-foreground">Select an MT5 account first.</p>
-              )}
-              {symbolsQuery.isLoading && (
-                <p className="text-xs text-muted-foreground">Loading symbols...</p>
-              )}
-              {symbolsQuery.isError && (
-                <p className="text-xs text-destructive">Unable to load symbols. Please retry.</p>
-              )}
-              {symbolsQuery.isSuccess && symbolsQuery.data.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  No MT5 symbols are available for this account yet.
-                </p>
-              )}
+                onChange={(event) => setForm({ ...form, symbol: event.target.value })}
+                maxLength={64}
+                placeholder="Enter MT5 symbol, e.g. XAUUSD, EURUSD, BTCUSD"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the exact symbol name used by your connected MT5 broker. Broker-specific
+                suffixes such as XAUUSDm are supported.
+              </p>
             </div>
           </div>
 
@@ -333,7 +306,6 @@ function CreateBotPage() {
               disabled={
                 mutation.isPending ||
                 strategiesQuery.isLoading ||
-                symbolsQuery.isLoading ||
                 connectionsLoading
               }
             >

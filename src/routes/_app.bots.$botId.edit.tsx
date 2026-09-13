@@ -146,8 +146,13 @@ function EditBotPage() {
                 id="symbol"
                 value={form.symbol}
                 onChange={(event) => setForm({ ...form, symbol: event.target.value })}
-                maxLength={20}
+                maxLength={64}
+                placeholder="Enter MT5 symbol, e.g. XAUUSD, EURUSD, BTCUSD"
               />
+              <p className="text-xs text-muted-foreground">
+                Broker-specific suffixes such as XAUUSDm and punctuation such as NAS100.cash are
+                supported.
+              </p>
             </div>
           </div>
 

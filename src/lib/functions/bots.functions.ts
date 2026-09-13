@@ -10,7 +10,7 @@ import { requireConnectionOwnership, requireOwnership } from "@/lib/server/owner
 
 const createSchema = z.object({
   name: z.string().trim().min(2).max(60),
-  symbol: z.string().trim().min(2).max(20),
+  symbol: z.string().trim().min(2).max(64),
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]),
   timeframe: z.string().trim().min(1).max(10),
   brokerConnectionId: z.string().uuid(),
@@ -33,22 +33,12 @@ export const createBot = createServerFn({ method: "POST" })
       .maybeSingle();
     if (strategyError || !strategy) throw invalid("This strategy is not available.");
 
-    const { data: marketSymbol, error: symbolError } = await supabase
-      .from("market_symbols")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("broker_connection_id", data.brokerConnectionId)
-      .eq("symbol", data.symbol.toUpperCase())
-      .eq("status", "enabled")
-      .maybeSingle();
-    if (symbolError || !marketSymbol) throw invalid("This symbol is not available for the selected MT5 account.");
-
     const { data: row, error } = await supabase
       .from("bots")
       .insert({
         user_id: userId,
         name: data.name,
-        symbol: data.symbol.toUpperCase(),
+        symbol: data.symbol.trim(),
         risk_profile: data.riskProfile,
         timeframe: data.timeframe ?? null,
         broker_connection_id: data.brokerConnectionId ?? null,
@@ -67,7 +57,7 @@ export const createBot = createServerFn({ method: "POST" })
 const updateSchema = z.object({
   botId: z.string().uuid(),
   name: z.string().trim().min(2).max(60).optional(),
-  symbol: z.string().trim().min(2).max(20).optional(),
+  symbol: z.string().trim().min(2).max(64).optional(),
   timeframe: z.string().trim().max(10).nullish(),
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]).optional(),
   strategyId: z.string().uuid().nullable().optional(),
@@ -97,7 +87,7 @@ export const updateBot = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {};
     if (data.name !== undefined) patch["name"] = data.name;
-    if (data.symbol !== undefined) patch["symbol"] = data.symbol.toUpperCase();
+    if (data.symbol !== undefined) patch["symbol"] = data.symbol.trim();
     if (data.timeframe !== undefined) patch["timeframe"] = data.timeframe;
     if (data.riskProfile !== undefined) patch["risk_profile"] = data.riskProfile;
     if (data.strategyId !== undefined) patch["strategy_id"] = data.strategyId;
