@@ -1,6 +1,6 @@
 import { Link, Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Edit3, Plus, Save, Trash2 } from "lucide-react";
+import { Activity, Bot, Edit3, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
+import { analyzeBot } from "@/lib/functions/analysis.functions";
+import type { TradingSignal } from "@/lib/trading/signals/types";
 import { deleteBot, getBots, updateBot } from "@/services/bots";
 import { getStrategies } from "@/services/strategies";
 
@@ -42,6 +44,7 @@ function BotsPage() {
   const queryClient = useQueryClient();
   const [botToDelete, setBotToDelete] = useState<string | null>(null);
   const [editingBotId, setEditingBotId] = useState<string | null>(null);
+  const [analysisByBot, setAnalysisByBot] = useState<Record<string, TradingSignal>>({});
   const [editForm, setEditForm] = useState({
     name: "",
     symbol: "",
@@ -121,6 +124,12 @@ function BotsPage() {
       void invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
+  });
+
+  const analysisMutation = useMutation({
+    mutationFn: (botId: string) => analyzeBot({ data: { botId } }),
+    onSuccess: (analysis) => setAnalysisByBot((current) => ({ ...current, [analysis.botId]: analysis })),
+    onError: (error: Error) => toast.error(`Analysis failed: ${error.message}`),
   });
 
   return (
@@ -211,10 +220,29 @@ function BotsPage() {
                         <span className="font-medium text-foreground">Symbol:</span> {bot.symbol}
                         {bot.timeframe ? ` · ${bot.timeframe}` : ""}
                       </p>
+                      {typeof bot.configuration?.subStrategy === "string" && (
+                        <p>
+                          <span className="font-medium text-foreground">Sub-strategy:</span>{" "}
+                          {bot.configuration.subStrategy}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 self-start lg:self-auto">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={analysisMutation.isPending}
+                      onClick={() => analysisMutation.mutate(bot.id)}
+                    >
+                      {analysisMutation.isPending && analysisMutation.variables === bot.id ? (
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                      ) : (
+                        <Activity className="mr-2 size-4" />
+                      )}
+                      Analyze
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -244,6 +272,10 @@ function BotsPage() {
                     </Button>
                   </div>
                 </div>
+
+                {analysisByBot[bot.id] && (
+                  <BotAnalysisResult analysis={analysisByBot[bot.id]!} />
+                )}
 
                 {editingBotId === bot.id && (
                   <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
@@ -353,6 +385,36 @@ function BotsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function BotAnalysisResult({ analysis }: { analysis: TradingSignal }) {
+  const stateTone = analysis.direction === "BUY" ? "text-emerald-600" : analysis.direction === "SELL" ? "text-red-600" : "text-amber-600";
+  return (
+    <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Market analysis</p>
+          <p className="text-xs text-muted-foreground">
+            {analysis.symbol} · {analysis.timeframe} · {analysis.dataStatus === "FRESH" ? "Fresh data" : analysis.dataStatus}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className={`text-lg font-bold ${stateTone}`}>{analysis.state}</p>
+          <p className="text-xs text-muted-foreground">Analytical confidence: {analysis.confidence}/100</p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+        <p><span className="font-medium text-foreground">Market state:</span> {analysis.marketState}</p>
+        <p><span className="font-medium text-foreground">Data timestamp:</span> {analysis.dataTimestamp ? new Date(analysis.dataTimestamp).toLocaleString() : "Unavailable"}</p>
+      </div>
+      <p className="mt-3 text-sm text-muted-foreground">{analysis.reason}</p>
+      {analysis.factors.length > 0 && (
+        <ul className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+          {analysis.factors.map((factor) => <li key={factor}>• {factor}</li>)}
+        </ul>
+      )}
     </div>
   );
 }

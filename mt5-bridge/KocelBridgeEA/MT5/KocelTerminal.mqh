@@ -33,6 +33,21 @@ private:
       return "Unavailable";
    }
 
+   string TimeframeName(const ENUM_TIMEFRAMES timeframe) const
+   {
+      switch(timeframe)
+      {
+         case PERIOD_M1: return "M1";
+         case PERIOD_M5: return "M5";
+         case PERIOD_M15: return "M15";
+         case PERIOD_M30: return "M30";
+         case PERIOD_H1: return "H1";
+         case PERIOD_H4: return "H4";
+         case PERIOD_D1: return "D1";
+         default: return "";
+      }
+   }
+
 public:
    bool Refresh(KocelMt5AccountInfo &info) const
    {
@@ -71,6 +86,46 @@ public:
    int OpenTradesCount() const
    {
       return PositionsTotal() + OrdersTotal();
+   }
+
+   bool ReadMarketCandles(const string symbol, KocelMt5Candle &candles[], int &count, const int per_timeframe = 120) const
+   {
+      ArrayFree(candles);
+      count = 0;
+      if(symbol == "" || per_timeframe < 2)
+         return false;
+
+      ENUM_TIMEFRAMES timeframes[7] = { PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_M30, PERIOD_H1, PERIOD_H4, PERIOD_D1 };
+      for(int timeframe_index = 0; timeframe_index < ArraySize(timeframes); timeframe_index++)
+      {
+         MqlRates rates[];
+         ArraySetAsSeries(rates, false);
+         const int copied = CopyRates(symbol, timeframes[timeframe_index], 1, per_timeframe, rates);
+         if(copied <= 0)
+            continue;
+
+         const string timeframe_name = TimeframeName(timeframes[timeframe_index]);
+         for(int rate_index = 0; rate_index < copied; rate_index++)
+         {
+            const int next = count;
+            if(ArrayResize(candles, next + 1) != next + 1)
+            {
+               ArrayFree(candles);
+               count = 0;
+               return false;
+            }
+            candles[next].symbol = symbol;
+            candles[next].timeframe = timeframe_name;
+            candles[next].timestamp = IsoTime(rates[rate_index].time);
+            candles[next].open = rates[rate_index].open;
+            candles[next].high = rates[rate_index].high;
+            candles[next].low = rates[rate_index].low;
+            candles[next].close = rates[rate_index].close;
+            candles[next].volume = (long)rates[rate_index].tick_volume;
+            count++;
+         }
+      }
+      return count > 0;
    }
 
    bool ReadOpenPositions(KocelMt5Position &positions[], int &count) const

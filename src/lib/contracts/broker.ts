@@ -129,8 +129,20 @@ export type BridgeHeartbeat = {
   account?: BridgeAccountSnapshot | undefined;
   positions?: BridgePosition[] | undefined;
   orders?: BridgeOrder[] | undefined;
+  candles?: BridgeCandle[] | undefined;
   openTrades?: number | undefined;
   message?: string | null | undefined;
+};
+
+export type BridgeCandle = {
+  symbol: string;
+  timeframe: string;
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number | null;
 };
 
 export type BridgeStatus = {

@@ -108,6 +108,18 @@ struct KocelMt5ClosedTrade
    string close_time;
 };
 
+struct KocelMt5Candle
+{
+   string symbol;
+   string timeframe;
+   string timestamp;
+   double open;
+   double high;
+   double low;
+   double close;
+   long volume;
+};
+
 struct KocelHttpResponse
 {
    int status_code;

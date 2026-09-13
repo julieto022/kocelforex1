@@ -93,6 +93,17 @@ const bridgeOrderSchema = z.object({
   createdAt: bridgeTimestampSchema,
 });
 
+const bridgeCandleSchema = z.object({
+  symbol: z.string().trim().min(1).max(64),
+  timeframe: z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]),
+  timestamp: bridgeTimestampSchema,
+  open: z.number().finite().nonnegative(),
+  high: z.number().finite().nonnegative(),
+  low: z.number().finite().nonnegative(),
+  close: z.number().finite().nonnegative(),
+  volume: z.number().finite().nonnegative().nullable().optional(),
+}).refine((candle) => candle.high >= candle.open && candle.high >= candle.close && candle.low <= candle.open && candle.low <= candle.close && candle.low <= candle.high, "Invalid candle OHLC relationships.");
+
 const bridgeAccountSchema = z.object({
   balance: z.number().finite(),
   equity: z.number().finite(),
@@ -110,6 +121,7 @@ export const bridgeHeartbeatSchema = z.object({
   account: bridgeAccountSchema.optional(),
   positions: z.array(bridgePositionSchema).max(500).optional(),
   orders: z.array(bridgeOrderSchema).max(500).optional(),
+  candles: z.array(bridgeCandleSchema).max(2_000).optional(),
   openTrades: z.number().int().min(0).max(10_000).optional(),
   message: z.string().trim().max(300).nullish(),
 });
@@ -328,6 +340,31 @@ export const bridgeService: BridgeService = {
       .maybeSingle();
 
     if (!connection) throw notFound("That connection no longer exists.");
+
+    if (normalized.candles?.length) {
+      const { error: candleError } = await db.from("market_candles").upsert(
+        normalized.candles.map((candle) => ({
+          user_id: identity.userId,
+          broker_connection_id: identity.connectionId,
+          symbol: candle.symbol,
+          timeframe: candle.timeframe,
+          timestamp: candle.timestamp,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+          volume: candle.volume ?? null,
+        })),
+        { onConflict: "broker_connection_id,symbol,timeframe,timestamp", ignoreDuplicates: false },
+      );
+      if (candleError) {
+         logger.error("database", "Bridge candle history could not be stored", {
+           connectionId: identity.connectionId,
+           code: candleError.code,
+           message: candleError.message,
+         });
+      }
+    }
 
     if (account) {
       await db.from("mt5_account_snapshots").insert({

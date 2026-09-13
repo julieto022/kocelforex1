@@ -53,6 +53,17 @@ const orderSchema = z
     magic: (o.magic ?? null) as number | null,
   }));
 
+const candleSchema = z.object({
+  symbol: z.string().trim().min(1).max(64),
+  timeframe: z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]),
+  timestamp: bridgeTimestampSchema,
+  open: z.number().finite().nonnegative(),
+  high: z.number().finite().nonnegative(),
+  low: z.number().finite().nonnegative(),
+  close: z.number().finite().nonnegative(),
+  volume: z.number().finite().nonnegative().nullable().optional(),
+}).refine((candle) => candle.high >= candle.open && candle.high >= candle.close && candle.low <= candle.open && candle.low <= candle.close && candle.low <= candle.high, "Invalid candle OHLC relationships.");
+
 const schema = z.object({
   status: z.enum(["CONNECTED", "ERROR"]),
   account: z
@@ -70,6 +81,7 @@ const schema = z.object({
     .optional(),
   positions: z.array(positionSchema).max(500).optional(),
   orders: z.array(orderSchema).max(500).optional(),
+  candles: z.array(candleSchema).max(2_000).optional(),
   openTrades: z.number().int().min(0).max(10_000).optional(),
   message: z.string().trim().max(300).nullish(),
 });

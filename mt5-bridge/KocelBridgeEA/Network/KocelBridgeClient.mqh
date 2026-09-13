@@ -122,7 +122,7 @@ private:
       return payload;
    }
 
-   string HeartbeatPayloadFull(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count) const
+   string HeartbeatPayloadFull(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, const KocelMt5Candle &candles[], const int candle_count) const
    {
       string margin_level = "null";
       if(snapshot.margin_level_available)
@@ -188,6 +188,23 @@ private:
       }
       payload += "],";
       payload += "\"openTrades\":" + IntegerToString(pos_count);
+      payload += ",\"candles\":[";
+      for(int i = 0; i < candle_count; i++)
+      {
+         if(i > 0)
+            payload += ",";
+         payload += "{";
+         payload += "\"symbol\":" + KocelJsonString(candles[i].symbol) + ",";
+         payload += "\"timeframe\":" + KocelJsonString(candles[i].timeframe) + ",";
+         payload += "\"timestamp\":" + KocelJsonString(candles[i].timestamp) + ",";
+         payload += "\"open\":" + DoubleToString(candles[i].open, 8) + ",";
+         payload += "\"high\":" + DoubleToString(candles[i].high, 8) + ",";
+         payload += "\"low\":" + DoubleToString(candles[i].low, 8) + ",";
+         payload += "\"close\":" + DoubleToString(candles[i].close, 8) + ",";
+         payload += "\"volume\":" + IntegerToString(candles[i].volume);
+         payload += "}";
+      }
+      payload += "]";
       payload += "}";
       return payload;
    }
@@ -276,7 +293,7 @@ public:
       return true;
    }
 
-   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, string &message)
+   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, const KocelMt5Candle &candles[], const int candle_count, string &message)
    {
       message = "";
       if(m_bridge_token == "")
@@ -286,7 +303,7 @@ public:
       }
 
       KocelHttpResponse response;
-      const string payload = HeartbeatPayloadFull(snapshot, positions, pos_count, orders, order_count);
+      const string payload = HeartbeatPayloadFull(snapshot, positions, pos_count, orders, order_count, candles, candle_count);
       const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_HEARTBEAT, payload, m_bridge_token, response);
       m_last_response = response;
       if(!http_ok)

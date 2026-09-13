@@ -553,6 +553,8 @@ void OnTimer()
          int pos_count = 0;
          KocelMt5Order orders[];
          int order_count = 0;
+         KocelMt5Candle candles[];
+         int candle_count = 0;
          
          if(!g_terminal.ReadOpenPositions(positions, pos_count))
          {
@@ -567,7 +569,14 @@ void OnTimer()
          }
 
          string message = "";
-         if(g_bridge.Heartbeat(snapshot, positions, pos_count, orders, order_count, message))
+         // The EA reports the exact broker symbol of its attached chart;
+         // the backend matches this value to the bot's manually entered symbol.
+         if(!g_terminal.ReadMarketCandles(_Symbol, candles, candle_count))
+         {
+            g_logger.Warning("MT5 candle history could not be read; heartbeat will report no candles.");
+         }
+
+         if(g_bridge.Heartbeat(snapshot, positions, pos_count, orders, order_count, candles, candle_count, message))
          {
             g_next_heartbeat = now + g_bridge.HeartbeatSeconds();
             KocelResetRetry();
@@ -590,6 +599,7 @@ void OnTimer()
          
          ArrayFree(positions);
          ArrayFree(orders);
+         ArrayFree(candles);
       }
 
       KocelFastStateSync(now);
