@@ -65,7 +65,7 @@ export async function getStrategies(): Promise<Strategy[]> {
   const { data, error } = await supabase
     .from("strategies")
     .select(
-      "id,name,slug,description,short_description,category,is_active,configuration,created_at,updated_at",
+      "id,name,slug,description,short_description,category,is_active,status,timeframes,markets,configuration,created_at,updated_at",
     )
     .eq("is_active", true)
     .order("category", { ascending: true })

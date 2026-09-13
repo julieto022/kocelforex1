@@ -13,8 +13,8 @@ const createSchema = z.object({
   symbol: z.string().trim().min(2).max(20),
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]),
   timeframe: z.string().trim().max(10).nullish(),
-  brokerConnectionId: z.string().uuid().nullish(),
-  strategyId: z.string().uuid().nullish(),
+  brokerConnectionId: z.string().uuid(),
+  strategyId: z.string().uuid(),
   configuration: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -49,8 +49,11 @@ export const createBot = createServerFn({ method: "POST" })
 const updateSchema = z.object({
   botId: z.string().uuid(),
   name: z.string().trim().min(2).max(60).optional(),
+  symbol: z.string().trim().min(2).max(20).optional(),
   timeframe: z.string().trim().max(10).nullish(),
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]).optional(),
+  strategyId: z.string().uuid().nullable().optional(),
+  brokerConnectionId: z.string().uuid().nullable().optional(),
   configuration: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -61,10 +64,26 @@ export const updateBot = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await requireOwnership(supabase, "bots", data.botId, userId);
 
+    if (data.brokerConnectionId !== undefined) {
+      await requireConnectionOwnership(supabase, data.brokerConnectionId, userId);
+    }
+    if (data.strategyId !== undefined && data.strategyId !== null) {
+      const { data: strategy, error: strategyError } = await supabase
+        .from("strategies")
+        .select("id")
+        .eq("id", data.strategyId)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (strategyError || !strategy) throw invalid("This strategy is not available.");
+    }
+
     const patch: Record<string, unknown> = {};
     if (data.name !== undefined) patch["name"] = data.name;
+    if (data.symbol !== undefined) patch["symbol"] = data.symbol.toUpperCase();
     if (data.timeframe !== undefined) patch["timeframe"] = data.timeframe;
     if (data.riskProfile !== undefined) patch["risk_profile"] = data.riskProfile;
+    if (data.strategyId !== undefined) patch["strategy_id"] = data.strategyId;
+    if (data.brokerConnectionId !== undefined) patch["broker_connection_id"] = data.brokerConnectionId;
     if (data.configuration !== undefined) patch["configuration"] = data.configuration;
     if (Object.keys(patch).length === 0) throw invalid("Nothing to update.");
 

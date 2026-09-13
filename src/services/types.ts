@@ -170,6 +170,9 @@ export type Strategy = {
   short_description: string;
   category: string;
   is_active: boolean;
+  status?: string;
+  timeframes?: string[];
+  markets?: string[];
   configuration: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -177,13 +180,24 @@ export type Strategy = {
 
 export type Bot = {
   id: string;
+  user_id: string;
   name: string;
   symbol: string;
-  status: "running" | "stopped" | "paused" | "error" | "waiting" | string;
+  status: "DRAFT" | "STOPPED" | "RUNNING" | "PAUSED" | "WAITING" | "ERROR" | string;
   risk_profile: string;
   broker_connection_id: string | null;
   strategy_id: string | null;
+  timeframe: string | null;
+  configuration: Record<string, unknown> | null;
   created_at: string;
+  updated_at?: string;
+  strategy?: { id: string; name: string; category: string; short_description?: string } | null;
+  broker_connection?: {
+    id: string;
+    account_name: string;
+    status: string;
+    broker_name?: string | null;
+  } | null;
 };
 
 export type Trade = {

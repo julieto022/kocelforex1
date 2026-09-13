@@ -41,6 +41,7 @@ import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.
 import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt5.$requestId'
+import { Route as AppBotsBotIdEditRouteImport } from './routes/_app.bots.$botId.edit'
 import { Route as ApiPublicBridgeAuthenticateRouteImport } from './routes/api/public/bridge/authenticate'
 import { Route as ApiPublicBridgeDisconnectRouteImport } from './routes/api/public/bridge/disconnect'
 import { Route as ApiPublicBridgeHeartbeatRouteImport } from './routes/api/public/bridge/heartbeat'
@@ -211,6 +212,11 @@ const AuthorizeMt5RequestIdRoute = AuthorizeMt5RequestIdRouteImport.update({
   path: '/authorize/mt5/$requestId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppBotsBotIdEditRoute = AppBotsBotIdEditRouteImport.update({
+  id: '/$botId/edit',
+  path: '/$botId/edit',
+  getParentRoute: () => AppBotsRoute,
+} as any)
 const ApiPublicBridgeAuthenticateRoute =
   ApiPublicBridgeAuthenticateRouteImport.update({
     id: '/api/public/bridge/authenticate',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community/': typeof AppCommunityIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/bots/$botId/edit': typeof AppBotsBotIdEditRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
@@ -337,6 +344,7 @@ export interface FileRoutesByTo {
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community': typeof AppCommunityIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/bots/$botId/edit': typeof AppBotsBotIdEditRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/_app/community/': typeof AppCommunityIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/_app/bots/$botId/edit': typeof AppBotsBotIdEditRoute
   '/api/public/bridge/authenticate': typeof ApiPublicBridgeAuthenticateRoute
   '/api/public/bridge/disconnect': typeof ApiPublicBridgeDisconnectRoute
   '/api/public/bridge/heartbeat': typeof ApiPublicBridgeHeartbeatRoute
@@ -425,6 +434,7 @@ export interface FileRouteTypes {
     | '/authorize/mt5/$requestId'
     | '/community/'
     | '/settings/'
+    | '/bots/$botId/edit'
     | '/api/public/bridge/authenticate'
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/authorize/mt5/$requestId'
     | '/community'
     | '/settings'
+    | '/bots/$botId/edit'
     | '/api/public/bridge/authenticate'
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/authorize/mt5/$requestId'
     | '/_app/community/'
     | '/_app/settings/'
+    | '/_app/bots/$botId/edit'
     | '/api/public/bridge/authenticate'
     | '/api/public/bridge/disconnect'
     | '/api/public/bridge/heartbeat'
@@ -767,6 +779,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizeMt5RequestIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/bots/$botId/edit': {
+      id: '/_app/bots/$botId/edit'
+      path: '/$botId/edit'
+      fullPath: '/bots/$botId/edit'
+      preLoaderRoute: typeof AppBotsBotIdEditRouteImport
+      parentRoute: typeof AppBotsRoute
+    }
     '/api/public/bridge/authenticate': {
       id: '/api/public/bridge/authenticate'
       path: '/api/public/bridge/authenticate'
@@ -835,10 +854,12 @@ declare module '@tanstack/react-router' {
 
 interface AppBotsRouteChildren {
   AppBotsCreateRoute: typeof AppBotsCreateRoute
+  AppBotsBotIdEditRoute: typeof AppBotsBotIdEditRoute
 }
 
 const AppBotsRouteChildren: AppBotsRouteChildren = {
   AppBotsCreateRoute: AppBotsCreateRoute,
+  AppBotsBotIdEditRoute: AppBotsBotIdEditRoute,
 }
 
 const AppBotsRouteWithChildren =

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/kocel/page-header";
@@ -19,65 +19,97 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
-import { createBot, validateBotInput } from "@/services/bots";
+import { getBotById, updateBot, validateBotInput } from "@/services/bots";
 import { getStrategies } from "@/services/strategies";
 
-export const Route = createFileRoute("/_app/bots/create")({
-  component: CreateBotPage,
+export const Route = createFileRoute("/_app/bots/$botId/edit")({
+  component: EditBotPage,
 });
 
-const riskProfiles = ["conservative", "balanced", "aggressive"];
+const riskProfiles = ["CONSERVATIVE", "BALANCED", "AGGRESSIVE"];
 
-function CreateBotPage() {
+function EditBotPage() {
+  const { botId } = Route.useParams();
   const { user } = useAuth();
-  const { connections, active } = useConnections();
+  const { connections } = useConnections();
   const navigate = useNavigate();
 
-  const strategiesQuery = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
+  const botQuery = useQuery({
+    queryKey: ["bot", botId],
+    queryFn: () => getBotById(botId),
+    enabled: Boolean(user?.id),
+  });
 
-  const scalpingStrategies = useMemo(
-    () =>
-      (strategiesQuery.data ?? []).filter(
-        (strategy) => strategy.category === "Scalping" && strategy.is_active,
-      ),
-    [strategiesQuery.data],
-  );
-
-  const selectedStrategy = scalpingStrategies.find((strategy) => strategy.id === form.strategyId) ?? null;
+  const strategiesQuery = useQuery({
+    queryKey: ["strategies"],
+    queryFn: getStrategies,
+    enabled: Boolean(user?.id),
+  });
 
   const [form, setForm] = useState({
     name: "",
     symbol: "",
-    riskProfile: "balanced",
-    connectionId: active?.id ?? "",
+    riskProfile: "BALANCED",
+    connectionId: "",
     strategyId: "",
     timeframe: "",
   });
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const bot = botQuery.data;
+    if (!bot) return;
+    setForm({
+      name: bot.name ?? "",
+      symbol: bot.symbol ?? "",
+      riskProfile: String(bot.risk_profile ?? "BALANCED").toUpperCase(),
+      connectionId: bot.broker_connection_id ?? "",
+      strategyId: bot.strategy_id ?? "",
+      timeframe: bot.timeframe ?? "",
+    });
+  }, [botQuery.data]);
+
+  const scalpingStrategies = useMemo(
+    () => (strategiesQuery.data ?? []).filter((strategy) => strategy.category === "Scalping" && strategy.is_active),
+    [strategiesQuery.data],
+  );
+
+  const selectedStrategy =
+    scalpingStrategies.find((strategy) => strategy.id === form.strategyId) ??
+    (strategiesQuery.data ?? []).find((strategy) => strategy.id === form.strategyId) ??
+    null;
+
   const mutation = useMutation({
     mutationFn: () =>
-      createBot(user!.id, {
+      updateBot(botId, {
         name: form.name,
         symbol: form.symbol,
-        riskProfile: form.riskProfile,
-        brokerConnectionId: form.connectionId || null,
         strategyId: form.strategyId || null,
+        brokerConnectionId: form.connectionId || null,
+        riskProfile: form.riskProfile,
         timeframe: form.timeframe || null,
       }),
     onSuccess: () => {
-      toast.success("Bot created successfully.");
+      toast.success("Bot updated successfully.");
       void navigate({ to: "/bots" });
     },
     onError: (mutationError: Error) => toast.error(mutationError.message),
   });
 
+  if (botQuery.isLoading || !botQuery.data) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Edit bot" description="Loading bot details…" />
+        <SectionCard title="Bot configuration">
+          <p className="text-sm text-muted-foreground">Loading bot…</p>
+        </SectionCard>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="Create bot"
-        description="Select one strategy, assign an MT5 account and save your bot configuration."
-      />
+      <PageHeader title="Edit bot" description="Update the selected strategy, account and bot configuration." />
 
       <SectionCard title="Bot configuration">
         <form
@@ -106,7 +138,6 @@ function CreateBotPage() {
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
                 maxLength={80}
-                placeholder="My Momentum Bot"
               />
             </div>
 
@@ -114,7 +145,6 @@ function CreateBotPage() {
               <Label htmlFor="symbol">Symbol</Label>
               <Input
                 id="symbol"
-                placeholder="BTCUSD"
                 value={form.symbol}
                 onChange={(event) => setForm({ ...form, symbol: event.target.value })}
                 maxLength={20}
@@ -181,29 +211,6 @@ function CreateBotPage() {
                 })}
               </RadioGroup>
             )}
-
-            {selectedStrategy && (
-              <div className="rounded-md border border-border bg-muted/20 p-4">
-                <h3 className="text-sm font-semibold text-foreground">{selectedStrategy.name}</h3>
-                <div className="mt-2 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                  <p>
-                    <span className="font-medium text-foreground">Category:</span> {selectedStrategy.category}
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">Status:</span> {selectedStrategy.status ?? "Active"}
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">Supported Timeframes:</span>{" "}
-                    {(selectedStrategy.timeframes ?? []).join(", ") || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">Markets:</span>{" "}
-                    {(selectedStrategy.markets ?? []).join(", ") || "N/A"}
-                  </p>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{selectedStrategy.description}</p>
-              </div>
-            )}
           </div>
 
           <div className="space-y-1.5">
@@ -229,14 +236,14 @@ function CreateBotPage() {
             <div className="space-y-1.5">
               <Label>Timeframe</Label>
               <Select
-                value={form.timeframe || selectedStrategy.timeframes?.[0] || ""}
+                value={form.timeframe}
                 onValueChange={(value) => setForm({ ...form, timeframe: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a timeframe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(selectedStrategy.timeframes ?? ["M1", "M5", "M15"]).map((timeframe) => (
+                  {(selectedStrategy.timeframes ?? ["M1", "M5", "M15", "M30", "H1"]).map((timeframe) => (
                     <SelectItem key={timeframe} value={timeframe}>
                       {timeframe}
                     </SelectItem>
@@ -246,12 +253,19 @@ function CreateBotPage() {
             </div>
           )}
 
+          {selectedStrategy && (
+            <div className="rounded-md border border-border bg-muted/20 p-4">
+              <h3 className="font-medium text-foreground">{selectedStrategy.name}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{selectedStrategy.description}</p>
+            </div>
+          )}
+
           {error && <p className="text-xs text-destructive">{error}</p>}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={mutation.isPending || strategiesQuery.isLoading}>
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-              Create Bot
+              Save bot
             </Button>
             <Button type="button" variant="ghost" onClick={() => void navigate({ to: "/bots" })}>
               Cancel
