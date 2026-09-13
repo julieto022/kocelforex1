@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { BOT_STATUSES } from "@/lib/api/constants";
-import { invalid, toBotApiError } from "@/lib/api/errors";
+import { invalid, toBotApiError, unauthenticated } from "@/lib/api/errors";
 import { logger } from "@/lib/api/logger";
 import { recordAudit } from "@/lib/server/audit.server";
 import { pushNotification } from "@/lib/server/notify.server";
@@ -50,6 +50,19 @@ export const createBot = createServerFn({ method: "POST" })
   .validator((data: unknown) => createSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user || authData.user.id !== userId) {
+      logger.error("auth", "Bot creation user verification failed", {
+        operation: "bots.insert",
+        userId,
+        code: authError?.code,
+        message: authError?.message,
+        details: authError?.details,
+        hint: authError?.hint,
+        status: authError?.status,
+      });
+      throw unauthenticated("Your session has expired. Please sign in again.");
+    }
     await requireConnectionOwnership(supabase, data.brokerConnectionId, userId);
 
     const { data: strategy, error: strategyError } = await supabase
@@ -64,6 +77,22 @@ export const createBot = createServerFn({ method: "POST" })
     }
     if (!strategy) throw invalid("This strategy is not available.");
 
+    logger.info("database", "Creating bot", {
+      operation: "bots.insert",
+      table: "bots",
+      userId,
+      payload: {
+        name: data.name,
+        strategy_id: data.strategyId,
+        broker_connection_id: data.brokerConnectionId,
+        symbol: data.symbol.trim(),
+        timeframe: data.timeframe ?? null,
+        status: "STOPPED",
+        enabled: true,
+        configuration: data.configuration,
+      },
+    });
+
     const { data: row, error } = await supabase
       .from("bots")
       .insert({
@@ -75,6 +104,7 @@ export const createBot = createServerFn({ method: "POST" })
         broker_connection_id: data.brokerConnectionId ?? null,
         strategy_id: data.strategyId ?? null,
         status: "STOPPED",
+        enabled: true,
         configuration: data.configuration as never,
       })
       .select("*")

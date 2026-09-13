@@ -85,7 +85,10 @@ function CreateBotPage() {
       toast.success("Bot created successfully.");
       void navigate({ to: "/bots" });
     },
-    onError: (mutationError: Error) => toast.error(mutationError.message),
+    onError: (mutationError: Error) => {
+      setError(mutationError.message);
+      toast.error(mutationError.message);
+    },
   });
 
   return (
@@ -310,7 +313,7 @@ function CreateBotPage() {
               }
             >
               {mutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-              Create Bot
+              {mutation.isPending ? "Creating Bot..." : "Create Bot"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => void navigate({ to: "/bots" })}>
               Cancel

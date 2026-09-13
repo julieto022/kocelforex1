@@ -184,6 +184,7 @@ export type Bot = {
   name: string;
   symbol: string;
   status: "DRAFT" | "STOPPED" | "RUNNING" | "PAUSED" | "WAITING" | "ERROR" | string;
+  enabled: boolean;
   risk_profile: string;
   broker_connection_id: string | null;
   strategy_id: string | null;

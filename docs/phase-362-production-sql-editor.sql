@@ -80,6 +80,14 @@ CREATE POLICY "Authenticated users can read active strategies"
 
 -- The existing bots table and bots.symbol column are reused by manual symbol entry.
 -- No market_symbols row is required to create a bot.
+UPDATE public.bots
+SET enabled = true
+WHERE enabled IS NULL;
+
+ALTER TABLE public.bots
+  ALTER COLUMN enabled SET DEFAULT true,
+  ALTER COLUMN enabled SET NOT NULL;
+
 ALTER TABLE public.bots ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.bots TO authenticated;
 
@@ -121,7 +129,7 @@ SELECT column_name, data_type, is_nullable, character_maximum_length
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'bots'
-  AND column_name = 'symbol';
+  AND column_name IN ('symbol', 'enabled');
 
 -- Verification 3: bot foreign keys and RLS policies.
 SELECT constraint_name, constraint_type

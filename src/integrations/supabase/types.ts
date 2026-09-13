@@ -55,6 +55,7 @@ export type Database = {
           broker_connection_id: string | null
           configuration: Json
           created_at: string
+          enabled: boolean
           id: string
           name: string
           risk_profile: string
@@ -69,6 +70,7 @@ export type Database = {
           broker_connection_id?: string | null
           configuration?: Json
           created_at?: string
+          enabled?: boolean
           id?: string
           name: string
           risk_profile?: string
@@ -83,6 +85,7 @@ export type Database = {
           broker_connection_id?: string | null
           configuration?: Json
           created_at?: string
+          enabled?: boolean
           id?: string
           name?: string
           risk_profile?: string
