@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { atr, ema, macd, rsi, sma, vwap } from "./indicators";
 import { normalizeMarketData, validateMarketCandles, type MarketCandle } from "./market/types";
+import { resolveRuntimeSymbol } from "./market/symbols";
 import { getStrategyDefinition } from "./strategies/registry";
 
 function candles(closes: number[], withVolume = true): MarketCandle[] {
@@ -68,5 +69,17 @@ describe("strategy registry", () => {
     const market = normalizeMarketData("EURUSD", "M5", candles(Array.from({ length: 60 }, (_, index) => 100 + (index % 2 ? 0.1 : 0))));
     const result = definition!.analyze({ botId: "bot", strategyId: "strategy", symbol: "EURUSD", timeframe: "M5", configuration: {}, market, candles: market.candles, indicators: { close: 100, sma20: 100, ema9: 100, ema20: 100, ema50: 100, rsi14: 50, macd: null, momentum10: 0, atr14: 1, standardDeviation20: 0, highestHigh20: 101, lowestLow20: 99, averageRange14: 2, vwap: 100 } });
     expect(result.direction).toBe("NONE");
+  });
+});
+
+describe("runtime symbol resolution", () => {
+  it("resolves a requested canonical symbol from real Bridge-reported variants", () => {
+    expect(resolveRuntimeSymbol("BTCUSD", ["EURUSD", "BTCUSDm"])).toMatchObject({ ok: true, resolvedSymbol: "BTCUSDm" });
+    expect(resolveRuntimeSymbol("BTCUSD", ["BTCUSD"])).toMatchObject({ ok: true, resolvedSymbol: "BTCUSD" });
+  });
+
+  it("does not guess when no reported symbol or multiple variants exist", () => {
+    expect(resolveRuntimeSymbol("BTCUSD", ["EURUSD"])).toMatchObject({ ok: false, reason: "SYMBOL_NOT_AVAILABLE" });
+    expect(resolveRuntimeSymbol("BTCUSD", ["BTCUSDm", "BTCUSD.a"])).toMatchObject({ ok: false, reason: "SYMBOL_RESOLUTION_AMBIGUOUS" });
   });
 });

@@ -409,6 +409,7 @@ function BotAnalysisResult({ analysis }: { analysis: TradingSignal }) {
       </div>
       <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
         <p><span className="font-medium text-foreground">Strategy:</span> {analysis.strategyName}</p>
+        <p><span className="font-medium text-foreground">MT5 symbol:</span> {analysis.resolvedSymbol ?? "Not resolved"}</p>
         <p><span className="font-medium text-foreground">Market state:</span> {analysis.marketState}</p>
         <p><span className="font-medium text-foreground">Market data:</span> {analysis.candleCount} candles{analysis.latestPrice !== null ? ` · ${analysis.latestPrice}` : ""}</p>
         <p><span className="font-medium text-foreground">Data timestamp:</span> {analysis.dataTimestamp ? new Date(analysis.dataTimestamp).toLocaleString() : reason}</p>

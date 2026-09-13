@@ -7,6 +7,7 @@ export type TradingSignal = {
   strategyName: string;
   connectionId: string;
   symbol: string;
+  resolvedSymbol: string | null;
   timeframe: string;
   timestamp: string;
   direction: SignalDirection;
