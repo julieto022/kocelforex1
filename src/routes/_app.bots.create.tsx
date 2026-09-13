@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -35,6 +35,15 @@ function CreateBotPage() {
 
   const strategiesQuery = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
 
+  const [form, setForm] = useState({
+    name: "",
+    symbol: "",
+    riskProfile: "balanced",
+    connectionId: active?.id ?? "",
+    strategyId: "",
+    timeframe: "",
+  });
+
   const scalpingStrategies = useMemo(
     () =>
       (strategiesQuery.data ?? []).filter(
@@ -44,15 +53,6 @@ function CreateBotPage() {
   );
 
   const selectedStrategy = scalpingStrategies.find((strategy) => strategy.id === form.strategyId) ?? null;
-
-  const [form, setForm] = useState({
-    name: "",
-    symbol: "",
-    riskProfile: "balanced",
-    connectionId: active?.id ?? "",
-    strategyId: "",
-    timeframe: "",
-  });
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -75,8 +75,16 @@ function CreateBotPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Create bot"
-        description="Select one strategy, assign an MT5 account and save your bot configuration."
+        title="Create New Bot"
+        description="Create an automated bot using one of Kocel's predefined strategies."
+        actions={
+          <Button size="sm" variant="ghost" asChild>
+            <Link to="/bots">
+              <ArrowLeft className="mr-2 size-4" />
+              Back to Bots
+            </Link>
+          </Button>
+        }
       />
 
       <SectionCard title="Bot configuration">
