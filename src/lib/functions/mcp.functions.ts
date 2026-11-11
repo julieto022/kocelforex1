@@ -11,6 +11,7 @@ import { executeTradeCommand, tradeExecutionRequestSchema } from "@/lib/server/t
 const createKeySchema = z.object({
   connectionId: z.string().uuid(),
   name: z.string().trim().min(1).max(60),
+  canTradeDirectly: z.boolean().default(false),
 });
 
 const keyIdSchema = z.object({ keyId: z.string().uuid() });
@@ -31,7 +32,9 @@ export const getMcpApiKeys = createServerFn({ method: "GET" })
     const db = await admin();
     const { data, error } = await db
       .from("mcp_api_keys")
-      .select("id, name, connection_id, token_hint, last_used_at, revoked_at, created_at")
+      .select(
+        "id, name, connection_id, token_hint, can_trade_directly, last_used_at, revoked_at, created_at",
+      )
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw toApiError(error);
@@ -89,10 +92,13 @@ export const createMcpApiKey = createServerFn({ method: "POST" })
         user_id: userId,
         connection_id: data.connectionId,
         name: data.name,
+        can_trade_directly: data.canTradeDirectly,
         token_hash: await hashSecretValue(token),
         token_hint: `${token.slice(0, 14)}…${token.slice(-4)}`,
       })
-      .select("id, name, connection_id, token_hint, last_used_at, revoked_at, created_at")
+      .select(
+        "id, name, connection_id, token_hint, can_trade_directly, last_used_at, revoked_at, created_at",
+      )
       .single();
     if (error || !key) throw toApiError(error ?? new Error("The MCP key could not be created."));
 

@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/kocel/page-header";
 import { EmptyState, SectionCard } from "@/components/kocel/states";
@@ -46,6 +47,7 @@ type McpApiKey = {
   name: string;
   connection_id: string;
   token_hint: string;
+  can_trade_directly: boolean;
   last_used_at: string | null;
   revoked_at: string | null;
   created_at: string;
@@ -112,6 +114,7 @@ function McpPage() {
   const queryClient = useQueryClient();
   const { active, connections } = useConnections();
   const [keyName, setKeyName] = useState("My AI assistant");
+  const [canTradeDirectly, setCanTradeDirectly] = useState(false);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [proposalToApprove, setProposalToApprove] = useState<McpTradeRequest | null>(null);
 
@@ -136,7 +139,9 @@ function McpPage() {
   const createKey = useMutation({
     mutationFn: () => {
       if (!active) throw new Error("Connect an MT5 account before creating an MCP key.");
-      return createMcpApiKey({ data: { connectionId: active.id, name: keyName } });
+      return createMcpApiKey({
+        data: { connectionId: active.id, name: keyName, canTradeDirectly },
+      });
     },
     onSuccess: async (result) => {
       setCreatedToken(result.token);
@@ -209,7 +214,7 @@ function McpPage() {
     <div className="space-y-5">
       <PageHeader
         title="AI & MCP"
-        description="Connect an MCP-compatible AI client to read one MT5 account and request trade actions."
+        description="Connect an MCP-compatible AI client to manage account-scoped bots, strategies, backtests, and MT5 actions."
       />
 
       <SectionCard
@@ -289,6 +294,21 @@ function McpPage() {
               Create MCP key
             </Button>
           </div>
+          <label className="flex max-w-2xl items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+            <Checkbox
+              checked={canTradeDirectly}
+              onCheckedChange={(checked) => setCanTradeDirectly(checked === true)}
+              aria-label="Allow this MCP key to execute MT5 trades directly"
+            />
+            <span className="space-y-1">
+              <span className="block text-sm font-medium">Allow direct MT5 trading</span>
+              <span className="block text-xs text-muted-foreground">
+                The AI can submit orders without a separate approval for each trade. Existing
+                account risk limits and Bridge checks still apply; revoke this key to stop its
+                access.
+              </span>
+            </span>
+          </label>
 
           {createdToken && (
             <div className="space-y-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-4">
@@ -369,6 +389,17 @@ function McpPage() {
                       {key.last_used_at &&
                         ` · last request ${new Date(key.last_used_at).toLocaleString()}`}
                     </p>
+                    <p className="mt-1 text-xs">
+                      <span
+                        className={
+                          key.can_trade_directly
+                            ? "font-medium text-amber-700"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {key.can_trade_directly ? "Direct trading enabled" : "No direct trading"}
+                      </span>
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
@@ -408,8 +439,8 @@ function McpPage() {
       </SectionCard>
 
       <SectionCard
-        title="Trade proposals"
-        description="AI-generated proposals do not reach MT5 until you approve them here. The normal trading risk checks still apply."
+        title="Earlier trade proposals"
+        description="This list is retained for proposals created by older MCP clients. New clients use execute_trade and do not need per-trade site approval."
         action={
           pendingRequests.length > 0 ? (
             <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700">
@@ -428,7 +459,7 @@ function McpPage() {
           <EmptyState
             icon={Sparkles}
             title="No trade proposals"
-            description="When an AI client calls propose_trade, its request will appear here for your review."
+            description="No earlier proposals are waiting. New direct commands are checked and queued by the MT5 Bridge."
           />
         ) : (
           <ul className="divide-y divide-border">
@@ -529,10 +560,31 @@ function McpPage() {
           <li className="flex gap-2 rounded-md border border-border p-3">
             <Check className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
-              <strong>propose_trade</strong> — submit an action for your approval; it cannot place
-              orders directly.
+              <strong>execute_trade</strong> — queue orders directly when direct trading is enabled
+              on the key. Risk limits and Bridge checks still apply; provide a stable
+              clientRequestId to make retries idempotent.
             </span>
           </li>
+          {[
+            ["list_bots", "read account bots"],
+            ["create_bot / update_bot / set_bot_status / delete_bot", "manage account bots"],
+            ["list_strategies", "read built-in and user-owned strategies"],
+            [
+              "create_strategy / edit_strategy / rename_strategy / delete_strategy",
+              "manage owned strategies and private built-in overrides",
+            ],
+            [
+              "list_backtests / run_backtest / get_backtest / delete_backtest",
+              "run and manage simulations using EA-synced candles",
+            ],
+          ].map(([name, description]) => (
+            <li key={name} className="flex gap-2 rounded-md border border-border p-3">
+              <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>
+                <strong>{name}</strong> — {description}.
+              </span>
+            </li>
+          ))}
         </ul>
       </SectionCard>
 

@@ -164,6 +164,8 @@ export type UserSettings = {
 
 export type Strategy = {
   id: string;
+  user_id?: string | null;
+  is_builtin?: boolean;
   name: string;
   slug: string;
   description: string;

@@ -53,7 +53,11 @@ export async function getStrategies(): Promise<Strategy[]> {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) {
     logStrategyError(sessionError, "SUPABASE_CONNECTION_ERROR");
-    throw new StrategyServiceError("SUPABASE_CONNECTION_ERROR", "Unable to verify your session.", sessionError);
+    throw new StrategyServiceError(
+      "SUPABASE_CONNECTION_ERROR",
+      "Unable to verify your session.",
+      sessionError,
+    );
   }
   if (!sessionData.session) {
     console.warn("[Strategies] Authenticated: false");
@@ -65,7 +69,7 @@ export async function getStrategies(): Promise<Strategy[]> {
   const { data, error } = await supabase
     .from("strategies")
     .select(
-      "id,name,slug,description,short_description,category,is_active,status,timeframes,markets,configuration,created_at,updated_at",
+      "id,name,slug,description,short_description,category,is_active,is_builtin,user_id,status,timeframes,markets,configuration,created_at,updated_at",
     )
     .eq("is_active", true)
     .order("category", { ascending: true })
@@ -77,6 +81,54 @@ export async function getStrategies(): Promise<Strategy[]> {
     throw new StrategyServiceError(code, "The strategy library could not be loaded.", error);
   }
 
-  console.info("[Strategies] Query succeeded", { count: data?.length ?? 0 });
-  return (data ?? []) as Strategy[];
+  const strategyRows = data ?? [];
+  let overrideById = new Map<
+    string,
+    {
+      name_override: string | null;
+      description_override: string | null;
+      short_description_override: string | null;
+      category_override: string | null;
+      configuration_override: (typeof strategyRows)[number]["configuration"] | null;
+      is_hidden: boolean;
+    }
+  >();
+  if (strategyRows.length > 0) {
+    const { data: overrides, error: overrideError } = await supabase
+      .from("strategy_user_overrides")
+      .select(
+        "strategy_id,name_override,description_override,short_description_override,category_override,configuration_override,is_hidden",
+      )
+      .eq("user_id", sessionData.session.user.id)
+      .in(
+        "strategy_id",
+        strategyRows.map((strategy) => strategy.id),
+      );
+    if (overrideError) {
+      const code = classifySupabaseError(overrideError);
+      logStrategyError(overrideError, code);
+      throw new StrategyServiceError(
+        code,
+        "Your strategy preferences could not be loaded.",
+        overrideError,
+      );
+    }
+    overrideById = new Map((overrides ?? []).map((override) => [override.strategy_id, override]));
+  }
+  const effectiveStrategies = strategyRows
+    .map((strategy) => {
+      const override = overrideById.get(strategy.id);
+      return {
+        ...strategy,
+        name: override?.name_override ?? strategy.name,
+        description: override?.description_override ?? strategy.description,
+        short_description: override?.short_description_override ?? strategy.short_description,
+        category: override?.category_override ?? strategy.category,
+        configuration: override?.configuration_override ?? strategy.configuration,
+        is_hidden: override?.is_hidden ?? false,
+      };
+    })
+    .filter((strategy) => !strategy.is_hidden);
+  console.info("[Strategies] Query succeeded", { count: effectiveStrategies.length });
+  return effectiveStrategies as Strategy[];
 }

@@ -2,7 +2,6 @@ import {
   Activity,
   BarChart3,
   Bot,
-  CandlestickChart,
   HelpCircle,
   LayoutDashboard,
   LineChart,
@@ -27,7 +26,7 @@ export const primaryNav: NavItem[] = [
   { to: "/strategies", label: "Strategies", icon: LineChart },
   { to: "/trades", label: "Trades", icon: Activity },
   { to: "/analysis", label: "Analysis", icon: BarChart3 },
-  { to: "/markets", label: "Markets", icon: CandlestickChart },
+  { to: "/backtest", label: "Backtest", icon: BarChart3 },
   { to: "/news", label: "News", icon: Newspaper },
   { to: "/nfp-prediction", label: "NFP Prediction", icon: TrendingUp },
   { to: "/signal-prediction", label: "Signal Prediction", icon: Target },
@@ -44,7 +43,7 @@ export const mobileNav: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/bots", label: "Bots", icon: Bot },
   { to: "/trades", label: "Trades", icon: Activity },
-  { to: "/markets", label: "Markets", icon: CandlestickChart },
+  { to: "/backtest", label: "Backtest", icon: BarChart3 },
 ];
 
 export const mobileMoreNav = [
@@ -76,7 +75,7 @@ export const pageTitles: Record<string, string> = {
   "/strategies": "Strategies",
   "/trades": "Trades",
   "/analysis": "Analysis",
-  "/markets": "Markets",
+  "/backtest": "Backtest",
   "/news": "News & Economic Calendar",
   "/nfp-prediction": "NFP Prediction",
   "/signal-prediction": "Signal Prediction",

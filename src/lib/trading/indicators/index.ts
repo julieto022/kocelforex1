@@ -3,7 +3,9 @@ import type { MarketCandle } from "../market/types";
 export type IndicatorValue = number | null;
 export type MacdValue = { macd: number; signal: number; histogram: number } | null;
 
-function closes(candles: MarketCandle[]) { return candles.map((candle) => candle.close); }
+function closes(candles: MarketCandle[]) {
+  return candles.map((candle) => candle.close);
+}
 
 export function sma(values: number[], period: number): IndicatorValue {
   if (period < 1 || values.length < period) return null;
@@ -24,7 +26,8 @@ export function rsi(values: number[], period = 14): IndicatorValue {
   let losses = 0;
   for (let index = 1; index <= period; index += 1) {
     const change = values[index]! - values[index - 1]!;
-    if (change >= 0) gains += change; else losses -= change;
+    if (change >= 0) gains += change;
+    else losses -= change;
   }
   let averageGain = gains / period;
   let averageLoss = losses / period;
@@ -39,11 +42,15 @@ export function rsi(values: number[], period = 14): IndicatorValue {
 
 export function atr(candles: MarketCandle[], period = 14): IndicatorValue {
   if (period < 1 || candles.length <= period) return null;
-  const ranges = candles.slice(1).map((candle, index) => Math.max(
-    candle.high - candle.low,
-    Math.abs(candle.high - candles[index]!.close),
-    Math.abs(candle.low - candles[index]!.close),
-  ));
+  const ranges = candles
+    .slice(1)
+    .map((candle, index) =>
+      Math.max(
+        candle.high - candle.low,
+        Math.abs(candle.high - candles[index]!.close),
+        Math.abs(candle.low - candles[index]!.close),
+      ),
+    );
   return sma(ranges, period);
 }
 
@@ -61,14 +68,30 @@ export function momentum(values: number[], period = 10): IndicatorValue {
 
 export function macd(values: number[], fast = 12, slow = 26, signal = 9): MacdValue {
   if (values.length < slow + signal - 1) return null;
+  const fastEma = emaSeries(values, fast);
+  const slowEma = emaSeries(values, slow);
   const macdSeries: number[] = [];
-  for (let index = slow; index <= values.length; index += 1) {
-    const sample = values.slice(0, index);
-    macdSeries.push(ema(sample, fast)! - ema(sample, slow)!);
+  for (let index = slow - 1; index < values.length; index += 1) {
+    macdSeries.push(fastEma[index]! - slowEma[index]!);
   }
   const current = macdSeries.at(-1)!;
   const signalValue = ema(macdSeries, signal);
-  return signalValue === null ? null : { macd: current, signal: signalValue, histogram: current - signalValue };
+  return signalValue === null
+    ? null
+    : { macd: current, signal: signalValue, histogram: current - signalValue };
+}
+
+function emaSeries(values: number[], period: number): number[] {
+  const result = Array<number>(values.length).fill(Number.NaN);
+  if (period < 1 || values.length < period) return result;
+  let current = values.slice(0, period).reduce((sum, value) => sum + value, 0) / period;
+  result[period - 1] = current;
+  const multiplier = 2 / (period + 1);
+  for (let index = period; index < values.length; index += 1) {
+    current = (values[index]! - current) * multiplier + current;
+    result[index] = current;
+  }
+  return result;
 }
 
 export function highestHigh(candles: MarketCandle[], period: number): IndicatorValue {
@@ -82,17 +105,29 @@ export function lowestLow(candles: MarketCandle[], period: number): IndicatorVal
 }
 
 export function averageRange(candles: MarketCandle[], period: number): IndicatorValue {
-  return sma(candles.map((candle) => candle.high - candle.low), period);
+  return sma(
+    candles.map((candle) => candle.high - candle.low),
+    period,
+  );
 }
 
 export function vwap(candles: MarketCandle[]): IndicatorValue {
-  if (candles.length === 0 || candles.some((candle) => candle.volume === undefined || candle.volume === null || candle.volume <= 0)) return null;
-  const totals = candles.reduce((result, candle) => {
-    const typical = (candle.high + candle.low + candle.close) / 3;
-    result.volume += candle.volume!;
-    result.value += typical * candle.volume!;
-    return result;
-  }, { value: 0, volume: 0 });
+  if (
+    candles.length === 0 ||
+    candles.some(
+      (candle) => candle.volume === undefined || candle.volume === null || candle.volume <= 0,
+    )
+  )
+    return null;
+  const totals = candles.reduce(
+    (result, candle) => {
+      const typical = (candle.high + candle.low + candle.close) / 3;
+      result.volume += candle.volume!;
+      result.value += typical * candle.volume!;
+      return result;
+    },
+    { value: 0, volume: 0 },
+  );
   return totals.volume > 0 ? totals.value / totals.volume : null;
 }
 

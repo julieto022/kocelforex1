@@ -20,12 +20,21 @@ describe("market data normalization", () => {
   it("rejects duplicate and invalid OHLC candles", () => {
     const invalid = candles([100, 101]);
     invalid[1] = { ...invalid[1]!, timestamp: invalid[0]!.timestamp };
-    expect(validateMarketCandles(invalid)).toMatchObject({ ok: false, code: "DUPLICATE_TIMESTAMP" });
-    expect(validateMarketCandles([{ ...candles([100])[0]!, high: 99 }])).toMatchObject({ ok: false, code: "INVALID_OHLC" });
+    expect(validateMarketCandles(invalid)).toMatchObject({
+      ok: false,
+      code: "DUPLICATE_TIMESTAMP",
+    });
+    expect(validateMarketCandles([{ ...candles([100])[0]!, high: 99 }])).toMatchObject({
+      ok: false,
+      code: "INVALID_OHLC",
+    });
   });
 
   it("rejects future-dated candles", () => {
-    const future = { ...candles([100])[0]!, timestamp: new Date(Date.now() + 120_000).toISOString() };
+    const future = {
+      ...candles([100])[0]!,
+      timestamp: new Date(Date.now() + 120_000).toISOString(),
+    };
     expect(validateMarketCandles([future])).toMatchObject({ ok: false, code: "INVALID_TIMESTAMP" });
   });
 
@@ -49,37 +58,107 @@ describe("indicators", () => {
     expect(macd([1, 2, 3], 2, 3, 2)).toBeNull();
     expect(vwap(candles([1, 2], false))).toBeNull();
   });
+
+  it("calculates MACD using the same seeded EMA values over complete history", () => {
+    const values = Array.from(
+      { length: 80 },
+      (_, index) => 100 + Math.sin(index / 4) * 3 + index * 0.1,
+    );
+    const fast = 5;
+    const slow = 12;
+    const signal = 4;
+    const series: number[] = [];
+    for (let length = slow; length <= values.length; length += 1) {
+      const sample = values.slice(0, length);
+      series.push(ema(sample, fast)! - ema(sample, slow)!);
+    }
+    const expectedSignal = ema(series, signal)!;
+    expect(macd(values, fast, slow, signal)).toMatchObject({
+      macd: series.at(-1),
+      signal: expectedSignal,
+      histogram: series.at(-1)! - expectedSignal,
+    });
+  });
 });
 
 describe("strategy registry", () => {
   it("resolves system slugs and refuses unsupported external data", () => {
     expect(getStrategyDefinition("kocel-ai-scalper")?.version).toBe("1.0");
-    expect(getStrategyDefinition("nfp-news-trading")?.analyze({} as never).state).toBe("DATA_UNAVAILABLE");
+    expect(getStrategyDefinition("nfp-news-trading")?.analyze({} as never).state).toBe(
+      "DATA_UNAVAILABLE",
+    );
     expect(getStrategyDefinition("carry")?.analyze({} as never).state).toBe("STRATEGY_UNAVAILABLE");
   });
 
   it("keeps the core strategy evaluators distinct", () => {
-    const slugs = ["momentum", "ema-pullback", "break-retest", "liquidity-sweep", "day-trading", "trend-following"];
+    const slugs = [
+      "momentum",
+      "ema-pullback",
+      "break-retest",
+      "liquidity-sweep",
+      "day-trading",
+      "trend-following",
+    ];
     const evaluators = slugs.map((slug) => getStrategyDefinition(slug)?.analyze);
     expect(new Set(evaluators).size).toBe(slugs.length);
   });
 
   it("does not force a conflicting scalper setup into a trade", () => {
     const definition = getStrategyDefinition("kocel-ai-scalper");
-    const market = normalizeMarketData("EURUSD", "M5", candles(Array.from({ length: 60 }, (_, index) => 100 + (index % 2 ? 0.1 : 0))));
-    const result = definition!.analyze({ botId: "bot", strategyId: "strategy", symbol: "EURUSD", timeframe: "M5", configuration: {}, market, candles: market.candles, indicators: { close: 100, sma20: 100, ema9: 100, ema20: 100, ema50: 100, rsi14: 50, macd: null, momentum10: 0, atr14: 1, standardDeviation20: 0, highestHigh20: 101, lowestLow20: 99, averageRange14: 2, vwap: 100 } });
+    const market = normalizeMarketData(
+      "EURUSD",
+      "M5",
+      candles(Array.from({ length: 60 }, (_, index) => 100 + (index % 2 ? 0.1 : 0))),
+    );
+    const result = definition!.analyze({
+      botId: "bot",
+      strategyId: "strategy",
+      symbol: "EURUSD",
+      timeframe: "M5",
+      configuration: {},
+      market,
+      candles: market.candles,
+      indicators: {
+        close: 100,
+        sma20: 100,
+        ema9: 100,
+        ema20: 100,
+        ema50: 100,
+        rsi14: 50,
+        macd: null,
+        momentum10: 0,
+        atr14: 1,
+        standardDeviation20: 0,
+        highestHigh20: 101,
+        lowestLow20: 99,
+        averageRange14: 2,
+        vwap: 100,
+      },
+    });
     expect(result.direction).toBe("NONE");
   });
 });
 
 describe("runtime symbol resolution", () => {
   it("resolves a requested canonical symbol from real Bridge-reported variants", () => {
-    expect(resolveRuntimeSymbol("BTCUSD", ["EURUSD", "BTCUSDm"])).toMatchObject({ ok: true, resolvedSymbol: "BTCUSDm" });
-    expect(resolveRuntimeSymbol("BTCUSD", ["BTCUSD"])).toMatchObject({ ok: true, resolvedSymbol: "BTCUSD" });
+    expect(resolveRuntimeSymbol("BTCUSD", ["EURUSD", "BTCUSDm"])).toMatchObject({
+      ok: true,
+      resolvedSymbol: "BTCUSDm",
+    });
+    expect(resolveRuntimeSymbol("BTCUSD", ["BTCUSD"])).toMatchObject({
+      ok: true,
+      resolvedSymbol: "BTCUSD",
+    });
   });
 
   it("does not guess when no reported symbol or multiple variants exist", () => {
-    expect(resolveRuntimeSymbol("BTCUSD", ["EURUSD"])).toMatchObject({ ok: false, reason: "SYMBOL_NOT_AVAILABLE" });
-    expect(resolveRuntimeSymbol("BTCUSD", ["BTCUSDm", "BTCUSD.a"])).toMatchObject({ ok: false, reason: "SYMBOL_RESOLUTION_AMBIGUOUS" });
+    expect(resolveRuntimeSymbol("BTCUSD", ["EURUSD"])).toMatchObject({
+      ok: false,
+      reason: "SYMBOL_NOT_AVAILABLE",
+    });
+    expect(resolveRuntimeSymbol("BTCUSD", ["BTCUSDm", "BTCUSD.a"])).toMatchObject({
+      ok: false,
+      reason: "SYMBOL_RESOLUTION_AMBIGUOUS",
+    });
   });
 });

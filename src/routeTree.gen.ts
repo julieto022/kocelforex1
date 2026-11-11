@@ -17,10 +17,10 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppAnalysisRouteImport } from './routes/_app.analysis'
+import { Route as AppBacktestRouteImport } from './routes/_app.backtest'
 import { Route as AppBotsRouteImport } from './routes/_app.bots'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
-import { Route as AppMarketsRouteImport } from './routes/_app.markets'
 import { Route as AppMcpRouteImport } from './routes/_app.mcp'
 import { Route as AppNewsRouteImport } from './routes/_app.news'
 import { Route as AppNfpPredictionRouteImport } from './routes/_app.nfp-prediction'
@@ -93,6 +93,11 @@ const AppAnalysisRoute = AppAnalysisRouteImport.update({
   path: '/analysis',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBacktestRoute = AppBacktestRouteImport.update({
+  id: '/backtest',
+  path: '/backtest',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBotsRoute = AppBotsRouteImport.update({
   id: '/bots',
   path: '/bots',
@@ -106,11 +111,6 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppHelpRoute = AppHelpRouteImport.update({
   id: '/help',
   path: '/help',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMarketsRoute = AppMarketsRouteImport.update({
-  id: '/markets',
-  path: '/markets',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMcpRoute = AppMcpRouteImport.update({
@@ -290,10 +290,10 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/analysis': typeof AppAnalysisRoute
+  '/backtest': typeof AppBacktestRoute
   '/bots': typeof AppBotsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
-  '/markets': typeof AppMarketsRoute
   '/mcp': typeof AppMcpRoute
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
@@ -335,10 +335,10 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/analysis': typeof AppAnalysisRoute
+  '/backtest': typeof AppBacktestRoute
   '/bots': typeof AppBotsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
-  '/markets': typeof AppMarketsRoute
   '/mcp': typeof AppMcpRoute
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
@@ -381,10 +381,10 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/analysis': typeof AppAnalysisRoute
+  '/_app/backtest': typeof AppBacktestRoute
   '/_app/bots': typeof AppBotsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/help': typeof AppHelpRoute
-  '/_app/markets': typeof AppMarketsRoute
   '/_app/mcp': typeof AppMcpRoute
   '/_app/news': typeof AppNewsRoute
   '/_app/nfp-prediction': typeof AppNfpPredictionRoute
@@ -428,10 +428,10 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/analysis'
+    | '/backtest'
     | '/bots'
     | '/dashboard'
     | '/help'
-    | '/markets'
     | '/mcp'
     | '/news'
     | '/nfp-prediction'
@@ -473,10 +473,10 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/analysis'
+    | '/backtest'
     | '/bots'
     | '/dashboard'
     | '/help'
-    | '/markets'
     | '/mcp'
     | '/news'
     | '/nfp-prediction'
@@ -518,10 +518,10 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/_app/analysis'
+    | '/_app/backtest'
     | '/_app/bots'
     | '/_app/dashboard'
     | '/_app/help'
-    | '/_app/markets'
     | '/_app/mcp'
     | '/_app/news'
     | '/_app/nfp-prediction'
@@ -636,6 +636,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalysisRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/backtest': {
+      id: '/_app/backtest'
+      path: '/backtest'
+      fullPath: '/backtest'
+      preLoaderRoute: typeof AppBacktestRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/bots': {
       id: '/_app/bots'
       path: '/bots'
@@ -655,13 +662,6 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof AppHelpRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/markets': {
-      id: '/_app/markets'
-      path: '/markets'
-      fullPath: '/markets'
-      preLoaderRoute: typeof AppMarketsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/mcp': {
@@ -932,10 +932,10 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppAnalysisRoute: typeof AppAnalysisRoute
+  AppBacktestRoute: typeof AppBacktestRoute
   AppBotsRoute: typeof AppBotsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppHelpRoute: typeof AppHelpRoute
-  AppMarketsRoute: typeof AppMarketsRoute
   AppMcpRoute: typeof AppMcpRoute
   AppNewsRoute: typeof AppNewsRoute
   AppNfpPredictionRoute: typeof AppNfpPredictionRoute
@@ -950,10 +950,10 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalysisRoute: AppAnalysisRoute,
+  AppBacktestRoute: AppBacktestRoute,
   AppBotsRoute: AppBotsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppHelpRoute: AppHelpRoute,
-  AppMarketsRoute: AppMarketsRoute,
   AppMcpRoute: AppMcpRoute,
   AppNewsRoute: AppNewsRoute,
   AppNfpPredictionRoute: AppNfpPredictionRoute,

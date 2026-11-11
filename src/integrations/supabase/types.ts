@@ -173,6 +173,7 @@ export type Database = {
           account_type: string | null
           authorized_at: string | null
           balance: number | null
+          broker_name: string | null
           broker_id: string
           created_at: string
           credit: number | null
@@ -205,6 +206,7 @@ export type Database = {
           account_type?: string | null
           authorized_at?: string | null
           balance?: number | null
+          broker_name?: string | null
           broker_id: string
           created_at?: string
           credit?: number | null
@@ -237,6 +239,7 @@ export type Database = {
           account_type?: string | null
           authorized_at?: string | null
           balance?: number | null
+          broker_name?: string | null
           broker_id?: string
           created_at?: string
           credit?: number | null
@@ -1093,8 +1096,68 @@ export type Database = {
           },
         ]
       }
+      market_candles: {
+        Row: {
+          broker_connection_id: string
+          close: number
+          created_at: string
+          high: number
+          id: string
+          low: number
+          open: number
+          received_at: string
+          source: string
+          symbol: string
+          timeframe: string
+          timestamp: string
+          user_id: string
+          volume: number | null
+        }
+        Insert: {
+          broker_connection_id: string
+          close: number
+          created_at?: string
+          high: number
+          id?: string
+          low: number
+          open: number
+          received_at?: string
+          source?: string
+          symbol: string
+          timeframe: string
+          timestamp: string
+          user_id: string
+          volume?: number | null
+        }
+        Update: {
+          broker_connection_id?: string
+          close?: number
+          created_at?: string
+          high?: number
+          id?: string
+          low?: number
+          open?: number
+          received_at?: string
+          source?: string
+          symbol?: string
+          timeframe?: string
+          timestamp?: string
+          user_id?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_candles_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mcp_api_keys: {
         Row: {
+          can_trade_directly: boolean
           connection_id: string
           created_at: string
           id: string
@@ -1106,6 +1169,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_trade_directly?: boolean
           connection_id: string
           created_at?: string
           id?: string
@@ -1117,6 +1181,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_trade_directly?: boolean
           connection_id?: string
           created_at?: string
           id?: string
@@ -1133,6 +1198,219 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backtest_runs: {
+        Row: {
+          candle_count: number
+          connection_id: string
+          created_at: string
+          end_at: string
+          engine_version: string
+          equity_curve: Json
+          id: string
+          metrics: Json
+          settings: Json
+          start_at: string
+          strategy_id: string | null
+          strategy_name: string
+          symbol: string
+          timeframe: string
+          trades: Json
+          user_id: string
+        }
+        Insert: {
+          candle_count: number
+          connection_id: string
+          created_at?: string
+          end_at: string
+          engine_version: string
+          equity_curve: Json
+          id?: string
+          metrics: Json
+          settings: Json
+          start_at: string
+          strategy_id?: string | null
+          strategy_name: string
+          symbol: string
+          timeframe: string
+          trades: Json
+          user_id: string
+        }
+        Update: {
+          candle_count?: number
+          connection_id?: string
+          created_at?: string
+          end_at?: string
+          engine_version?: string
+          equity_curve?: Json
+          id?: string
+          metrics?: Json
+          settings?: Json
+          start_at?: string
+          strategy_id?: string | null
+          strategy_name?: string
+          symbol?: string
+          timeframe?: string
+          trades?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backtest_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backtest_runs_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategy_analysis: {
+        Row: {
+          analyzed_at: string
+          bot_id: string
+          broker_connection_id: string | null
+          confidence: number
+          created_at: string
+          data_status: string
+          data_timestamp: string | null
+          direction: string
+          entry_price: number | null
+          factors: Json
+          id: string
+          indicator_snapshot: Json
+          market_state: string
+          reason: string
+          signal_state: string
+          stop_loss: number | null
+          strategy_id: string
+          strategy_version: string
+          symbol: string
+          take_profit: number | null
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          analyzed_at?: string
+          bot_id: string
+          broker_connection_id?: string | null
+          confidence?: number
+          created_at?: string
+          data_status?: string
+          data_timestamp?: string | null
+          direction?: string
+          entry_price?: number | null
+          factors?: Json
+          id?: string
+          indicator_snapshot?: Json
+          market_state?: string
+          reason: string
+          signal_state?: string
+          stop_loss?: number | null
+          strategy_id: string
+          strategy_version?: string
+          symbol: string
+          take_profit?: number | null
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          analyzed_at?: string
+          bot_id?: string
+          broker_connection_id?: string | null
+          confidence?: number
+          created_at?: string
+          data_status?: string
+          data_timestamp?: string | null
+          direction?: string
+          entry_price?: number | null
+          factors?: Json
+          id?: string
+          indicator_snapshot?: Json
+          market_state?: string
+          reason?: string
+          signal_state?: string
+          stop_loss?: number | null
+          strategy_id?: string
+          strategy_version?: string
+          symbol?: string
+          take_profit?: number | null
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_analysis_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_analysis_broker_connection_id_fkey"
+            columns: ["broker_connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_analysis_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategy_user_overrides: {
+        Row: {
+          category_override: string | null
+          configuration_override: Json | null
+          description_override: string | null
+          is_hidden: boolean
+          name_override: string | null
+          short_description_override: string | null
+          strategy_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_override?: string | null
+          configuration_override?: Json | null
+          description_override?: string | null
+          is_hidden?: boolean
+          name_override?: string | null
+          short_description_override?: string | null
+          strategy_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_override?: string | null
+          configuration_override?: Json | null
+          description_override?: string | null
+          is_hidden?: boolean
+          name_override?: string | null
+          short_description_override?: string | null
+          strategy_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_user_overrides_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
             referencedColumns: ["id"]
           },
         ]
@@ -1588,6 +1866,7 @@ export type Database = {
           timeframe: string | null
           timeframes: Json
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           category?: string
@@ -1606,6 +1885,7 @@ export type Database = {
           timeframe?: string | null
           timeframes?: Json
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           category?: string
@@ -1624,6 +1904,7 @@ export type Database = {
           timeframe?: string | null
           timeframes?: Json
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

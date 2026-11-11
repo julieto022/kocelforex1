@@ -54,8 +54,15 @@ endpoint returns the Bridge token. Kocel never receives the broker password.
   `CONNECTION_CODE_PEPPER`; Bridge tokens are signed with `BRIDGE_TOKEN_SECRET` and checked
   against the connection's revocation state.
 - MCP keys are scoped to one owned MT5 connection, stored only as one-way hashes,
-  rate-limited per key, and revocable from `/mcp`. MCP trade tools create proposals only;
-  the account owner must approve each command in Kocel before risk checks and MT5 submission.
+  rate-limited per key, and revocable from `/mcp`. Direct trading is an explicit per-key
+  capability; commands still pass the account's risk checks, Bridge freshness checks, and EA
+  validation. Bot, strategy, and backtest tools are restricted to the key owner's account data.
+- Built-in strategies are shared and cannot be changed globally by an MCP client. Rename, edit,
+  or hide operations create private owner-specific overrides; custom strategies are owner-scoped.
+- Backtests replay historical OHLC candles received from the MT5 Bridge EA. They use next-candle
+  entries, risk-based simulated sizing, supplied spread/slippage, and conservative stop-first
+  handling when a candle touches both stop and target. They do not model broker contract sizes,
+  commission, swaps, gaps, or execution latency.
 - Sensitive fields are redacted by `src/lib/api/logger.ts` before logging.
 
 ## Environment
@@ -82,11 +89,14 @@ must be run against a disposable test project because it creates and deletes aut
 `docs/openapi.yaml` freezes the Bridge contract as **Bridge API Version 1.0**.
 The MCP Streamable HTTP endpoint is separate at `/api/mcp`. Sign in to Kocel and visit
 `/mcp` to create a per-account bearer key and copy the MCP client configuration. The key
-is displayed only once. The endpoint exposes `get_mt5_account`, `list_open_positions`,
-`list_pending_orders`, and `propose_trade`; it does not place trades directly. Each
-proposal must be reviewed in the Kocel `/mcp` page.
+is displayed only once. The endpoint exposes account/position/order reads, direct trade execution
+when explicitly enabled on that key, account-scoped bot and strategy management, and saved
+backtest management. `execute_trade` queues a command without per-trade site approval, requires a
+stable `clientRequestId` for retry idempotency, and returns a pending status until the Bridge EA
+reports the actual result.
 
-Apply `supabase/migrations/20261111185000_mcp_ai_feature.sql` to the connected Supabase
-project before deploying the MCP feature. The endpoint uses stateless JSON-RPC POST requests;
-the page's AI activity indicator reflects authenticated MCP requests received in the prior
-two minutes, not a persistent transport session.
+Apply `supabase/migrations/20261111185000_mcp_ai_feature.sql` and
+`supabase/migrations/20261112100000_mcp_management_and_backtesting.sql` to the connected
+Supabase project before deploying the expanded MCP and backtest features. The endpoint uses
+stateless JSON-RPC POST requests; the page's AI activity indicator reflects authenticated MCP
+requests received in the prior two minutes, not a persistent transport session.

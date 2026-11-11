@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createKocelMcpServer,
   createMcpTransport,
-  prepareMcpTradeProposal,
+  prepareMcpTradeExecution,
 } from "@/lib/server/mcp.server";
 
 async function sendStatelessMcpRequest(body: unknown): Promise<Response> {
@@ -11,6 +11,7 @@ async function sendStatelessMcpRequest(body: unknown): Promise<Response> {
     id: "4e090855-f447-4ad4-8e51-ce13004feefd",
     user_id: "8bf848e7-f647-4711-a7cb-bbd0ed65f079",
     connection_id: "92dcd879-9d35-4f4f-9cad-965b6392675d",
+    can_trade_directly: false,
   });
   const transport = createMcpTransport();
   await server.connect(transport);
@@ -32,12 +33,14 @@ async function sendStatelessMcpRequest(body: unknown): Promise<Response> {
   }
 }
 
-describe("MCP trade proposal validation", () => {
+describe("MCP direct trade validation", () => {
   const connectionId = "92dcd879-9d35-4f4f-9cad-965b6392675d";
+  const clientRequestId = "c799d57a-2ea8-4df5-b0dc-c79839a12d62";
 
-  it("binds a valid proposal to its account and adds an idempotency key", () => {
-    const request = prepareMcpTradeProposal(connectionId, {
+  it("binds a valid execution request to its account and preserves its idempotency key", () => {
+    const request = prepareMcpTradeExecution(connectionId, {
       operation: "OPEN_MARKET",
+      clientRequestId,
       symbol: "EURUSD",
       side: "BUY",
       volume: 0.1,
@@ -47,36 +50,47 @@ describe("MCP trade proposal validation", () => {
     expect(request).toMatchObject({
       connectionId,
       operation: "OPEN_MARKET",
+      clientRequestId,
       symbol: "EURUSD",
       side: "BUY",
       volume: 0.1,
     });
-    expect(request.clientRequestId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    );
+    expect(request.clientRequestId).toBe(clientRequestId);
   });
 
   it("rejects operation-specific fields that are missing or invalid", () => {
     expect(() =>
-      prepareMcpTradeProposal(connectionId, {
+      prepareMcpTradeExecution(connectionId, {
         operation: "OPEN_MARKET",
+        clientRequestId,
         side: "BUY",
         volume: 0.1,
       }),
     ).toThrow();
 
     expect(() =>
-      prepareMcpTradeProposal(connectionId, {
+      prepareMcpTradeExecution(connectionId, {
         operation: "OPEN_MARKET",
+        clientRequestId,
         side: "BUY",
         volume: 0,
       }),
     ).toThrow();
 
     expect(() =>
-      prepareMcpTradeProposal(connectionId, {
+      prepareMcpTradeExecution(connectionId, {
         operation: "CLOSE_POSITION",
+        clientRequestId,
         positionTicket: -1,
+      }),
+    ).toThrow();
+  });
+
+  it("requires a caller-provided idempotency key", () => {
+    expect(() =>
+      prepareMcpTradeExecution(connectionId, {
+        operation: "CLOSE_POSITION",
+        positionTicket: 123,
       }),
     ).toThrow();
   });
@@ -111,7 +125,45 @@ describe("stateless MCP transport", () => {
       "get_mt5_account",
       "list_open_positions",
       "list_pending_orders",
-      "propose_trade",
+      "execute_trade",
+      "list_bots",
+      "create_bot",
+      "update_bot",
+      "set_bot_status",
+      "delete_bot",
+      "list_strategies",
+      "create_strategy",
+      "edit_strategy",
+      "rename_strategy",
+      "delete_strategy",
+      "list_backtests",
+      "run_backtest",
+      "get_backtest",
+      "delete_backtest",
     ]);
+  });
+
+  it("refuses direct trade execution when the key capability is disabled", async () => {
+    const response = await sendStatelessMcpRequest({
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: {
+        name: "execute_trade",
+        arguments: {
+          operation: "OPEN_MARKET",
+          clientRequestId: "c799d57a-2ea8-4df5-b0dc-c79839a12d62",
+          symbol: "EURUSD",
+          side: "BUY",
+          volume: 0.1,
+        },
+      },
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    expect(body.result.isError).toBe(true);
+    expect(body.result.content[0]?.text).toContain("Direct trading is not enabled");
   });
 });
