@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   Newspaper,
   Settings,
+  Sparkles,
   Target,
   TrendingUp,
   type LucideIcon,
@@ -30,6 +31,7 @@ export const primaryNav: NavItem[] = [
   { to: "/news", label: "News", icon: Newspaper },
   { to: "/nfp-prediction", label: "NFP Prediction", icon: TrendingUp },
   { to: "/signal-prediction", label: "Signal Prediction", icon: Target },
+  { to: "/mcp", label: "AI & MCP", icon: Sparkles },
   { to: "/community", label: "Community", icon: MessagesSquare },
 ];
 
@@ -49,6 +51,7 @@ export const mobileMoreNav = [
   { to: "/news", label: "News" },
   { to: "/nfp-prediction", label: "NFP Prediction" },
   { to: "/signal-prediction", label: "Signal Prediction" },
+  { to: "/mcp", label: "AI & MCP" },
   { to: "/community", label: "Community" },
   { to: "/strategies", label: "Strategies" },
   { to: "/analysis", label: "Analysis" },
@@ -77,6 +80,7 @@ export const pageTitles: Record<string, string> = {
   "/news": "News & Economic Calendar",
   "/nfp-prediction": "NFP Prediction",
   "/signal-prediction": "Signal Prediction",
+  "/mcp": "AI & MCP",
   "/community": "Community",
   "/notifications": "Notifications",
   "/help": "Help & Documentation",

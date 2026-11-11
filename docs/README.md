@@ -15,6 +15,7 @@ Server functions  ──►  Postgres (RLS, owner-scoped policies)
   ^
   |  HTTP + authorization poll token / bridge token (HMAC signed)
 Kocel Bridge EA (user's MetaTrader 5 terminal)
+AI client (MCP Streamable HTTP + per-account bearer key)
 ```
 
 - **UI/routes** — `src/routes`. Authenticated pages live under `_app.*`.
@@ -24,7 +25,8 @@ Kocel Bridge EA (user's MetaTrader 5 terminal)
   `requireSupabaseAuth`; the handler receives `{ supabase, userId, claims }`.
 - **Server-only helpers** — `src/lib/server/*.server.ts` (crypto, bridge,
   ownership, rate limiting, notifications). Never imported by client code.
-- **Public HTTP** — `src/routes/api/public/*`. Bridge contract and health only.
+- **Public HTTP** — `src/routes/api/public/*` for the Bridge contract and
+  `src/routes/api/mcp.ts` for authenticated MCP requests.
 - **Contracts** — `src/lib/contracts/*` define provider and broker interfaces so
   data sources (news, calendar, NFP, market data, signals) can be swapped.
 
@@ -51,6 +53,9 @@ endpoint returns the Bridge token. Kocel never receives the broker password.
 - Authorization poll tokens and session tokens are stored hashed with
   `CONNECTION_CODE_PEPPER`; Bridge tokens are signed with `BRIDGE_TOKEN_SECRET` and checked
   against the connection's revocation state.
+- MCP keys are scoped to one owned MT5 connection, stored only as one-way hashes,
+  rate-limited per key, and revocable from `/mcp`. MCP trade tools create proposals only;
+  the account owner must approve each command in Kocel before risk checks and MT5 submission.
 - Sensitive fields are redacted by `src/lib/api/logger.ts` before logging.
 
 ## Environment
@@ -74,6 +79,14 @@ must be run against a disposable test project because it creates and deletes aut
 
 ## API reference
 
-`docs/openapi.yaml` freezes the public Bridge contract as **Bridge API Version 1.0**.
-Application features use typed server functions, not HTTP endpoints. Changes to the Bridge
-wire contract require a new API version.
+`docs/openapi.yaml` freezes the Bridge contract as **Bridge API Version 1.0**.
+The MCP Streamable HTTP endpoint is separate at `/api/mcp`. Sign in to Kocel and visit
+`/mcp` to create a per-account bearer key and copy the MCP client configuration. The key
+is displayed only once. The endpoint exposes `get_mt5_account`, `list_open_positions`,
+`list_pending_orders`, and `propose_trade`; it does not place trades directly. Each
+proposal must be reviewed in the Kocel `/mcp` page.
+
+Apply `supabase/migrations/20261111185000_mcp_ai_feature.sql` to the connected Supabase
+project before deploying the MCP feature. The endpoint uses stateless JSON-RPC POST requests;
+the page's AI activity indicator reflects authenticated MCP requests received in the prior
+two minutes, not a persistent transport session.

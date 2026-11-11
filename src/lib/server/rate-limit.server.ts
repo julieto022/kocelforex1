@@ -23,6 +23,10 @@ export const RATE_LIMITS = {
   communityReport: { limit: 20, windowSeconds: 86400 },
   /** Bridge EA endpoints, per connection. */
   bridge: { limit: 240, windowSeconds: 60 },
+  /** MCP tool requests, per API key. */
+  mcp: { limit: 120, windowSeconds: 60 },
+  /** MCP key creation, per user. */
+  mcpKey: { limit: 5, windowSeconds: 3600 },
   /** Bridge registration attempts, per caller. */
   bridgeRegister: { limit: 20, windowSeconds: 600 },
   bridgePoll: { limit: 120, windowSeconds: 600 },

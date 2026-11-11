@@ -21,6 +21,7 @@ import { Route as AppBotsRouteImport } from './routes/_app.bots'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppMarketsRouteImport } from './routes/_app.markets'
+import { Route as AppMcpRouteImport } from './routes/_app.mcp'
 import { Route as AppNewsRouteImport } from './routes/_app.news'
 import { Route as AppNfpPredictionRouteImport } from './routes/_app.nfp-prediction'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
@@ -28,6 +29,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSignalPredictionRouteImport } from './routes/_app.signal-prediction'
 import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
 import { Route as AppTradesRouteImport } from './routes/_app.trades'
+import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppBotsCreateRouteImport } from './routes/_app.bots.create'
 import { Route as AppCommunityIndexRouteImport } from './routes/_app.community.index'
 import { Route as AppCommunityUserIdRouteImport } from './routes/_app.community.$userId'
@@ -111,6 +113,11 @@ const AppMarketsRoute = AppMarketsRouteImport.update({
   path: '/markets',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMcpRoute = AppMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppNewsRoute = AppNewsRouteImport.update({
   id: '/news',
   path: '/news',
@@ -145,6 +152,11 @@ const AppTradesRoute = AppTradesRouteImport.update({
   id: '/trades',
   path: '/trades',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppBotsCreateRoute = AppBotsCreateRouteImport.update({
   id: '/create',
@@ -282,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
   '/markets': typeof AppMarketsRoute
+  '/mcp': typeof AppMcpRoute
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
@@ -289,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/bots/create': typeof AppBotsCreateRoute
   '/community/$userId': typeof AppCommunityUserIdRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
@@ -325,12 +339,14 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
   '/markets': typeof AppMarketsRoute
+  '/mcp': typeof AppMcpRoute
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
   '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/bots/create': typeof AppBotsCreateRoute
   '/community/$userId': typeof AppCommunityUserIdRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
@@ -369,6 +385,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/help': typeof AppHelpRoute
   '/_app/markets': typeof AppMarketsRoute
+  '/_app/mcp': typeof AppMcpRoute
   '/_app/news': typeof AppNewsRoute
   '/_app/nfp-prediction': typeof AppNfpPredictionRoute
   '/_app/notifications': typeof AppNotificationsRoute
@@ -376,6 +393,7 @@ export interface FileRoutesById {
   '/_app/signal-prediction': typeof AppSignalPredictionRoute
   '/_app/strategies': typeof AppStrategiesRoute
   '/_app/trades': typeof AppTradesRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/_app/bots/create': typeof AppBotsCreateRoute
   '/_app/community/$userId': typeof AppCommunityUserIdRoute
   '/_app/settings/appearance': typeof AppSettingsAppearanceRoute
@@ -414,6 +432,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/help'
     | '/markets'
+    | '/mcp'
     | '/news'
     | '/nfp-prediction'
     | '/notifications'
@@ -421,6 +440,7 @@ export interface FileRouteTypes {
     | '/signal-prediction'
     | '/strategies'
     | '/trades'
+    | '/api/mcp'
     | '/bots/create'
     | '/community/$userId'
     | '/settings/appearance'
@@ -457,12 +477,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/help'
     | '/markets'
+    | '/mcp'
     | '/news'
     | '/nfp-prediction'
     | '/notifications'
     | '/signal-prediction'
     | '/strategies'
     | '/trades'
+    | '/api/mcp'
     | '/bots/create'
     | '/community/$userId'
     | '/settings/appearance'
@@ -500,6 +522,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/help'
     | '/_app/markets'
+    | '/_app/mcp'
     | '/_app/news'
     | '/_app/nfp-prediction'
     | '/_app/notifications'
@@ -507,6 +530,7 @@ export interface FileRouteTypes {
     | '/_app/signal-prediction'
     | '/_app/strategies'
     | '/_app/trades'
+    | '/api/mcp'
     | '/_app/bots/create'
     | '/_app/community/$userId'
     | '/_app/settings/appearance'
@@ -540,6 +564,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiMcpRoute: typeof ApiMcpRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   AuthorizeMt5RequestIdRoute: typeof AuthorizeMt5RequestIdRoute
   ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
@@ -639,6 +664,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMarketsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/mcp': {
+      id: '/_app/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof AppMcpRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/news': {
       id: '/_app/news'
       path: '/news'
@@ -687,6 +719,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/trades'
       preLoaderRoute: typeof AppTradesRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/bots/create': {
       id: '/_app/bots/create'
@@ -897,6 +936,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppHelpRoute: typeof AppHelpRoute
   AppMarketsRoute: typeof AppMarketsRoute
+  AppMcpRoute: typeof AppMcpRoute
   AppNewsRoute: typeof AppNewsRoute
   AppNfpPredictionRoute: typeof AppNfpPredictionRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
@@ -914,6 +954,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppHelpRoute: AppHelpRoute,
   AppMarketsRoute: AppMarketsRoute,
+  AppMcpRoute: AppMcpRoute,
   AppNewsRoute: AppNewsRoute,
   AppNfpPredictionRoute: AppNfpPredictionRoute,
   AppNotificationsRoute: AppNotificationsRoute,
@@ -935,6 +976,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiMcpRoute: ApiMcpRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   AuthorizeMt5RequestIdRoute: AuthorizeMt5RequestIdRoute,
   ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,

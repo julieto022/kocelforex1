@@ -1093,6 +1093,104 @@ export type Database = {
           },
         ]
       }
+      mcp_api_keys: {
+        Row: {
+          connection_id: string
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          token_hash: string
+          token_hint: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          token_hash: string
+          token_hint: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          token_hash?: string
+          token_hint?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_api_keys_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_trade_requests: {
+        Row: {
+          api_key_id: string
+          command_id: string | null
+          connection_id: string
+          created_at: string
+          decided_at: string | null
+          decision_reason: string | null
+          id: string
+          payload: Json
+          status: string
+          user_id: string
+        }
+        Insert: {
+          api_key_id: string
+          command_id?: string | null
+          connection_id: string
+          created_at?: string
+          decided_at?: string | null
+          decision_reason?: string | null
+          id?: string
+          payload: Json
+          status?: string
+          user_id: string
+        }
+        Update: {
+          api_key_id?: string
+          command_id?: string | null
+          connection_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decision_reason?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_trade_requests_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_trade_requests_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news: {
         Row: {
           category: string
