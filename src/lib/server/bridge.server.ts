@@ -41,6 +41,10 @@ function isOnline(lastSeenAt: string | null): boolean {
   return Date.now() - new Date(lastSeenAt).getTime() < BRIDGE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
 }
 
+export function resolveBridgeBrokerHint(broker: string | null | undefined, server: string): string {
+  return broker?.trim() || server.trim();
+}
+
 /**
  * MT5 terminals report times as "YYYY.MM.DD HH:MM:SS". Accept that alongside
  * ISO-8601 and normalise to an ISO UTC instant the database can store.
@@ -160,7 +164,7 @@ export const bridgeService: BridgeService = {
         mt5_login: request.mt5Login,
         server: request.server,
         environment: request.environment ?? null,
-        broker_hint: request.broker ?? null,
+        broker_hint: resolveBridgeBrokerHint(request.broker, request.server),
         account_name: request.accountName ?? null,
         currency: request.currency ?? null,
         leverage: request.leverage ?? null,

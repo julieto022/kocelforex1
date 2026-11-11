@@ -59,6 +59,8 @@ mt5-bridge/
 - `InpPanelPosition`: chart corner for the EA panel.
 - `InpShowDetailedStatus`: shows extra MT5/API status details on the chart panel.
 
+EA version 1.0.1 uses the MT5 server name as the broker label if the terminal does not report a broker company name.
+
 ## Phase 2 Endpoint Alignment
 
 The HTTP foundation defines the existing Phase 2 paths:
@@ -76,6 +78,8 @@ The EA calls these endpoints during the Phase 3.2 authorization and connection l
 Add the configured Kocel API base URL to:
 
 `Tools -> Options -> Expert Advisors -> Allow WebRequest for listed URL`
+
+For the default configuration, add `https://kocelforex1.vercel.app` (without a path).
 
 The EA reports a clear error when MT5 blocks the request.
 

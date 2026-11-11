@@ -1,5 +1,5 @@
 #property strict
-#property version   "1.00"
+#property version   "1.01"
 #property copyright "Kocel Forex Hub"
 #property description "Kocel Bridge EA foundation for MetaTrader 5."
 

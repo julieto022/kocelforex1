@@ -83,7 +83,7 @@ function MT5AuthorizationPage() {
       <div className="space-y-4">
         <dl className="space-y-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">Broker</dt>
+            <dt className="text-muted-foreground">Broker or server</dt>
             <dd>{request.data.broker_hint ?? "Unavailable"}</dd>
           </div>
           <div className="flex justify-between gap-4">

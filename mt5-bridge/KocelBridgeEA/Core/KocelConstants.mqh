@@ -3,7 +3,7 @@
 
 const string KOCEL_EA_NAME = "Kocel Bridge";
 const string KOCEL_PRODUCT_NAME = "Kocel Forex Hub";
-const string KOCEL_EA_VERSION = "1.0.0";
+const string KOCEL_EA_VERSION = "1.0.1";
 const int    KOCEL_PROTOCOL_VERSION = 1;
 
 #define KOCEL_DEFAULT_API_BASE_URL "https://kocelforex1.vercel.app"

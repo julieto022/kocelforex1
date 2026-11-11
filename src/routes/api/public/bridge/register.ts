@@ -23,7 +23,8 @@ const schema = z.object({
     .trim()
     .min(1)
     .max(120)
-    .refine((value) => !/[\u0000-\u001F\u007F]/.test(value), "Invalid broker value"),
+    .refine((value) => !/[\u0000-\u001F\u007F]/.test(value), "Invalid broker value")
+    .nullish(),
   accountName: z.string().trim().max(80).nullish(),
   currency: z.string().trim().min(1).max(8).nullish(),
   leverage: z.number().int().min(0).max(10_000).nullish(),
@@ -46,7 +47,7 @@ export const Route = createFileRoute("/api/public/bridge/register")({
             mt5Login: body.mt5Login,
             server: body.server,
             environment: body.environment,
-            broker: body.broker,
+            broker: body.broker ?? null,
             accountName: body.accountName ?? null,
             currency: body.currency ?? null,
             leverage: body.leverage ?? null,

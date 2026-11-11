@@ -76,6 +76,23 @@ private:
       return true;
    }
 
+   string HttpFailureMessage(const KocelHttpResponse &response) const
+   {
+      string message = response.error_message;
+      if(response.status_code < 400 || response.status_code >= 500)
+         return message;
+
+      string error_object = "";
+      string detail = "";
+      if(KocelJsonGetObject(response.body, "error", error_object) &&
+         KocelJsonGetString(error_object, "message", detail) &&
+         detail != "")
+      {
+         message += " Server detail: " + StringSubstr(detail, 0, 180);
+      }
+      return message;
+   }
+
    string RegisterPayload(const KocelMt5AccountInfo &account) const
    {
       string payload = "{";
@@ -282,7 +299,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
       string data = "";
@@ -308,7 +325,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -364,7 +381,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -411,7 +428,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -464,7 +481,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -494,7 +511,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -526,7 +543,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -578,7 +595,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         message = response.error_message;
+         message = HttpFailureMessage(response);
          return false;
       }
 
@@ -633,7 +650,7 @@ public:
       m_last_response = response;
       if(!http_ok)
       {
-         response_message = response.error_message;
+         response_message = HttpFailureMessage(response);
          return false;
       }
 

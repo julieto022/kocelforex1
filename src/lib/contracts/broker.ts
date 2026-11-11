@@ -51,7 +51,7 @@ export type BridgeRegisterRequest = {
   mt5Login: string;
   server: string;
   environment: ConnectionEnvironment;
-  broker: string;
+  broker?: string | null;
   accountName?: string | null;
   currency?: string | null;
   leverage?: number | null;

@@ -56,6 +56,8 @@ public:
       info.login = (long)AccountInfoInteger(ACCOUNT_LOGIN);
       info.server = SafeString(AccountInfoString(ACCOUNT_SERVER));
       info.broker = SafeString(AccountInfoString(ACCOUNT_COMPANY));
+      if(info.broker == "")
+         info.broker = info.server;
       info.account_name = SafeString(AccountInfoString(ACCOUNT_NAME));
       info.currency = SafeString(AccountInfoString(ACCOUNT_CURRENCY));
       info.leverage = (long)AccountInfoInteger(ACCOUNT_LEVERAGE);

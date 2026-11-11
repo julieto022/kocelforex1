@@ -45,7 +45,9 @@ export async function limitBridge(identity: BridgeIdentity): Promise<void> {
 /** Converts any thrown value into the uniform failure envelope. */
 export function toErrorResponse(error: unknown): Response {
   if (error instanceof z.ZodError) {
-    return fail("VALIDATION_ERROR", error.issues[0]?.message ?? "Invalid request body.");
+    const issue = error.issues[0];
+    const path = issue?.path.length ? `${issue.path.join(".")}: ` : "";
+    return fail("VALIDATION_ERROR", `${path}${issue?.message ?? "Invalid request body."}`);
   }
   if (isApiError(error)) return fail(error.code, error.message);
   logger.error("bridge", "unhandled bridge error", { error: String(error) });
