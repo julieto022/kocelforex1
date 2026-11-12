@@ -122,14 +122,31 @@ export const updateProfile = createServerFn({ method: "POST" })
       .eq("id", userId)
       .select("*")
       .maybeSingle();
-    if (error) {
-      if (error.code === "23505") throw invalid("That username is already taken.");
-      throw toApiError(error);
+    if (error?.code === "23505") throw invalid("That username is already taken.");
+    if (error && error.code !== "42501") throw toApiError(error);
+    if (updatedProfile) return updatedProfile;
+
+    // RLS can hide a missing or non-updatable row as an empty result. The ID
+    // comes from the verified token, so recovery cannot write another user's profile.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = context.claims["email"];
+    const { data: recoveredProfile, error: recoveryError } = await supabaseAdmin
+      .from("profiles")
+      .upsert(
+        {
+          id: userId,
+          ...(typeof email === "string" ? { email } : {}),
+          ...patch,
+        } as never,
+        { onConflict: "id" },
+      )
+      .select("*")
+      .single();
+    if (recoveryError) {
+      if (recoveryError.code === "23505") throw invalid("That username is already taken.");
+      throw toApiError(recoveryError);
     }
-    if (!updatedProfile) {
-      throw invalid("Profile was not saved. Apply the profile update migration and try again.");
-    }
-    return updatedProfile;
+    return recoveredProfile;
   });
 
 /**

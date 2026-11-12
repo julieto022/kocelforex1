@@ -19,6 +19,10 @@ export const Route = createFileRoute("/_app/settings/profile")({
   component: ProfileSettings,
 });
 
+function metadataString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
 function ProfileSettings() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -31,14 +35,14 @@ function ProfileSettings() {
   });
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile && !user) return;
     setForm({
-      full_name: profile.full_name ?? "",
-      username: profile.username ?? "",
-      phone: profile.phone ?? "",
-      country: profile.country ?? "",
+      full_name: profile?.full_name ?? metadataString(user?.user_metadata["full_name"]),
+      username: profile?.username ?? metadataString(user?.user_metadata["username"]),
+      phone: profile?.phone ?? metadataString(user?.user_metadata["phone"]),
+      country: profile?.country ?? metadataString(user?.user_metadata["country"]),
     });
-  }, [profile]);
+  }, [profile, user]);
 
   async function applySavedProfile(savedProfile: Profile) {
     if (!user) return;
