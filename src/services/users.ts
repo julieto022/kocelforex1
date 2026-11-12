@@ -35,8 +35,8 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return (data as unknown as Profile) ?? null;
 }
 
-export async function updateProfile(_userId: string, patch: Partial<Profile>) {
-  await updateProfileFn({ data: patch as never });
+export async function updateProfile(_userId: string, patch: Partial<Profile>): Promise<Profile> {
+  return updateProfileFn({ data: patch as never });
 }
 
 export async function completeOnboarding(userId: string) {

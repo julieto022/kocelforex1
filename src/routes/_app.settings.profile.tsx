@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -13,13 +13,15 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getFollowCounts } from "@/services/community";
 import { updateProfile } from "@/services/users";
+import type { Profile } from "@/services/types";
 
 export const Route = createFileRoute("/_app/settings/profile")({
   component: ProfileSettings,
 });
 
 function ProfileSettings() {
-  const { user, profile, refresh } = useAuth();
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({ full_name: "", username: "", phone: "", country: "" });
   const fileInput = useRef<HTMLInputElement>(null);
   const communityCounts = useQuery({
@@ -38,6 +40,18 @@ function ProfileSettings() {
     });
   }, [profile]);
 
+  async function applySavedProfile(savedProfile: Profile) {
+    if (!user) return;
+    queryClient.setQueryData(["profile", user.id], savedProfile);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["community-author"] }),
+      queryClient.invalidateQueries({ queryKey: ["community-posts"] }),
+      queryClient.invalidateQueries({ queryKey: ["community-comments"] }),
+      queryClient.invalidateQueries({ queryKey: ["community-members"] }),
+      queryClient.invalidateQueries({ queryKey: ["dash-community"] }),
+    ]);
+  }
+
   const mutation = useMutation({
     mutationFn: () =>
       updateProfile(user!.id, {
@@ -46,8 +60,14 @@ function ProfileSettings() {
         phone: form.phone.trim(),
         country: form.country.trim(),
       }),
-    onSuccess: () => {
-      refresh();
+    onSuccess: async (savedProfile) => {
+      await applySavedProfile(savedProfile);
+      setForm({
+        full_name: savedProfile.full_name ?? "",
+        username: savedProfile.username ?? "",
+        phone: savedProfile.phone ?? "",
+        country: savedProfile.country ?? "",
+      });
       toast.success("Profile updated");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -65,17 +85,18 @@ function ProfileSettings() {
       }
 
       const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
-      const path = `${user.id}/profile.${extension}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+      const path = `${user.id}/profile-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+        contentType: file.type,
+        cacheControl: "31536000",
+      });
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      await updateProfile(user.id, { avatar_url: `${data.publicUrl}?t=${Date.now()}` });
+      return updateProfile(user.id, { avatar_url: data.publicUrl });
     },
-    onSuccess: () => {
-      refresh();
+    onSuccess: async (savedProfile) => {
+      await applySavedProfile(savedProfile);
       toast.success("Profile picture updated.");
     },
     onError: (error: Error) => toast.error(error.message),

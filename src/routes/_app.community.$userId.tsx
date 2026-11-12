@@ -22,15 +22,15 @@ import {
 export const Route = createFileRoute("/_app/community/$userId")({
   head: () => ({
     meta: [
-      { title: "Trader profile — Kocel Forex Hub" },
+      { title: "Community profile — Kocel Forex Hub" },
       {
         name: "description",
-        content: "View a Kocel trader's community posts, trade ideas and follower activity.",
+        content: "View a community member's profile, posts, and follower activity.",
       },
-      { property: "og:title", content: "Trader profile — Kocel Forex Hub" },
+      { property: "og:title", content: "Community profile — Kocel Forex Hub" },
       {
         property: "og:description",
-        content: "Community posts and trade ideas shared by a Kocel trader.",
+        content: "Community posts, trade ideas, and profile information.",
       },
       { property: "og:type", content: "profile" },
       { name: "twitter:card", content: "summary" },
@@ -89,20 +89,21 @@ function CommunityProfilePage() {
 
   const blockMutation = useMutation({
     mutationFn: () => blockUser(user!.id, userId),
-    onSuccess: () => toast.success("Trader blocked. You won't be shown their activity."),
-    onError: () => toast.error("Could not block this trader."),
+    onSuccess: () => toast.success("Member blocked. You won't be shown their activity."),
+    onError: () => toast.error("Could not block this member."),
   });
 
   const author = authorQuery.data;
-  const name = author?.full_name || author?.username || "Trader";
+  const username = author?.username ? `@${author.username}` : "Username unavailable";
+  const name = author?.full_name?.trim() || username;
   const isSelf = user?.id === userId;
   const posts = postsQuery.data ?? [];
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Community profile"
-        description="Community activity shared by this trader."
+        title={username}
+        description="Profile information and community activity."
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link to="/community">
@@ -130,9 +131,7 @@ function CommunityProfilePage() {
             </Avatar>
             <div className="min-w-0">
               <h2 className="truncate text-base font-semibold text-foreground">{name}</h2>
-              {author?.username && (
-                <p className="text-xs text-muted-foreground">@{author.username}</p>
-              )}
+              {author?.username && <p className="text-xs text-muted-foreground">{username}</p>}
               <p className="num mt-1 text-xs text-muted-foreground">
                 {countsQuery.data?.followers ?? 0} followers · {countsQuery.data?.following ?? 0}{" "}
                 following · {posts.length} posts
@@ -186,7 +185,7 @@ function CommunityProfilePage() {
           <EmptyState
             icon={MessagesSquare}
             title="No posts yet"
-            description="This trader hasn't shared anything with the community."
+            description="This user hasn't shared anything with the community."
           />
         </SectionCard>
       ) : (

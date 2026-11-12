@@ -184,9 +184,17 @@ export function DashboardWidgets() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs text-foreground">{post.content}</p>
                   <p className="text-[0.65rem] text-muted-foreground">
-                    {post.author?.username
-                      ? `@${post.author.username}`
-                      : (post.author?.full_name ?? "Trader")}{" "}
+                    {post.author?.username ? (
+                      <Link
+                        to="/community/$userId"
+                        params={{ userId: post.user_id }}
+                        className="hover:text-primary"
+                      >
+                        @{post.author.username}
+                      </Link>
+                    ) : (
+                      "Username unavailable"
+                    )}{" "}
                     · {post.reaction_count ?? 0} likes · {post.comment_count ?? 0} comments
                   </p>
                 </div>

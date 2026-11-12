@@ -26,7 +26,14 @@ export const getSettings = createServerFn({ method: "GET" })
       default_currency: "USD",
       default_risk_profile: "BALANCED",
       active_connection_id: null,
-      notifications: { trade: true, bot: true, connection: true, risk: true, email: true, push: true },
+      notifications: {
+        trade: true,
+        bot: true,
+        connection: true,
+        risk: true,
+        email: true,
+        push: true,
+      },
     };
 
     const { data: created, error: createError } = await supabase
@@ -71,17 +78,17 @@ export const updateSettings = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-const profileSchema = z.object({
-  full_name: z.string().trim().min(2).max(80).optional(),
+export const profileSchema = z.object({
+  full_name: z.string().trim().min(2).max(120).optional(),
   username: z
     .string()
     .trim()
     .min(3)
     .max(30)
-    .regex(/^[a-zA-Z0-9_.]+$/)
+    .regex(/^[a-zA-Z0-9_]+$/)
     .optional(),
-  phone: z.string().trim().max(24).nullish(),
-  country: z.string().trim().max(60).nullish(),
+  phone: z.string().trim().max(30).nullish(),
+  country: z.string().trim().max(80).nullish(),
   avatar_url: z.string().url().max(500).nullish(),
   onboarding_completed: z.boolean().optional(),
 });
@@ -109,15 +116,20 @@ export const updateProfile = createServerFn({ method: "POST" })
     );
     if (Object.keys(patch).length === 0) throw invalid("Nothing to update.");
 
-    const { error } = await supabase
+    const { data: updatedProfile, error } = await supabase
       .from("profiles")
       .update(patch as never)
-      .eq("id", userId);
+      .eq("id", userId)
+      .select("*")
+      .maybeSingle();
     if (error) {
-      if (error.message.includes("duplicate")) throw invalid("That username is already taken.");
+      if (error.code === "23505") throw invalid("That username is already taken.");
       throw toApiError(error);
     }
-    return { ok: true as const };
+    if (!updatedProfile) {
+      throw invalid("Profile was not saved. Apply the profile update migration and try again.");
+    }
+    return updatedProfile;
   });
 
 /**

@@ -29,13 +29,12 @@ export const Route = createFileRoute("/_app/community/")({
       { title: "Community — Kocel Forex Hub" },
       {
         name: "description",
-        content:
-          "Share trade ideas, discuss market moves and follow other Kocel traders in the community feed.",
+        content: "Share trade ideas, discuss market moves and follow community members.",
       },
       { property: "og:title", content: "Community — Kocel Forex Hub" },
       {
         property: "og:description",
-        content: "Trade ideas, market discussion and analysis shared by Kocel traders.",
+        content: "Trade ideas, market discussion and analysis shared by community members.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -105,7 +104,7 @@ function CommunityPage() {
     <div className="space-y-5">
       <PageHeader
         title="Community"
-        description="Discuss the market, share trade ideas and follow other Kocel traders."
+        description="Discuss the market, share trade ideas and follow community members."
       />
 
       {user && (
@@ -166,7 +165,7 @@ function CommunityPage() {
 
       {user && (
         <SectionCard
-          title="Find traders"
+          title="Find members"
           description="Discover people by username, follow their market discussions, and visit their profiles."
           action={<Users className="size-4 text-muted-foreground" />}
         >
@@ -197,14 +196,9 @@ function CommunityPage() {
                   >
                     <Avatar className="size-9">
                       {member.avatar_url && (
-                        <AvatarImage
-                          src={member.avatar_url}
-                          alt={member.full_name || member.username || "Community member"}
-                        />
+                        <AvatarImage src={member.avatar_url} alt={`@${member.username}`} />
                       )}
-                      <AvatarFallback>
-                        {(member.username?.[0] ?? member.full_name?.[0] ?? "T").toUpperCase()}
-                      </AvatarFallback>
+                      <AvatarFallback>{(member.username?.[0] ?? "U").toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <Link
@@ -214,9 +208,6 @@ function CommunityPage() {
                       >
                         @{member.username}
                       </Link>
-                      {member.full_name && (
-                        <p className="truncate text-xs text-muted-foreground">{member.full_name}</p>
-                      )}
                     </div>
                     <Button
                       size="sm"

@@ -31,7 +31,7 @@ function categoryLabel(category: string) {
 }
 
 function initials(name: string | null | undefined) {
-  if (!name) return "K";
+  if (!name) return "U";
   return name
     .split(" ")
     .map((part) => part[0])
@@ -104,16 +104,15 @@ export function PostCard({
     onError: () => toast.error("Could not submit the report."),
   });
 
-  const name = post.author?.full_name || post.author?.username || "Trader";
-  const handle = post.author?.username ? `@${post.author.username}` : name;
+  const handle = post.author?.username ? `@${post.author.username}` : "Username unavailable";
   const isOwner = user?.id === post.user_id;
 
   return (
     <article className="panel p-4 sm:p-5">
       <header className="flex items-start gap-3">
         <Avatar className="size-9">
-          {post.author?.avatar_url && <AvatarImage src={post.author.avatar_url} alt={name} />}
-          <AvatarFallback>{initials(name)}</AvatarFallback>
+          {post.author?.avatar_url && <AvatarImage src={post.author.avatar_url} alt={handle} />}
+          <AvatarFallback>{initials(post.author?.username)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -137,10 +136,7 @@ export function PostCard({
               </StatusBadge>
             )}
           </div>
-          <p className="num text-xs text-muted-foreground">
-            {post.author?.full_name && post.author.username ? `${post.author.full_name} · ` : ""}
-            {formatTime(post.created_at)}
-          </p>
+          <p className="num text-xs text-muted-foreground">{formatTime(post.created_at)}</p>
         </div>
         {isOwner && (
           <Button
@@ -160,7 +156,7 @@ export function PostCard({
       {post.image_url && (
         <img
           src={post.image_url}
-          alt={`Chart shared by ${name}`}
+          alt={`Chart shared by ${handle}`}
           loading="lazy"
           className="mt-3 w-full rounded-md border border-border object-cover"
         />
@@ -250,16 +246,29 @@ export function PostCard({
               {(commentsQuery.data ?? []).map((item) => (
                 <li key={item.id} className="flex gap-2.5">
                   <Avatar className="size-7">
-                    {item.author?.avatar_url && <AvatarImage src={item.author.avatar_url} alt="" />}
+                    {item.author?.avatar_url && (
+                      <AvatarImage
+                        src={item.author.avatar_url}
+                        alt={item.author.username ? `@${item.author.username}` : "Community member"}
+                      />
+                    )}
                     <AvatarFallback className="text-[0.6rem]">
-                      {initials(item.author?.full_name ?? item.author?.username)}
+                      {initials(item.author?.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground">
-                      {item.author?.username
-                        ? `@${item.author.username}`
-                        : (item.author?.full_name ?? "Trader")}
+                      {item.author?.username ? (
+                        <Link
+                          to="/community/$userId"
+                          params={{ userId: item.user_id }}
+                          className="hover:text-primary"
+                        >
+                          @{item.author.username}
+                        </Link>
+                      ) : (
+                        "Username unavailable"
+                      )}
                     </p>
                     <p className="text-sm text-muted-foreground">{item.content}</p>
                   </div>
