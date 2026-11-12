@@ -26,7 +26,6 @@ import { Route as AppNewsRouteImport } from './routes/_app.news'
 import { Route as AppNfpPredictionRouteImport } from './routes/_app.nfp-prediction'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
-import { Route as AppSignalPredictionRouteImport } from './routes/_app.signal-prediction'
 import { Route as AppStrategiesRouteImport } from './routes/_app.strategies'
 import { Route as AppTradesRouteImport } from './routes/_app.trades'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
@@ -40,7 +39,6 @@ import { Route as AppSettingsMt5RouteImport } from './routes/_app.settings.mt5'
 import { Route as AppSettingsNotificationsRouteImport } from './routes/_app.settings.notifications'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.profile'
 import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
-import { Route as AppSettingsTradingRouteImport } from './routes/_app.settings.trading'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt5.$requestId'
 import { Route as AppBotsBotIdEditRouteImport } from './routes/_app.bots.$botId.edit'
@@ -52,6 +50,7 @@ import { Route as ApiPublicBridgeRegisterRouteImport } from './routes/api/public
 import { Route as ApiPublicBridgeStatusRouteImport } from './routes/api/public/bridge/status'
 import { Route as ApiProtectedMt5OrdersExecuteRouteImport } from './routes/api/protected/mt5/orders/execute'
 import { Route as ApiPublicBridgeCommandsPollRouteImport } from './routes/api/public/bridge/commands/poll'
+import { Route as ApiPublicBridgeHistoryUploadRouteImport } from './routes/api/public/bridge/history/upload'
 import { Route as ApiPublicBridgeCommandsCommandIdResultRouteImport } from './routes/api/public/bridge/commands/$commandId/result'
 
 const IndexRoute = IndexRouteImport.update({
@@ -138,11 +137,6 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSignalPredictionRoute = AppSignalPredictionRouteImport.update({
-  id: '/signal-prediction',
-  path: '/signal-prediction',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppStrategiesRoute = AppStrategiesRouteImport.update({
   id: '/strategies',
   path: '/strategies',
@@ -209,11 +203,6 @@ const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
   path: '/security',
   getParentRoute: () => AppSettingsRoute,
 } as any)
-const AppSettingsTradingRoute = AppSettingsTradingRouteImport.update({
-  id: '/trading',
-  path: '/trading',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
   path: '/api/public/health',
@@ -275,6 +264,12 @@ const ApiPublicBridgeCommandsPollRoute =
     path: '/api/public/bridge/commands/poll',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBridgeHistoryUploadRoute =
+  ApiPublicBridgeHistoryUploadRouteImport.update({
+    id: '/api/public/bridge/history/upload',
+    path: '/api/public/bridge/history/upload',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBridgeCommandsCommandIdResultRoute =
   ApiPublicBridgeCommandsCommandIdResultRouteImport.update({
     id: '/api/public/bridge/commands/$commandId/result',
@@ -299,7 +294,6 @@ export interface FileRoutesByFullPath {
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
   '/settings': typeof AppSettingsRouteWithChildren
-  '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/api/mcp': typeof ApiMcpRoute
@@ -311,7 +305,6 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AppSettingsNotificationsRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
-  '/settings/trading': typeof AppSettingsTradingRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community/': typeof AppCommunityIndexRoute
@@ -325,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
   '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
   '/api/public/bridge/commands/poll': typeof ApiPublicBridgeCommandsPollRoute
+  '/api/public/bridge/history/upload': typeof ApiPublicBridgeHistoryUploadRoute
   '/api/public/bridge/commands/$commandId/result': typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 export interface FileRoutesByTo {
@@ -343,7 +337,6 @@ export interface FileRoutesByTo {
   '/news': typeof AppNewsRoute
   '/nfp-prediction': typeof AppNfpPredictionRoute
   '/notifications': typeof AppNotificationsRoute
-  '/signal-prediction': typeof AppSignalPredictionRoute
   '/strategies': typeof AppStrategiesRoute
   '/trades': typeof AppTradesRoute
   '/api/mcp': typeof ApiMcpRoute
@@ -355,7 +348,6 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AppSettingsNotificationsRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
-  '/settings/trading': typeof AppSettingsTradingRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community': typeof AppCommunityIndexRoute
@@ -369,6 +361,7 @@ export interface FileRoutesByTo {
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
   '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
   '/api/public/bridge/commands/poll': typeof ApiPublicBridgeCommandsPollRoute
+  '/api/public/bridge/history/upload': typeof ApiPublicBridgeHistoryUploadRoute
   '/api/public/bridge/commands/$commandId/result': typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 export interface FileRoutesById {
@@ -390,7 +383,6 @@ export interface FileRoutesById {
   '/_app/nfp-prediction': typeof AppNfpPredictionRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
-  '/_app/signal-prediction': typeof AppSignalPredictionRoute
   '/_app/strategies': typeof AppStrategiesRoute
   '/_app/trades': typeof AppTradesRoute
   '/api/mcp': typeof ApiMcpRoute
@@ -402,7 +394,6 @@ export interface FileRoutesById {
   '/_app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/settings/security': typeof AppSettingsSecurityRoute
-  '/_app/settings/trading': typeof AppSettingsTradingRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/_app/community/': typeof AppCommunityIndexRoute
@@ -416,6 +407,7 @@ export interface FileRoutesById {
   '/api/public/bridge/status': typeof ApiPublicBridgeStatusRoute
   '/api/protected/mt5/orders/execute': typeof ApiProtectedMt5OrdersExecuteRoute
   '/api/public/bridge/commands/poll': typeof ApiPublicBridgeCommandsPollRoute
+  '/api/public/bridge/history/upload': typeof ApiPublicBridgeHistoryUploadRoute
   '/api/public/bridge/commands/$commandId/result': typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 export interface FileRouteTypes {
@@ -437,7 +429,6 @@ export interface FileRouteTypes {
     | '/nfp-prediction'
     | '/notifications'
     | '/settings'
-    | '/signal-prediction'
     | '/strategies'
     | '/trades'
     | '/api/mcp'
@@ -449,7 +440,6 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
-    | '/settings/trading'
     | '/api/public/health'
     | '/authorize/mt5/$requestId'
     | '/community/'
@@ -463,6 +453,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/status'
     | '/api/protected/mt5/orders/execute'
     | '/api/public/bridge/commands/poll'
+    | '/api/public/bridge/history/upload'
     | '/api/public/bridge/commands/$commandId/result'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -481,7 +472,6 @@ export interface FileRouteTypes {
     | '/news'
     | '/nfp-prediction'
     | '/notifications'
-    | '/signal-prediction'
     | '/strategies'
     | '/trades'
     | '/api/mcp'
@@ -493,7 +483,6 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
-    | '/settings/trading'
     | '/api/public/health'
     | '/authorize/mt5/$requestId'
     | '/community'
@@ -507,6 +496,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/status'
     | '/api/protected/mt5/orders/execute'
     | '/api/public/bridge/commands/poll'
+    | '/api/public/bridge/history/upload'
     | '/api/public/bridge/commands/$commandId/result'
   id:
     | '__root__'
@@ -527,7 +517,6 @@ export interface FileRouteTypes {
     | '/_app/nfp-prediction'
     | '/_app/notifications'
     | '/_app/settings'
-    | '/_app/signal-prediction'
     | '/_app/strategies'
     | '/_app/trades'
     | '/api/mcp'
@@ -539,7 +528,6 @@ export interface FileRouteTypes {
     | '/_app/settings/notifications'
     | '/_app/settings/profile'
     | '/_app/settings/security'
-    | '/_app/settings/trading'
     | '/api/public/health'
     | '/authorize/mt5/$requestId'
     | '/_app/community/'
@@ -553,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/public/bridge/status'
     | '/api/protected/mt5/orders/execute'
     | '/api/public/bridge/commands/poll'
+    | '/api/public/bridge/history/upload'
     | '/api/public/bridge/commands/$commandId/result'
   fileRoutesById: FileRoutesById
 }
@@ -575,6 +564,7 @@ export interface RootRouteChildren {
   ApiPublicBridgeStatusRoute: typeof ApiPublicBridgeStatusRoute
   ApiProtectedMt5OrdersExecuteRoute: typeof ApiProtectedMt5OrdersExecuteRoute
   ApiPublicBridgeCommandsPollRoute: typeof ApiPublicBridgeCommandsPollRoute
+  ApiPublicBridgeHistoryUploadRoute: typeof ApiPublicBridgeHistoryUploadRoute
   ApiPublicBridgeCommandsCommandIdResultRoute: typeof ApiPublicBridgeCommandsCommandIdResultRoute
 }
 
@@ -699,13 +689,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/signal-prediction': {
-      id: '/_app/signal-prediction'
-      path: '/signal-prediction'
-      fullPath: '/signal-prediction'
-      preLoaderRoute: typeof AppSignalPredictionRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/strategies': {
       id: '/_app/strategies'
       path: '/strategies'
@@ -797,13 +780,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsSecurityRouteImport
       parentRoute: typeof AppSettingsRoute
     }
-    '/_app/settings/trading': {
-      id: '/_app/settings/trading'
-      path: '/trading'
-      fullPath: '/settings/trading'
-      preLoaderRoute: typeof AppSettingsTradingRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
     '/api/public/health': {
       id: '/api/public/health'
       path: '/api/public/health'
@@ -881,6 +857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBridgeCommandsPollRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bridge/history/upload': {
+      id: '/api/public/bridge/history/upload'
+      path: '/api/public/bridge/history/upload'
+      fullPath: '/api/public/bridge/history/upload'
+      preLoaderRoute: typeof ApiPublicBridgeHistoryUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bridge/commands/$commandId/result': {
       id: '/api/public/bridge/commands/$commandId/result'
       path: '/api/public/bridge/commands/$commandId/result'
@@ -911,7 +894,6 @@ interface AppSettingsRouteChildren {
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
   AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
-  AppSettingsTradingRoute: typeof AppSettingsTradingRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
@@ -922,7 +904,6 @@ const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppSettingsProfileRoute: AppSettingsProfileRoute,
   AppSettingsSecurityRoute: AppSettingsSecurityRoute,
-  AppSettingsTradingRoute: AppSettingsTradingRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
@@ -941,7 +922,6 @@ interface AppRouteChildren {
   AppNfpPredictionRoute: typeof AppNfpPredictionRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
-  AppSignalPredictionRoute: typeof AppSignalPredictionRoute
   AppStrategiesRoute: typeof AppStrategiesRoute
   AppTradesRoute: typeof AppTradesRoute
   AppCommunityUserIdRoute: typeof AppCommunityUserIdRoute
@@ -959,7 +939,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppNfpPredictionRoute: AppNfpPredictionRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
-  AppSignalPredictionRoute: AppSignalPredictionRoute,
   AppStrategiesRoute: AppStrategiesRoute,
   AppTradesRoute: AppTradesRoute,
   AppCommunityUserIdRoute: AppCommunityUserIdRoute,
@@ -987,6 +966,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBridgeStatusRoute: ApiPublicBridgeStatusRoute,
   ApiProtectedMt5OrdersExecuteRoute: ApiProtectedMt5OrdersExecuteRoute,
   ApiPublicBridgeCommandsPollRoute: ApiPublicBridgeCommandsPollRoute,
+  ApiPublicBridgeHistoryUploadRoute: ApiPublicBridgeHistoryUploadRoute,
   ApiPublicBridgeCommandsCommandIdResultRoute:
     ApiPublicBridgeCommandsCommandIdResultRoute,
 }

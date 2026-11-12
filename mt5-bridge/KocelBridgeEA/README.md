@@ -1,6 +1,8 @@
 # Kocel Bridge EA - Phase 3.2
 
 Native MQL5 browser-authorized Bridge client for the Kocel Forex Hub MetaTrader 5 Bridge EA.
+The EA reports account state and Market Watch symbols, syncs requested historical candles,
+and executes validated trade commands received from Kocel.
 
 This phase implements:
 
@@ -68,6 +70,8 @@ The HTTP foundation defines the existing Phase 2 paths:
 - `POST /api/public/bridge/register`
 - `POST /api/public/bridge/authenticate`
 - `POST /api/public/bridge/heartbeat`
+- `POST /api/public/bridge/commands/poll`
+- `POST /api/public/bridge/history/upload`
 - `GET /api/public/bridge/status`
 - `POST /api/public/bridge/disconnect`
 
@@ -90,4 +94,14 @@ The EA reports a clear error when MT5 blocks the request.
 3. Approve the connection in the browser.
 4. The EA polls until authorization succeeds, then stores the Bridge session only in runtime memory.
 5. Heartbeats and status diagnostics run on timers.
-6. Click `DISCONNECT` to revoke the Bridge session without changing MT5 positions.
+6. The EA reports symbols in MT5 Market Watch. Backtest history downloads are requested by
+   symbol, timeframe, and date range, then uploaded in bounded chunks (up to 5,000 candles).
+7. Click `DISCONNECT` to revoke the Bridge session without changing MT5 positions.
+
+## Backtest history
+
+Keep the desired instruments visible in MT5 Market Watch. Kocel lists those symbols in the
+Backtest page and asks the connected EA to read completed M1, M5, M15, M30, H1, H4, or D1 bars
+for the selected range. A download is limited to 5,000 candles; narrow the date range if the
+selected timeframe would exceed that limit. The terminal must be connected and have the
+requested broker history available. The backtester does not create missing candles.

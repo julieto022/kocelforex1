@@ -82,6 +82,7 @@ const schema = z.object({
     .optional(),
   positions: z.array(positionSchema).max(500).optional(),
   orders: z.array(orderSchema).max(500).optional(),
+  symbols: z.array(z.string().trim().min(1).max(64)).max(5000).optional(),
   candles: z.array(candleSchema).max(4_000).superRefine((candles, ctx) => {
     const seen = new Set<string>();
     candles.forEach((candle, index) => {

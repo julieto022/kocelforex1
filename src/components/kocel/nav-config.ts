@@ -9,7 +9,6 @@ import {
   Newspaper,
   Settings,
   Sparkles,
-  Target,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
@@ -29,7 +28,6 @@ export const primaryNav: NavItem[] = [
   { to: "/backtest", label: "Backtest", icon: BarChart3 },
   { to: "/news", label: "News", icon: Newspaper },
   { to: "/nfp-prediction", label: "NFP Prediction", icon: TrendingUp },
-  { to: "/signal-prediction", label: "Signal Prediction", icon: Target },
   { to: "/mcp", label: "AI & MCP", icon: Sparkles },
   { to: "/community", label: "Community", icon: MessagesSquare },
 ];
@@ -49,7 +47,6 @@ export const mobileNav: NavItem[] = [
 export const mobileMoreNav = [
   { to: "/news", label: "News" },
   { to: "/nfp-prediction", label: "NFP Prediction" },
-  { to: "/signal-prediction", label: "Signal Prediction" },
   { to: "/mcp", label: "AI & MCP" },
   { to: "/community", label: "Community" },
   { to: "/strategies", label: "Strategies" },
@@ -64,7 +61,6 @@ export const settingsNav = [
   { to: "/settings/mt5", label: "MT5 Accounts" },
   { to: "/settings/notifications", label: "Notifications" },
   { to: "/settings/appearance", label: "Appearance" },
-  { to: "/settings/trading", label: "Trading" },
   { to: "/settings/general", label: "General" },
 ];
 
@@ -78,7 +74,6 @@ export const pageTitles: Record<string, string> = {
   "/backtest": "Backtest",
   "/news": "News & Economic Calendar",
   "/nfp-prediction": "NFP Prediction",
-  "/signal-prediction": "Signal Prediction",
   "/mcp": "AI & MCP",
   "/community": "Community",
   "/notifications": "Notifications",
@@ -89,6 +84,5 @@ export const pageTitles: Record<string, string> = {
   "/settings/mt5": "MT5 Broker Accounts",
   "/settings/notifications": "Notifications",
   "/settings/appearance": "Appearance",
-  "/settings/trading": "Trading Preferences",
   "/settings/general": "General",
 };

@@ -13,7 +13,6 @@ const descriptions: Record<string, string> = {
   "/settings/mt5": "Connected MT5 broker accounts and Bridge status.",
   "/settings/notifications": "Which alerts Kocel sends you.",
   "/settings/appearance": "Theme and display preferences.",
-  "/settings/trading": "Default risk profile and trading defaults.",
   "/settings/general": "Timezone, language and formatting.",
 };
 

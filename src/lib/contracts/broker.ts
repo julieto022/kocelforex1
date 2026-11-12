@@ -130,6 +130,7 @@ export type BridgeHeartbeat = {
   positions?: BridgePosition[] | undefined;
   orders?: BridgeOrder[] | undefined;
   candles?: BridgeCandle[] | undefined;
+  symbols?: string[] | undefined;
   openTrades?: number | undefined;
   message?: string | null | undefined;
 };

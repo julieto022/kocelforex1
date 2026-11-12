@@ -139,7 +139,11 @@ private:
       return payload;
    }
 
-   string HeartbeatPayloadFull(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, const KocelMt5Candle &candles[], const int candle_count) const
+   string HeartbeatPayloadFull(const KocelMt5AccountSnapshot &snapshot,
+                               const KocelMt5Position &positions[], const int pos_count,
+                               const KocelMt5Order &orders[], const int order_count,
+                               const string &symbols[], const int symbol_count,
+                               const KocelMt5Candle &candles[], const int candle_count) const
    {
       string margin_level = "null";
       if(snapshot.margin_level_available)
@@ -205,7 +209,14 @@ private:
       }
       payload += "],";
       payload += "\"openTrades\":" + IntegerToString(pos_count);
-      payload += ",\"candles\":[";
+      payload += ",\"symbols\":[";
+      for(int i = 0; i < symbol_count; i++)
+      {
+         if(i > 0)
+            payload += ",";
+         payload += KocelJsonString(symbols[i]);
+      }
+      payload += "],\"candles\":[";
       for(int i = 0; i < candle_count; i++)
       {
          if(i > 0)
@@ -310,7 +321,12 @@ public:
       return true;
    }
 
-   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot, const KocelMt5Position &positions[], const int pos_count, const KocelMt5Order &orders[], const int order_count, const KocelMt5Candle &candles[], const int candle_count, string &message)
+   bool Heartbeat(const KocelMt5AccountSnapshot &snapshot,
+                  const KocelMt5Position &positions[], const int pos_count,
+                  const KocelMt5Order &orders[], const int order_count,
+                  const string &symbols[], const int symbol_count,
+                  const KocelMt5Candle &candles[], const int candle_count,
+                  string &message)
    {
       message = "";
       if(m_bridge_token == "")
@@ -320,7 +336,8 @@ public:
       }
 
       KocelHttpResponse response;
-      const string payload = HeartbeatPayloadFull(snapshot, positions, pos_count, orders, order_count, candles, candle_count);
+      const string payload = HeartbeatPayloadFull(snapshot, positions, pos_count,
+         orders, order_count, symbols, symbol_count, candles, candle_count);
       const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_HEARTBEAT, payload, m_bridge_token, response);
       m_last_response = response;
       if(!http_ok)
@@ -605,6 +622,55 @@ public:
 
       commands_json = data;
       message = "Commands polled.";
+      return true;
+   }
+
+   bool UploadHistoryChunk(const string request_id, const KocelMt5Candle &candles[],
+                           const int start_index, const int candle_count,
+                           const bool complete, const string error_message,
+                           string &response_message)
+   {
+      response_message = "";
+      if(m_bridge_token == "")
+      {
+         response_message = "No Bridge session token is active.";
+         return false;
+      }
+
+      string payload = "{\"requestId\":" + KocelJsonString(request_id) + ",\"candles\":[";
+      for(int i = 0; i < candle_count; i++)
+      {
+         if(i > 0)
+            payload += ",";
+         const int index = start_index + i;
+         payload += "{";
+         payload += "\"symbol\":" + KocelJsonString(candles[index].symbol) + ",";
+         payload += "\"timeframe\":" + KocelJsonString(candles[index].timeframe) + ",";
+         payload += "\"timestamp\":" + KocelJsonString(candles[index].timestamp) + ",";
+         payload += "\"open\":" + DoubleToString(candles[index].open, 8) + ",";
+         payload += "\"high\":" + DoubleToString(candles[index].high, 8) + ",";
+         payload += "\"low\":" + DoubleToString(candles[index].low, 8) + ",";
+         payload += "\"close\":" + DoubleToString(candles[index].close, 8) + ",";
+         payload += "\"volume\":" + IntegerToString(candles[index].volume);
+         payload += "}";
+      }
+      payload += "],\"complete\":" + (complete ? "true" : "false");
+      if(error_message != "")
+         payload += ",\"errorMessage\":" + KocelJsonString(StringSubstr(error_message, 0, 300));
+      payload += "}";
+
+      KocelHttpResponse response;
+      const bool http_ok = m_http.HttpPost(KOCEL_ENDPOINT_HISTORY_UPLOAD, payload, m_bridge_token, response);
+      m_last_response = response;
+      if(!http_ok)
+      {
+         response_message = HttpFailureMessage(response);
+         return false;
+      }
+      string data = "";
+      if(!ParseEnvelope(response, data, response_message))
+         return false;
+      response_message = "Historical candle chunk uploaded.";
       return true;
    }
 

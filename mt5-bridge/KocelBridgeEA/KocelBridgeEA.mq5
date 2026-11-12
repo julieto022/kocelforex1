@@ -127,6 +127,77 @@ int KocelPendingClosedTradeIndex(const ulong position_ticket)
    return -1;
 }
 
+void KocelProcessMarketHistoryRequests(const string poll_data)
+{
+   string requests_json = "";
+   if(!KocelJsonGetArray(poll_data, "historyRequests", requests_json))
+      return;
+
+   string requests[];
+   const int request_count = KocelJsonSplitObjects(requests_json, requests);
+   for(int request_index = 0; request_index < request_count; request_index++)
+   {
+      string request_id = "";
+      string symbol = "";
+      string timeframe = "";
+      string start_at = "";
+      string end_at = "";
+      if(!KocelJsonGetString(requests[request_index], "id", request_id) ||
+         !KocelJsonGetString(requests[request_index], "symbol", symbol) ||
+         !KocelJsonGetString(requests[request_index], "timeframe", timeframe) ||
+         !KocelJsonGetString(requests[request_index], "startAt", start_at) ||
+         !KocelJsonGetString(requests[request_index], "endAt", end_at))
+      {
+         g_logger.Error("MT5 history request was incomplete and could not be processed.");
+         continue;
+      }
+
+      g_logger.Info("Downloading MT5 history for " + symbol + " " + timeframe + ".");
+      KocelMt5Candle candles[];
+      int candle_count = 0;
+      string message = "";
+      if(!g_terminal.ReadMarketHistory(symbol, timeframe, start_at, end_at, candles, candle_count, message))
+      {
+         string upload_message = "";
+         if(!g_bridge.UploadHistoryChunk(request_id, candles, 0, 0, true, message, upload_message))
+            g_logger.Error("MT5 history sync failed (" + upload_message + ").");
+         else
+            g_logger.Warning("MT5 history sync failed (" + message + ").");
+         ArrayFree(candles);
+         continue;
+      }
+
+      if(candle_count == 0)
+      {
+         string upload_message = "";
+         if(!g_bridge.UploadHistoryChunk(request_id, candles, 0, 0, true, "", upload_message))
+            g_logger.Error("Empty MT5 history response could not be reported (" + upload_message + ").");
+         else
+            g_logger.Warning("MT5 returned no historical candles for " + symbol + " " + timeframe + ".");
+         ArrayFree(candles);
+         continue;
+      }
+
+      bool uploaded = true;
+      for(int offset = 0; offset < candle_count; offset += 250)
+      {
+         const int chunk_count = MathMin(250, candle_count - offset);
+         const bool complete = offset + chunk_count >= candle_count;
+         string upload_message = "";
+         if(!g_bridge.UploadHistoryChunk(request_id, candles, offset, chunk_count, complete, "", upload_message))
+         {
+            g_logger.Error("MT5 history chunk upload failed (" + upload_message + "); the Bridge will retry the request.");
+            uploaded = false;
+            break;
+         }
+      }
+      if(uploaded)
+         g_logger.Info("MT5 history sync completed for " + symbol + " " + timeframe + ".");
+      ArrayFree(candles);
+   }
+   ArrayFree(requests);
+}
+
 void KocelCollectClosedTrades()
 {
    const datetime now = TimeCurrent();
@@ -555,6 +626,8 @@ void OnTimer()
          int pos_count = 0;
          KocelMt5Order orders[];
          int order_count = 0;
+         string symbols[];
+         int symbol_count = 0;
          KocelMt5Candle candles[];
          int candle_count = 0;
          
@@ -569,6 +642,8 @@ void OnTimer()
             g_logger.Error("Failed to read pending orders.");
             order_count = 0;
          }
+         if(!g_terminal.ReadMarketSymbols(symbols, symbol_count))
+            g_logger.Warning("MT5 Market Watch symbols could not be read.");
 
          string message = "";
          // The EA reports the exact broker symbol of its attached chart;
@@ -578,7 +653,8 @@ void OnTimer()
             g_logger.Warning("MT5 candle history could not be read; heartbeat will report no candles.");
          }
 
-         if(g_bridge.Heartbeat(snapshot, positions, pos_count, orders, order_count, candles, candle_count, message))
+         if(g_bridge.Heartbeat(snapshot, positions, pos_count, orders, order_count,
+                               symbols, symbol_count, candles, candle_count, message))
          {
             if(candle_count > 0)
                g_market_history_synced = true;
@@ -603,6 +679,7 @@ void OnTimer()
          
          ArrayFree(positions);
          ArrayFree(orders);
+         ArrayFree(symbols);
          ArrayFree(candles);
       }
 
@@ -618,7 +695,10 @@ void OnTimer()
             g_next_command_poll = now + KOCEL_COMMAND_POLL_SECONDS;
 
             if(commands_json != "")
+            {
                g_commands.ProcessPollData(commands_json, g_bridge, g_logger);
+               KocelProcessMarketHistoryRequests(commands_json);
+            }
 
             g_commands.RetryPendingResults(g_bridge, g_logger);
             KocelResetRetry();

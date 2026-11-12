@@ -239,7 +239,7 @@ export type AccountSummary = {
 };
 
 /* ---------------------------------------------------------------------------
- * Phase 1 expansion: News, Economic Calendar, NFP, Signals, Community
+ * Phase 1 expansion: News, Economic Calendar, NFP, Community
  * ------------------------------------------------------------------------- */
 
 export type ImpactLevel = "high" | "medium" | "low";
@@ -353,42 +353,6 @@ export type NfpPrediction = {
   analysis: string | null;
   created_at: string;
   updated_at: string;
-};
-
-export type SignalDirection = "BUY" | "SELL" | "WAIT" | "NO TRADE" | "EXPIRED" | string;
-export type SignalStatus = "active" | "expiring" | "expired" | "invalidated" | string;
-
-export const SIGNAL_FACTORS: string[] = [
-  "Trend",
-  "Momentum",
-  "Volatility",
-  "Market Structure",
-  "Support/Resistance",
-  "Candlestick",
-  "Multi-Timeframe",
-  "Spread",
-  "News Risk",
-];
-
-export type Signal = {
-  id: string;
-  user_id: string | null;
-  symbol: string;
-  direction: SignalDirection;
-  timeframe: string | null;
-  confidence: number | null;
-  confidence_breakdown: Record<string, number> | null;
-  entry: number | null;
-  entry_zone: string | null;
-  stop_loss: number | null;
-  take_profit: number | null;
-  risk_reward: string | null;
-  market_condition: string | null;
-  analysis: { name: string; status: string; note?: string | null }[] | null;
-  result: string | null;
-  status: SignalStatus;
-  valid_until: string | null;
-  created_at: string;
 };
 
 export type CommunityCategory = "general" | "market" | "idea" | "education" | "news" | "question";

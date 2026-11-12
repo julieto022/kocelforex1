@@ -8,6 +8,7 @@ import { calculateIndicators } from "@/lib/trading/indicators";
 import { normalizeMarketData, type MarketCandle } from "@/lib/trading/market/types";
 import { resolveRuntimeSymbol } from "@/lib/trading/market/symbols";
 import { getStrategyDefinition } from "@/lib/trading/strategies/registry";
+import { isStrategySymbolAllowed } from "@/lib/trading/strategies/symbols";
 import type { TradingSignal } from "@/lib/trading/signals/types";
 
 const FRESHNESS_MS = 90_000;
@@ -163,6 +164,7 @@ export const analyzeBot = createServerFn({ method: "POST" })
       ) {
         strategyConfiguration = override.configuration_override as Record<string, unknown>;
       }
+      if (override?.is_hidden) return { ...strategyBase, reason: "STRATEGY_NOT_FOUND" };
     }
     const runtimeSlug =
       typeof strategyConfiguration["runtimeStrategySlug"] === "string"
@@ -170,6 +172,9 @@ export const analyzeBot = createServerFn({ method: "POST" })
         : strategy.slug;
     const definition = getStrategyDefinition(runtimeSlug);
     if (!definition) return { ...strategyBase, reason: "STRATEGY_UNAVAILABLE" };
+    if (!isStrategySymbolAllowed(strategyConfiguration, bot.symbol)) {
+      return { ...strategyBase, reason: "SYMBOL_NOT_ALLOWED_BY_STRATEGY" };
+    }
 
     const { data: symbolRows, error: symbolError } = await supabase
       .from("market_candles")

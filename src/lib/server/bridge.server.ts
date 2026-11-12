@@ -97,7 +97,7 @@ const bridgeOrderSchema = z.object({
   createdAt: bridgeTimestampSchema,
 });
 
-const bridgeCandleSchema = z.object({
+export const bridgeCandleSchema = z.object({
   symbol: z.string().trim().min(1).max(64),
   timeframe: z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]),
   timestamp: bridgeTimestampSchema,
@@ -126,6 +126,7 @@ export const bridgeHeartbeatSchema = z.object({
   account: bridgeAccountSchema.optional(),
   positions: z.array(bridgePositionSchema).max(500).optional(),
   orders: z.array(bridgeOrderSchema).max(500).optional(),
+  symbols: z.array(z.string().trim().min(1).max(64)).max(5000).optional(),
   candles: z.array(bridgeCandleSchema).max(4_000).superRefine((candles, ctx) => {
     const seen = new Set<string>();
     candles.forEach((candle, index) => {
@@ -352,6 +353,28 @@ export const bridgeService: BridgeService = {
       .maybeSingle();
 
     if (!connection) throw notFound("That connection no longer exists.");
+
+    if (normalized.symbols?.length) {
+      const uniqueSymbols = [...new Set(normalized.symbols)];
+      const { error: symbolError } = await db.from("market_symbols").upsert(
+        uniqueSymbols.map((symbol) => ({
+          user_id: identity.userId,
+          broker_connection_id: identity.connectionId,
+          symbol,
+          asset_class: "unknown",
+          status: "enabled",
+          updated_at: now,
+        })),
+        { onConflict: "broker_connection_id,symbol", ignoreDuplicates: false },
+      );
+      if (symbolError) {
+        logger.error("database", "Bridge symbol catalog could not be stored", {
+          connectionId: identity.connectionId,
+          code: symbolError.code,
+          message: symbolError.message,
+        });
+      }
+    }
 
     if (normalized.candles?.length) {
       const { error: candleError } = await db.from("market_candles").upsert(

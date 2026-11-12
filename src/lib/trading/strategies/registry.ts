@@ -218,4 +218,8 @@ const definitions: StrategyDefinition[] = [
 
 const registry = new Map(definitions.map((definition) => [definition.slug, definition]));
 export function getStrategyDefinition(slug: string): StrategyDefinition | null { return registry.get(slug) ?? null; }
+
+export function getStrategyDefinitions() {
+  return definitions.map(({ slug, version }) => ({ slug, version }));
+}
 export function listStrategyDefinitions(): StrategyDefinition[] { return [...registry.values()]; }

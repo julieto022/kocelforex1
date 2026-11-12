@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { conflict, forbidden, invalid, notFound } from "@/lib/api/errors";
 import { recordAudit } from "@/lib/server/audit.server";
 import { getStrategyDefinition } from "@/lib/trading/strategies/registry";
@@ -18,7 +20,7 @@ async function requireOwnedStrategy(userId: string, strategyId: string) {
   const { data: strategy, error } = await db
     .from("strategies")
     .select(
-      "id, user_id, is_builtin, is_active, name, slug, description, short_description, category, configuration",
+      "id, user_id, is_builtin, is_active, name, slug, description, short_description, category, configuration, timeframes, markets",
     )
     .eq("id", strategyId)
     .maybeSingle();
@@ -53,6 +55,99 @@ async function requireOwnedConnection(userId: string, connectionId: string) {
   if (error) throw error;
   if (!data) throw notFound("The MT5 account connected to this MCP key is unavailable.");
   return data;
+}
+
+const mcpRiskPatchSchema = z
+  .object({
+    maxLotSize: z.number().positive().max(1000).optional(),
+    maxOpenPositions: z.number().int().positive().max(10_000).optional(),
+    maxPositionsPerSymbol: z.number().int().positive().max(1000).optional(),
+    maxDailyLoss: z.number().nonnegative().nullable().optional(),
+    maxDailyLossPercent: z.number().min(0).max(100).nullable().optional(),
+    maxTradeRiskPercent: z.number().min(0).max(100).nullable().optional(),
+    minimumFreeMargin: z.number().nonnegative().optional(),
+    maximumMarginUsagePercent: z.number().min(0).max(100).optional(),
+    requireStopLoss: z.boolean().optional(),
+    manualTradingEnabled: z.boolean().optional(),
+    emergencyStopEnabled: z.boolean().optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, "Provide at least one risk setting.");
+
+const DEFAULT_MCP_RISK_SETTINGS = {
+  max_lot_size: 1,
+  max_open_positions: 10,
+  max_positions_per_symbol: 3,
+  max_daily_loss: null,
+  max_daily_loss_percent: null,
+  max_trade_risk_percent: null,
+  minimum_free_margin: 0,
+  maximum_margin_usage_percent: 80,
+  require_stop_loss: false,
+  manual_trading_enabled: true,
+  emergency_stop_enabled: false,
+};
+
+export async function getMcpRiskSettings(userId: string, connectionId: string) {
+  await requireOwnedConnection(userId, connectionId);
+  const db = await admin();
+  const { data, error } = await db
+    .from("trading_risk_settings")
+    .select(
+      "max_lot_size, max_open_positions, max_positions_per_symbol, max_daily_loss, max_daily_loss_percent, max_trade_risk_percent, minimum_free_margin, maximum_margin_usage_percent, require_stop_loss, manual_trading_enabled, emergency_stop_enabled",
+    )
+    .eq("user_id", userId)
+    .eq("connection_id", connectionId)
+    .maybeSingle();
+  if (error) throw error;
+  return { connectionId, ...DEFAULT_MCP_RISK_SETTINGS, ...(data ?? {}) };
+}
+
+export async function updateMcpRiskSettings(
+  userId: string,
+  connectionId: string,
+  rawPatch: unknown,
+) {
+  const patch = mcpRiskPatchSchema.parse(rawPatch);
+  const current = await getMcpRiskSettings(userId, connectionId);
+  const db = await admin();
+  const updates = {
+    user_id: userId,
+    connection_id: connectionId,
+    max_lot_size: patch.maxLotSize ?? current.max_lot_size,
+    max_open_positions: patch.maxOpenPositions ?? current.max_open_positions,
+    max_positions_per_symbol:
+      patch.maxPositionsPerSymbol ?? current.max_positions_per_symbol,
+    max_daily_loss: patch.maxDailyLoss === undefined ? current.max_daily_loss : patch.maxDailyLoss,
+    max_daily_loss_percent:
+      patch.maxDailyLossPercent === undefined
+        ? current.max_daily_loss_percent
+        : patch.maxDailyLossPercent,
+    max_trade_risk_percent:
+      patch.maxTradeRiskPercent === undefined
+        ? current.max_trade_risk_percent
+        : patch.maxTradeRiskPercent,
+    minimum_free_margin: patch.minimumFreeMargin ?? current.minimum_free_margin,
+    maximum_margin_usage_percent:
+      patch.maximumMarginUsagePercent ?? current.maximum_margin_usage_percent,
+    require_stop_loss: patch.requireStopLoss ?? current.require_stop_loss,
+    manual_trading_enabled: patch.manualTradingEnabled ?? current.manual_trading_enabled,
+    emergency_stop_enabled: patch.emergencyStopEnabled ?? current.emergency_stop_enabled,
+  };
+  const { error } = await db
+    .from("trading_risk_settings")
+    .upsert(updates, { onConflict: "user_id,connection_id" });
+  if (error) throw error;
+  await recordAudit({
+    userId,
+    action: "MCP_RISK_SETTINGS_UPDATED",
+    entityType: "trading_risk_settings",
+    metadata: {
+      connectionId,
+      fields: Object.keys(patch),
+    },
+  });
+  return { connectionId, ...updates };
 }
 
 export async function listMcpBots(userId: string, connectionId: string) {
@@ -249,6 +344,7 @@ export async function listMcpStrategies(userId: string) {
   return strategies
     .map((strategy) => {
       const override = overrideById.get(strategy.id);
+      const overrideConfiguration = asRecord(override?.configuration_override);
       return {
         ...strategy,
         name: override?.name_override ?? strategy.name,
@@ -256,6 +352,12 @@ export async function listMcpStrategies(userId: string) {
         short_description: override?.short_description_override ?? strategy.short_description,
         category: override?.category_override ?? strategy.category,
         configuration: override?.configuration_override ?? strategy.configuration,
+        timeframes: Array.isArray(overrideConfiguration["timeframes"])
+          ? overrideConfiguration["timeframes"]
+          : strategy.timeframes,
+        markets: Array.isArray(overrideConfiguration["markets"])
+          ? overrideConfiguration["markets"]
+          : strategy.markets,
         is_hidden: override?.is_hidden ?? false,
       };
     })
@@ -322,6 +424,8 @@ export async function updateMcpStrategy(
     shortDescription?: string | undefined;
     engineSlug?: string | undefined;
     isActive?: boolean | undefined;
+    timeframes?: string[] | undefined;
+    markets?: string[] | undefined;
     configuration?: Record<string, unknown> | undefined;
   },
 ) {
@@ -365,8 +469,12 @@ export async function updateMcpStrategy(
           patch.shortDescription ?? existingOverride?.short_description_override ?? null,
         category_override: patch.category ?? existingOverride?.category_override ?? null,
         configuration_override:
-          patch.configuration || patch.engineSlug
-            ? (nextConfiguration as never)
+          patch.configuration || patch.engineSlug || patch.timeframes || patch.markets
+            ? ({
+                ...nextConfiguration,
+                ...(patch.timeframes ? { timeframes: patch.timeframes } : {}),
+                ...(patch.markets ? { markets: patch.markets } : {}),
+              } as never)
             : (existingOverride?.configuration_override ?? null),
         is_hidden: false,
       },
@@ -382,6 +490,8 @@ export async function updateMcpStrategy(
     if (patch.configuration !== undefined || patch.engineSlug !== undefined) {
       updates["configuration"] = nextConfiguration;
     }
+    if (patch.timeframes !== undefined) updates["timeframes"] = patch.timeframes;
+    if (patch.markets !== undefined) updates["markets"] = patch.markets;
     if (patch.isActive !== undefined) updates["is_active"] = patch.isActive;
     if (Object.keys(updates).length === 0)
       throw invalid("Provide at least one strategy field to update.");

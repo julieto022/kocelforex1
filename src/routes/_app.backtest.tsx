@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CartesianGrid,
@@ -10,8 +10,9 @@ import {
   YAxis,
 } from "recharts";
 import { BarChart3, Database, Loader2, Play, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { PageHeader } from "@/components/kocel/page-header";
 import { EmptyState, SectionCard } from "@/components/kocel/states";
@@ -42,6 +43,10 @@ import {
   getBacktestRun,
   runBacktest,
 } from "@/lib/functions/backtest.functions";
+import {
+  getMarketHistorySync,
+  requestMarketHistory,
+} from "@/lib/functions/market-history.functions";
 import { getStrategyDefinition } from "@/lib/trading/strategies/registry";
 import type {
   BacktestEquityPoint,
@@ -52,8 +57,18 @@ import { useConnections } from "@/lib/use-connections";
 import { getStrategies } from "@/services/strategies";
 
 export const Route = createFileRoute("/_app/backtest")({
+  validateSearch: z.object({
+    strategyId: z.string().optional(),
+    symbol: z.string().optional(),
+  }),
   component: BacktestPage,
 });
+
+const backtestTimeframes = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"] as const;
+
+function isBacktestTimeframe(value: string): value is (typeof backtestTimeframes)[number] {
+  return backtestTimeframes.some((timeframe) => timeframe === value);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -111,6 +126,15 @@ function dateOnly(value: string) {
   return value.slice(0, 10);
 }
 
+function dateStartIso(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).toISOString();
+}
+
+function dateEndIso(value: string) {
+  const endOfDay = new Date(`${value}T23:59:59.999Z`);
+  return new Date(Math.min(endOfDay.getTime(), Date.now())).toISOString();
+}
+
 function formatNumber(value: number, digits = 2) {
   return new Intl.NumberFormat(undefined, {
     minimumFractionDigits: digits,
@@ -137,11 +161,13 @@ function strategyRuntime(strategy: { slug: string; configuration: Record<string,
 function BacktestPage() {
   const { active } = useConnections();
   const queryClient = useQueryClient();
-  const [symbol, setSymbol] = useState("");
-  const [timeframe, setTimeframe] = useState("");
-  const [strategyId, setStrategyId] = useState("");
+  const search = useSearch({ from: "/_app/backtest" });
+  const [symbol, setSymbol] = useState(search.symbol ?? "");
+  const [timeframe, setTimeframe] = useState<(typeof backtestTimeframes)[number]>("M1");
+  const [strategyId, setStrategyId] = useState(search.strategyId ?? "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [syncRequestId, setSyncRequestId] = useState("");
   const [initialBalance, setInitialBalance] = useState("10000");
   const [riskPercent, setRiskPercent] = useState("1");
   const [spread, setSpread] = useState("0");
@@ -159,14 +185,15 @@ function BacktestPage() {
     queryFn: getStrategies,
   });
   const pairs = useMemo(() => catalogQuery.data?.data ?? [], [catalogQuery.data?.data]);
+  const availableSymbols = useMemo(
+    () =>
+      [
+        ...new Set([...(catalogQuery.data?.symbols ?? []), ...pairs.map((pair) => pair.symbol)]),
+      ].sort((left, right) => left.localeCompare(right)),
+    [catalogQuery.data?.symbols, pairs],
+  );
   const runs = useMemo(() => catalogQuery.data?.runs ?? [], [catalogQuery.data?.runs]);
   const selectedPair = pairs.find((pair) => pair.symbol === symbol && pair.timeframe === timeframe);
-  const timeframes = useMemo(
-    () => [
-      ...new Set(pairs.filter((pair) => pair.symbol === symbol).map((pair) => pair.timeframe)),
-    ],
-    [pairs, symbol],
-  );
   const supportedStrategies = useMemo(
     () =>
       (strategiesQuery.data ?? []).filter(
@@ -180,34 +207,66 @@ function BacktestPage() {
     [strategiesQuery.data],
   );
 
+  const historySyncQuery = useQuery({
+    queryKey: ["market-history-sync", active?.id, syncRequestId],
+    queryFn: () =>
+      getMarketHistorySync({ data: { connectionId: active!.id, requestId: syncRequestId } }),
+    enabled: Boolean(active?.id && syncRequestId),
+    refetchInterval: (query) =>
+      query.state.data?.status === "PENDING" || query.state.data?.status === "SYNCING"
+        ? 2_000
+        : false,
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () => {
+      if (!active) throw new Error("Select an MT5 account first.");
+      if (!symbol || !timeframe || !startDate || !endDate) {
+        throw new Error("Select a symbol, timeframe, and date range.");
+      }
+      if (startDate > endDate) throw new Error("Start date must be on or before end date.");
+      return requestMarketHistory({
+        data: {
+          connectionId: active.id,
+          symbol,
+          timeframe,
+          startAt: dateStartIso(startDate),
+          endAt: dateEndIso(endDate),
+        },
+      });
+    },
+    onSuccess: async (request) => {
+      setSyncRequestId(request.id);
+      toast.success("History download queued for the MT5 Bridge EA.");
+      await queryClient.invalidateQueries({
+        queryKey: ["market-history-sync", active?.id, request.id],
+      });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   useEffect(() => {
-    if (!symbol && pairs.length > 0) {
-      setSymbol(pairs[0]!.symbol);
-      setTimeframe(pairs[0]!.timeframe);
-      setStartDate(dateOnly(pairs[0]!.firstAt));
-      setEndDate(dateOnly(pairs[0]!.lastAt));
+    if (!availableSymbols.includes(symbol) && availableSymbols.length > 0) {
+      setSymbol(availableSymbols[0]!);
     }
-  }, [pairs, symbol]);
+  }, [availableSymbols, symbol]);
 
   useEffect(() => {
-    if (!timeframes.includes(timeframe) && timeframes[0]) setTimeframe(timeframes[0]);
-  }, [timeframes, timeframe]);
-
-  useEffect(() => {
-    if (selectedPair) {
+    if (selectedPair && (!startDate || !endDate)) {
       setStartDate(dateOnly(selectedPair.firstAt));
       setEndDate(dateOnly(selectedPair.lastAt));
     }
-  }, [selectedPair]);
+  }, [selectedPair, startDate, endDate]);
 
   useEffect(() => {
-    if (
-      !supportedStrategies.some((strategy) => strategy.id === strategyId) &&
-      supportedStrategies[0]
-    ) {
-      setStrategyId(supportedStrategies[0].id);
+    if (!supportedStrategies.some((strategy) => strategy.id === strategyId)) {
+      const deepLinkedStrategy = supportedStrategies.find(
+        (strategy) => strategy.id === search.strategyId,
+      );
+      if (deepLinkedStrategy) setStrategyId(deepLinkedStrategy.id);
+      else if (supportedStrategies[0]) setStrategyId(supportedStrategies[0].id);
     }
-  }, [supportedStrategies, strategyId]);
+  }, [search.strategyId, supportedStrategies, strategyId]);
 
   useEffect(() => {
     if (runs.length === 0) {
@@ -243,7 +302,7 @@ function BacktestPage() {
           connectionId: active.id,
           strategyId,
           symbol,
-          timeframe: timeframe as "M1" | "M5" | "M15" | "M30" | "H1" | "H4" | "D1",
+          timeframe,
           startAt: startAt.toISOString(),
           endAt: endAt.toISOString(),
           initialBalance: Number(initialBalance),
@@ -290,11 +349,21 @@ function BacktestPage() {
 
   useEffect(() => {
     setSymbol("");
-    setTimeframe("");
+    setTimeframe("M1");
     setStartDate("");
     setEndDate("");
     setSelectedRunId("");
+    setSyncRequestId("");
   }, [active?.id]);
+
+  const lastSyncCompletion = useRef("");
+  useEffect(() => {
+    const sync = historySyncQuery.data;
+    if (!sync || (sync.status !== "COMPLETED" && sync.status !== "FAILED")) return;
+    if (lastSyncCompletion.current === sync.id) return;
+    lastSyncCompletion.current = sync.id;
+    void queryClient.invalidateQueries({ queryKey: ["backtest-catalog", active?.id] });
+  }, [active?.id, historySyncQuery.data, queryClient]);
 
   return (
     <div className="space-y-5">
@@ -307,21 +376,21 @@ function BacktestPage() {
         title="EA market data"
         description={
           active
-            ? `Data is isolated to ${active.account_name}. The EA currently syncs up to 400 recent candles per symbol and timeframe.`
-            : "Select or connect an MT5 account to use its EA-synced historical candles."
+            ? `Symbols are reported by the Kocel Bridge EA from ${active.account_name}'s MT5 Market Watch. Download historical ranges on demand below.`
+            : "Select or connect an MT5 account to use its EA-reported symbols and historical candles."
         }
         action={
           <StatusBadge
-            tone={catalogQuery.isError ? "danger" : pairs.length ? "success" : "warning"}
+            tone={catalogQuery.isError ? "danger" : availableSymbols.length ? "success" : "warning"}
             size="sm"
           >
             {catalogQuery.isError
               ? "Data error"
               : catalogQuery.isLoading
                 ? "Loading"
-                : pairs.length
-                  ? `${pairs.length} data sets`
-                  : "No EA data"}
+                : availableSymbols.length
+                  ? `${availableSymbols.length} symbols`
+                  : "No EA symbols"}
           </StatusBadge>
         }
       >
@@ -331,29 +400,34 @@ function BacktestPage() {
               ? catalogQuery.error.message
               : "The EA candle catalog could not be loaded."}
           </p>
-        ) : pairs.length === 0 ? (
+        ) : availableSymbols.length === 0 ? (
           <EmptyState
             icon={Database}
-            title={active ? "No historical candles yet" : "No MT5 account selected"}
-            description="Run the Kocel Bridge EA on a chart to sync real broker candles. The backtester never fills missing data with synthetic prices."
+            title={active ? "Waiting for MT5 Market Watch symbols" : "No MT5 account selected"}
+            description="Keep the Kocel Bridge EA connected and add the instruments you want to test to MT5 Market Watch. Symbols and candles are never synthesized."
           />
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pairs.map((pair) => (
-              <li
-                key={`${pair.symbol}-${pair.timeframe}`}
-                className="rounded-md border border-border p-3"
-              >
-                <p className="font-medium">
-                  {pair.symbol} <span className="text-muted-foreground">· {pair.timeframe}</span>
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {pair.count} sampled candles · {formatDate(pair.firstAt)} –{" "}
-                  {formatDate(pair.lastAt)}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {pairs.length} symbol/timeframe datasets currently have candle data. A newly listed
+              symbol can be selected and downloaded using the controls below.
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {availableSymbols.map((item) => {
+                const itemPairs = pairs.filter((pair) => pair.symbol === item);
+                return (
+                  <li key={item} className="rounded-md border border-border p-3">
+                    <p className="font-medium">{item}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {itemPairs.length
+                        ? itemPairs.map((pair) => `${pair.timeframe}: ${pair.count}`).join(" · ")
+                        : "No candles synced yet"}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </SectionCard>
 
@@ -361,7 +435,7 @@ function BacktestPage() {
         title="Configure simulation"
         description="The engine uses the same Kocel strategy evaluator as bot analysis, enters on the next candle open, and checks stop/target against each candle's range."
       >
-        {active && pairs.length > 0 ? (
+        {active && availableSymbols.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-2">
               <Label>Symbol</Label>
@@ -370,7 +444,7 @@ function BacktestPage() {
                   <SelectValue placeholder="Choose symbol" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...new Set(pairs.map((pair) => pair.symbol))].map((item) => (
+                  {availableSymbols.map((item) => (
                     <SelectItem key={item} value={item}>
                       {item}
                     </SelectItem>
@@ -380,12 +454,17 @@ function BacktestPage() {
             </div>
             <div className="space-y-2">
               <Label>Timeframe</Label>
-              <Select value={timeframe} onValueChange={(value) => setTimeframe(value)}>
+              <Select
+                value={timeframe}
+                onValueChange={(value) => {
+                  if (isBacktestTimeframe(value)) setTimeframe(value);
+                }}
+              >
                 <SelectTrigger aria-label="Backtest timeframe">
                   <SelectValue placeholder="Choose timeframe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {timeframes.map((item) => (
+                  {backtestTimeframes.map((item) => (
                     <SelectItem key={item} value={item}>
                       {item}
                     </SelectItem>
@@ -415,7 +494,6 @@ function BacktestPage() {
               <Label>Start date</Label>
               <Input
                 type="date"
-                min={selectedPair ? dateOnly(selectedPair.firstAt) : undefined}
                 max={endDate || undefined}
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
@@ -426,7 +504,7 @@ function BacktestPage() {
               <Input
                 type="date"
                 min={startDate || undefined}
-                max={selectedPair ? dateOnly(selectedPair.lastAt) : undefined}
+                max={dateOnly(new Date().toISOString())}
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
               />
@@ -473,27 +551,72 @@ function BacktestPage() {
               />
             </div>
             <div className="flex items-end">
-              <Button
-                className="w-full"
-                disabled={!canRun || strategiesQuery.isLoading || !supportedStrategies.length}
-                onClick={() => runMutation.mutate()}
-              >
-                {runMutation.isPending ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <Play className="mr-2 size-4" />
-                )}
-                Run backtest
-              </Button>
+              <div className="flex w-full flex-col gap-2">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  disabled={
+                    syncMutation.isPending ||
+                    !symbol ||
+                    !startDate ||
+                    !endDate ||
+                    startDate > endDate
+                  }
+                  onClick={() => syncMutation.mutate()}
+                >
+                  {syncMutation.isPending ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Database className="mr-2 size-4" />
+                  )}
+                  Download EA history
+                </Button>
+                <Button
+                  className="w-full"
+                  disabled={!canRun || strategiesQuery.isLoading || !supportedStrategies.length}
+                  onClick={() => runMutation.mutate()}
+                >
+                  {runMutation.isPending ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Play className="mr-2 size-4" />
+                  )}
+                  Run backtest
+                </Button>
+              </div>
             </div>
+            {historySyncQuery.data && (
+              <p
+                className="text-xs text-muted-foreground md:col-span-2 xl:col-span-4"
+                role="status"
+              >
+                History sync {historySyncQuery.data.status.toLowerCase()} for{" "}
+                {historySyncQuery.data.symbol} {historySyncQuery.data.timeframe}
+                {historySyncQuery.data.status === "COMPLETED"
+                  ? ` — ${historySyncQuery.data.candle_count} candles available.`
+                  : ""}
+                {historySyncQuery.data.error_message
+                  ? ` — ${historySyncQuery.data.error_message}`
+                  : ""}
+              </p>
+            )}
+            {historySyncQuery.isError && (
+              <p className="text-xs text-destructive md:col-span-2 xl:col-span-4" role="alert">
+                {historySyncQuery.error instanceof Error
+                  ? historySyncQuery.error.message
+                  : "History sync status could not be loaded."}
+              </p>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Backtests are enabled when the selected account has real EA-synced candles.
+            Connect the MT5 Bridge EA and add at least one instrument to MT5 Market Watch to
+            download and test its history.
           </p>
         )}
         <p className="mt-4 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-          Results use percentage-of-equity risk sizing and the spread/slippage you enter. Contract
+          Historical downloads are limited to 5,000 candles per request. Results use
+          percentage-of-equity risk sizing and the spread/slippage you enter. Contract
           specifications, commission, swaps, gaps, and live execution differences are not modeled.
           Same-candle stop/target ambiguity is resolved conservatively in favor of the stop.
         </p>

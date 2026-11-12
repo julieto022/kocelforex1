@@ -126,6 +126,8 @@ describe("stateless MCP transport", () => {
       "list_open_positions",
       "list_pending_orders",
       "execute_trade",
+      "get_risk_settings",
+      "update_risk_settings",
       "list_bots",
       "create_bot",
       "update_bot",

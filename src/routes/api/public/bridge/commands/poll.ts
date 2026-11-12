@@ -9,6 +9,7 @@ import {
   toErrorResponse,
 } from "@/lib/server/bridge-http.server";
 import { getPendingCommandsForBridge } from "@/lib/server/trade.server";
+import { claimMarketHistorySync } from "@/lib/server/market-history.server";
 import { logger } from "@/lib/api/logger";
 
 /** EA polls for pending trade commands to execute */
@@ -27,13 +28,14 @@ export const Route = createFileRoute("/api/public/bridge/commands/poll")({
 
           // Get pending commands for this connection
           const pollResponse = await getPendingCommandsForBridge(identity.connectionId);
+          const historyRequests = await claimMarketHistorySync(identity.connectionId);
 
           logger.info("api", "commands polled", {
             connectionId: identity.connectionId,
             commandCount: pollResponse.commands.length,
           });
 
-          return ok(pollResponse, "Commands retrieved.");
+          return ok({ ...pollResponse, historyRequests }, "Commands retrieved.");
         } catch (error) {
           return toErrorResponse(error);
         }

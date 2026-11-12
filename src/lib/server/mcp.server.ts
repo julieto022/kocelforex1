@@ -17,11 +17,13 @@ import {
   createMcpStrategy,
   deleteMcpBot,
   deleteMcpStrategy,
+  getMcpRiskSettings,
   listMcpBots,
   listMcpStrategies,
   setMcpBotStatus,
   updateMcpBot,
   updateMcpStrategy,
+  updateMcpRiskSettings,
 } from "@/lib/server/mcp-management.server";
 import { executeTradeCommand, tradeExecutionRequestSchema } from "@/lib/server/trade.server";
 import { enforceRateLimit } from "@/lib/server/rate-limit.server";
@@ -317,6 +319,44 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
             : result.message,
       });
     }),
+  );
+
+  server.registerTool(
+    "get_risk_settings",
+    {
+      title: "Get MT5 risk limits",
+      description:
+        "Read the existing per-account trade risk controls used by Kocel's order validation.",
+      inputSchema: {},
+    },
+    safeTool("get_risk_settings", async () =>
+      textResult(await getMcpRiskSettings(key.user_id, key.connection_id)),
+    ),
+  );
+
+  server.registerTool(
+    "update_risk_settings",
+    {
+      title: "Update MT5 risk limits",
+      description:
+        "Update per-account risk controls that are enforced by Kocel before new market orders are queued. Unspecified fields remain unchanged.",
+      inputSchema: {
+        maxLotSize: z.number().positive().max(1000).optional(),
+        maxOpenPositions: z.number().int().positive().max(10_000).optional(),
+        maxPositionsPerSymbol: z.number().int().positive().max(1000).optional(),
+        maxDailyLoss: z.number().nonnegative().nullable().optional(),
+        maxDailyLossPercent: z.number().min(0).max(100).nullable().optional(),
+        maxTradeRiskPercent: z.number().min(0).max(100).nullable().optional(),
+        minimumFreeMargin: z.number().nonnegative().optional(),
+        maximumMarginUsagePercent: z.number().min(0).max(100).optional(),
+        requireStopLoss: z.boolean().optional(),
+        manualTradingEnabled: z.boolean().optional(),
+        emergencyStopEnabled: z.boolean().optional(),
+      },
+    },
+    safeTool("update_risk_settings", async (args) =>
+      textResult(await updateMcpRiskSettings(key.user_id, key.connection_id, args)),
+    ),
   );
 
   server.registerTool(

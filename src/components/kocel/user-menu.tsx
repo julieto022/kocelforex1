@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, LogOut, Settings, Shield, User } from "lucide-react";
 import { toast } from "sonner";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +16,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { logout } from "@/services/auth";
 
-export function initialsOf(name: string | null | undefined, fallback = "K") {
+function initialsOf(name: string | null | undefined, fallback = "K") {
   if (!name) return fallback;
   return name
     .split(" ")
@@ -47,6 +47,7 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "row" })
         {variant === "avatar" ? (
           <Button variant="ghost" size="icon" aria-label="Account menu">
             <Avatar className="size-7">
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={name} />}
               <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
                 {initialsOf(name)}
               </AvatarFallback>
@@ -58,6 +59,7 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "row" })
             className="flex w-full items-center gap-2.5 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-2 text-left transition-colors hover:bg-sidebar-accent"
           >
             <Avatar className="size-7">
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={name} />}
               <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
                 {initialsOf(name)}
               </AvatarFallback>

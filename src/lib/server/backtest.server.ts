@@ -8,6 +8,7 @@ import {
 } from "@/lib/trading/backtest/engine";
 import { isTradingTimeframe, type MarketCandle } from "@/lib/trading/market/types";
 import { getStrategyDefinition } from "@/lib/trading/strategies/registry";
+import { isStrategySymbolAllowed } from "@/lib/trading/strategies/symbols";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -74,6 +75,15 @@ export async function getBacktestCatalog(userId: string, connectionId: string) {
     string,
     { symbol: string; timeframe: string; count: number; firstAt: string; lastAt: string }
   >();
+  const { data: marketSymbols, error: symbolsError } = await db
+    .from("market_symbols")
+    .select("symbol")
+    .eq("broker_connection_id", connectionId)
+    .eq("user_id", userId)
+    .eq("status", "enabled")
+    .order("symbol", { ascending: true })
+    .limit(5_000);
+  if (symbolsError) throw symbolsError;
   const pageSize = 1_000;
   const sampleLimit = 5_000;
   for (let offset = 0; offset < sampleLimit; offset += pageSize) {
@@ -120,6 +130,7 @@ export async function getBacktestCatalog(userId: string, connectionId: string) {
       (left, right) =>
         left.symbol.localeCompare(right.symbol) || left.timeframe.localeCompare(right.timeframe),
     ),
+    symbols: (marketSymbols ?? []).map(({ symbol }) => symbol),
     sampled: pairs.size > 0,
     runs: runs ?? [],
   };
@@ -160,6 +171,9 @@ export async function runBacktestForUser(input: {
     input.userId,
     input.strategyId,
   );
+  if (!isStrategySymbolAllowed(configuration, symbol)) {
+    throw invalid("The selected symbol is not allowed by this strategy.");
+  }
   const { count, error: countError } = await db
     .from("market_candles")
     .select("timestamp", { count: "exact", head: true })

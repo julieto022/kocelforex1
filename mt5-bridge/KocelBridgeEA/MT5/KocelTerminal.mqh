@@ -48,6 +48,47 @@ private:
       }
    }
 
+   ENUM_TIMEFRAMES TimeframeFromName(const string timeframe) const
+   {
+      if(timeframe == "M1") return PERIOD_M1;
+      if(timeframe == "M5") return PERIOD_M5;
+      if(timeframe == "M15") return PERIOD_M15;
+      if(timeframe == "M30") return PERIOD_M30;
+      if(timeframe == "H1") return PERIOD_H1;
+      if(timeframe == "H4") return PERIOD_H4;
+      if(timeframe == "D1") return PERIOD_D1;
+      return PERIOD_CURRENT;
+   }
+
+   datetime ParseRangeTime(const string value) const
+   {
+      if(StringLen(value) < 19)
+         return 0;
+      MqlDateTime parts;
+      parts.year = (int)StringToInteger(StringSubstr(value, 0, 4));
+      parts.mon = (int)StringToInteger(StringSubstr(value, 5, 2));
+      parts.day = (int)StringToInteger(StringSubstr(value, 8, 2));
+      parts.hour = (int)StringToInteger(StringSubstr(value, 11, 2));
+      parts.min = (int)StringToInteger(StringSubstr(value, 14, 2));
+      parts.sec = (int)StringToInteger(StringSubstr(value, 17, 2));
+      if(parts.year < 1970 || parts.mon < 1 || parts.mon > 12 ||
+         parts.day < 1 || parts.day > 31 || parts.hour < 0 || parts.hour > 23 ||
+         parts.min < 0 || parts.min > 59 || parts.sec < 0 || parts.sec > 59)
+         return 0;
+      const long server_offset = (long)(TimeTradeServer() - TimeGMT());
+      return (datetime)(StructToTime(parts) + server_offset);
+   }
+
+   string IsoUtcTime(const datetime server_time) const
+   {
+      const long server_offset = (long)(TimeTradeServer() - TimeGMT());
+      MqlDateTime parts;
+      TimeToStruct((datetime)(server_time - server_offset), parts);
+      return StringFormat("%04d-%02d-%02dT%02d:%02d:%02d",
+                          parts.year, parts.mon, parts.day,
+                          parts.hour, parts.min, parts.sec);
+   }
+
 public:
    bool Refresh(KocelMt5AccountInfo &info) const
    {
@@ -119,7 +160,7 @@ public:
             }
             candles[next].symbol = symbol;
             candles[next].timeframe = timeframe_name;
-            candles[next].timestamp = IsoTime(rates[rate_index].time);
+            candles[next].timestamp = IsoUtcTime(rates[rate_index].time);
             candles[next].open = rates[rate_index].open;
             candles[next].high = rates[rate_index].high;
             candles[next].low = rates[rate_index].low;
@@ -129,6 +170,94 @@ public:
          }
       }
       return count > 0;
+   }
+
+   bool ReadMarketSymbols(string &symbols[], int &count) const
+   {
+      ArrayFree(symbols);
+      count = 0;
+      const int total = SymbolsTotal(true);
+      const int limit = MathMin(total, 5000);
+      if(limit <= 0)
+         return false;
+      if(ArrayResize(symbols, limit) != limit)
+         return false;
+      for(int i = 0; i < limit; i++)
+      {
+         const string symbol = SymbolName(i, true);
+         if(symbol == "")
+            continue;
+         symbols[count++] = symbol;
+      }
+      ArrayResize(symbols, count);
+      return count > 0;
+   }
+
+   bool ReadMarketHistory(const string symbol, const string timeframe_name,
+                          const string start_at, const string end_at,
+                          KocelMt5Candle &candles[], int &count, string &message) const
+   {
+      ArrayFree(candles);
+      count = 0;
+      message = "";
+      const ENUM_TIMEFRAMES timeframe = TimeframeFromName(timeframe_name);
+      const datetime start_time = ParseRangeTime(start_at);
+      const datetime end_time = ParseRangeTime(end_at);
+      if(symbol == "" || timeframe == PERIOD_CURRENT || start_time <= 0 ||
+         end_time <= start_time || end_time > TimeTradeServer())
+      {
+         message = "The requested symbol, timeframe, or date range is invalid.";
+         return false;
+      }
+      if(!SymbolSelect(symbol, true))
+      {
+         message = "MT5 could not select the requested symbol. Add it to Market Watch and retry.";
+         return false;
+      }
+
+      MqlRates rates[];
+      ArraySetAsSeries(rates, false);
+      const int copied = CopyRates(symbol, timeframe, start_time, end_time, rates);
+      if(copied < 0)
+      {
+         message = "MT5 could not read historical candles for this symbol and range.";
+         return false;
+      }
+      const datetime current_bar_time = iTime(symbol, timeframe, 0);
+      int completed_count = 0;
+      for(int i = 0; i < copied; i++)
+         if(current_bar_time <= 0 || rates[i].time < current_bar_time)
+            completed_count++;
+      if(completed_count > 5000)
+      {
+         message = "The requested range exceeds the 5,000 candle sync limit.";
+         return false;
+      }
+      if(completed_count == 0)
+         return true;
+      if(ArrayResize(candles, completed_count) != completed_count)
+      {
+         message = "MT5 could not allocate memory for the requested candle history.";
+         return false;
+      }
+
+      int candle_index = 0;
+      for(int i = 0; i < copied; i++)
+      {
+         if(current_bar_time > 0 && rates[i].time >= current_bar_time)
+            continue;
+         candles[candle_index].symbol = symbol;
+         candles[candle_index].timeframe = timeframe_name;
+         candles[candle_index].timestamp = IsoUtcTime(rates[i].time);
+         candles[candle_index].open = rates[i].open;
+         candles[candle_index].high = rates[i].high;
+         candles[candle_index].low = rates[i].low;
+         candles[candle_index].close = rates[i].close;
+         candles[candle_index].volume = (long)rates[i].tick_volume;
+         candle_index++;
+      }
+      count = completed_count;
+      return true;
    }
 
    bool ReadOpenPositions(KocelMt5Position &positions[], int &count) const

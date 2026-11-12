@@ -11,6 +11,5 @@ export * as dashboardService from "./dashboard";
 export * as newsService from "./news";
 export * as economicCalendarService from "./economic-calendar";
 export * as nfpService from "./nfp";
-export * as signalsService from "./signals";
 export * as communityService from "./community";
 export * from "./types";

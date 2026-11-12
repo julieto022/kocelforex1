@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CalendarClock, MessagesSquare, Newspaper, Target, TrendingUp } from "lucide-react";
+import { CalendarClock, MessagesSquare, Newspaper, TrendingUp } from "lucide-react";
 
 import { SectionCard } from "@/components/kocel/states";
 import { StatusBadge } from "@/components/kocel/status-badge";
@@ -10,7 +10,6 @@ import { getRecentActivity } from "@/services/community";
 import { getUpcomingEvents } from "@/services/economic-calendar";
 import { countdownTo, getUpcomingNfpPrediction } from "@/services/nfp";
 import { getLatestNews } from "@/services/news";
-import { getActiveSignals, signalTone } from "@/services/signals";
 import { IMPACT_MODEL, type ImpactLevel } from "@/services/types";
 
 function impactTone(impact: string) {
@@ -50,10 +49,6 @@ export function DashboardWidgets() {
   const newsQuery = useQuery({ queryKey: ["dash-news"], queryFn: () => getLatestNews(4) });
   const eventsQuery = useQuery({ queryKey: ["dash-events"], queryFn: () => getUpcomingEvents(4) });
   const nfpQuery = useQuery({ queryKey: ["dash-nfp"], queryFn: getUpcomingNfpPrediction });
-  const signalsQuery = useQuery({
-    queryKey: ["dash-signals"],
-    queryFn: () => getActiveSignals(4),
-  });
   const activityQuery = useQuery({
     queryKey: ["dash-community", user?.id ?? null],
     queryFn: () => getRecentActivity(4, user?.id ?? null),
@@ -165,43 +160,6 @@ export function DashboardWidgets() {
               )}
             </div>
           </div>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Active signals"
-        action={
-          <Link to="/signal-prediction" className="text-xs font-medium text-primary">
-            View all
-          </Link>
-        }
-      >
-        {signalsQuery.isLoading ? (
-          <WidgetSkeleton />
-        ) : (signalsQuery.data ?? []).length === 0 ? (
-          <Empty text="No active signals published right now." />
-        ) : (
-          <ul className="space-y-2.5">
-            {(signalsQuery.data ?? []).map((signal) => (
-              <li key={signal.id} className="flex items-center gap-2">
-                <Target className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="num text-xs font-medium text-foreground">{signal.symbol}</span>
-                <span className="text-[0.65rem] text-muted-foreground">
-                  {signal.timeframe ?? "—"}
-                </span>
-                <StatusBadge
-                  tone={signalTone(String(signal.direction))}
-                  size="sm"
-                  className="ml-auto"
-                >
-                  {signal.direction}
-                </StatusBadge>
-                <span className="num text-[0.65rem] text-muted-foreground">
-                  {signal.confidence == null ? "—" : `${Number(signal.confidence).toFixed(0)}%`}
-                </span>
-              </li>
-            ))}
-          </ul>
         )}
       </SectionCard>
 

@@ -42,17 +42,6 @@ export type BotStatus = (typeof BOT_STATUSES)[number];
 export const TRADE_STATUSES = ["OPEN", "CLOSED", "CANCELLED", "REJECTED"] as const;
 export type TradeStatus = (typeof TRADE_STATUSES)[number];
 
-export const SIGNAL_STATUSES = [
-  "ANALYZING",
-  "ACTIVE",
-  "WAIT",
-  "NO_TRADE",
-  "EXPIRED",
-  "INVALIDATED",
-  "COMPLETED",
-] as const;
-export type SignalDataStatus = (typeof SIGNAL_STATUSES)[number];
-
 export const COMMUNITY_POST_CATEGORIES = [
   "GENERAL",
   "MARKET",
@@ -113,6 +102,8 @@ export const AUDIT_ACTIONS = [
   "MCP_TRADE_EXECUTED",
   "BACKTEST_CREATED",
   "BACKTEST_DELETED",
+  "MARKET_HISTORY_SYNC_REQUESTED",
+  "MCP_RISK_SETTINGS_UPDATED",
   "CONNECTION_AUTHORIZATION_REQUESTED",
   "CONNECTION_AUTHORIZED",
   "CONNECTION_REJECTED",

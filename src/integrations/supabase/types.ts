@@ -682,6 +682,65 @@ export type Database = {
           },
         ]
       }
+      market_data_sync_requests: {
+        Row: {
+          candle_count: number
+          completed_at: string | null
+          connection_id: string
+          created_at: string
+          end_at: string
+          error_message: string | null
+          id: string
+          lease_until: string | null
+          start_at: string
+          status: string
+          symbol: string
+          timeframe: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          candle_count?: number
+          completed_at?: string | null
+          connection_id: string
+          created_at?: string
+          end_at: string
+          error_message?: string | null
+          id?: string
+          lease_until?: string | null
+          start_at: string
+          status?: string
+          symbol: string
+          timeframe: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          candle_count?: number
+          completed_at?: string | null
+          connection_id?: string
+          created_at?: string
+          end_at?: string
+          error_message?: string | null
+          id?: string
+          lease_until?: string | null
+          start_at?: string
+          status?: string
+          symbol?: string
+          timeframe?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_data_sync_requests_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mt5_account_snapshots: {
         Row: {
           balance: number | null

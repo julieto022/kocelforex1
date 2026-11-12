@@ -1,12 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { BookOpen, LineChart, Search } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BookOpen, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/kocel/page-header";
 import { CardsSkeleton, EmptyState, ErrorState } from "@/components/kocel/states";
 import { StatusBadge } from "@/components/kocel/status-badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -22,6 +35,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { getMarketSymbols } from "@/lib/functions/market-history.functions";
+import {
+  createStrategy,
+  deleteStrategy,
+  updateStrategy,
+} from "@/lib/functions/strategy-management.functions";
+import { getStrategyDefinitions } from "@/lib/trading/strategies/registry";
+import { useConnections } from "@/lib/use-connections";
 import { getStrategies, StrategyServiceError } from "@/services/strategies";
 import type { Strategy } from "@/services/types";
 
@@ -30,7 +52,6 @@ export const Route = createFileRoute("/_app/strategies")({
 });
 
 const categoryOptions = [
-  "All",
   "Scalping",
   "Day Trading",
   "Swing Trading",
@@ -39,25 +60,36 @@ const categoryOptions = [
   "Range Trading",
   "Breakout",
   "Price Action",
-  "NFP News Trading",
-  "Carry",
-  "Grid",
-  "Algorithmic / HFT",
+  "Custom",
 ];
+const supportedTimeframes = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"] as const;
+const maxSpecificSymbols = 500;
+const backtestableEngines = getStrategyDefinitions().filter(
+  ({ slug }) => !["nfp-news-trading", "carry", "algorithmic-hft", "scalping"].includes(slug),
+);
 
-const configurationLabels: Record<string, string> = {
-  timeframes: "Supported timeframes",
-  indicators: "Indicators",
-  entry_conditions: "Entry conditions",
-  exit_conditions: "Exit conditions",
-  filters: "Filters",
-  risk_parameters: "Risk parameters",
+type StrategyForm = {
+  name: string;
+  category: string;
+  description: string;
+  shortDescription: string;
+  engineSlug: string;
+  targetSymbols: string[];
 };
 
-function formatConfigurationValue(value: unknown) {
-  if (Array.isArray(value)) return value.join(", ") || "None listed";
-  if (value && typeof value === "object") return JSON.stringify(value);
-  return String(value ?? "None listed");
+const emptyForm = (): StrategyForm => ({
+  name: "",
+  category: "Custom",
+  description: "",
+  shortDescription: "",
+  engineSlug: backtestableEngines[0]?.slug ?? "momentum",
+  targetSymbols: ["*"],
+});
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function strategyErrorCode(error: unknown) {
@@ -81,7 +113,13 @@ function strategyErrorDescription(error: unknown) {
   }
 }
 
-function StrategyDetails({ strategy }: { strategy: Strategy | null }) {
+function StrategyDetails({
+  strategy,
+  onBacktest,
+}: {
+  strategy: Strategy | null;
+  onBacktest: () => void;
+}) {
   return (
     <DialogContent className="max-h-[85vh] overflow-y-auto">
       {strategy && (
@@ -101,16 +139,13 @@ function StrategyDetails({ strategy }: { strategy: Strategy | null }) {
               <p className="mt-1.5 leading-6 text-muted-foreground">{strategy.description}</p>
             </section>
             <section>
-              <h3 className="font-semibold text-foreground">Supported configuration</h3>
-              <dl className="mt-2 divide-y divide-border rounded-md border border-border">
-                {Object.entries(strategy.configuration).map(([key, value]) => (
-                  <div key={key} className="grid gap-1 px-3 py-2.5 sm:grid-cols-[11rem_1fr]">
-                    <dt className="text-muted-foreground">{configurationLabels[key] ?? key}</dt>
-                    <dd className="text-foreground">{formatConfigurationValue(value)}</dd>
-                  </div>
-                ))}
-              </dl>
+              <h3 className="font-semibold text-foreground">Runtime configuration</h3>
+              <p className="mt-1.5 leading-6 text-muted-foreground">
+                This strategy uses Kocel’s supported runtime evaluator. The Bridge EA receives and
+                executes validated trade commands; custom text is not compiled into an MQL5 program.
+              </p>
             </section>
+            <Button onClick={onBacktest}>Backtest strategy</Button>
           </div>
         </>
       )}
@@ -119,10 +154,22 @@ function StrategyDetails({ strategy }: { strategy: Strategy | null }) {
 }
 
 function StrategiesPage() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { active } = useConnections();
   const strategiesQuery = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
+  const symbolsQuery = useQuery({
+    queryKey: ["market-symbols", active?.id],
+    queryFn: () => getMarketSymbols({ data: { connectionId: active!.id } }),
+    enabled: Boolean(active?.id),
+  });
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
+  const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Strategy | null>(null);
+  const [form, setForm] = useState<StrategyForm>(emptyForm);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const filteredStrategies = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -139,12 +186,137 @@ function StrategiesPage() {
       return matchesCategory && (!normalizedSearch || searchableText.includes(normalizedSearch));
     });
   }, [category, search, strategiesQuery.data]);
+  const categories = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...categoryOptions,
+          ...(strategiesQuery.data ?? []).map((item) => item.category),
+        ]),
+      ].sort((left, right) => left.localeCompare(right)),
+    [strategiesQuery.data],
+  );
+
+  const refreshStrategies = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["strategies"] });
+  };
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (editingStrategy) {
+        await updateStrategy({
+          data: {
+            strategyId: editingStrategy.id,
+            name: form.name,
+            category: form.category,
+            description: form.description,
+            shortDescription: form.shortDescription,
+            engineSlug: form.engineSlug,
+            targetSymbols: form.targetSymbols,
+          },
+        });
+        return;
+      }
+      await createStrategy({
+        data: {
+          name: form.name,
+          category: form.category,
+          description: form.description,
+          shortDescription: form.shortDescription,
+          engineSlug: form.engineSlug,
+          targetSymbols: form.targetSymbols,
+          timeframes: [...supportedTimeframes],
+          markets: ["account_symbols"],
+        },
+      });
+    },
+    onSuccess: async () => {
+      setDialogOpen(false);
+      setEditingStrategy(null);
+      toast.success(editingStrategy ? "Strategy updated." : "Strategy created.");
+      await refreshStrategies();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (strategy: Strategy) => deleteStrategy({ data: { strategyId: strategy.id } }),
+    onSuccess: async () => {
+      setDeleteTarget(null);
+      toast.success("Strategy removed from your library.");
+      await refreshStrategies();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  function openCreate() {
+    setEditingStrategy(null);
+    setForm(emptyForm());
+    setDialogOpen(true);
+  }
+
+  function openEdit(strategy: Strategy) {
+    const configuration = strategy.configuration ?? {};
+    setEditingStrategy(strategy);
+    setForm({
+      name: strategy.name,
+      category: strategy.category,
+      description: strategy.description,
+      shortDescription: strategy.short_description,
+      engineSlug:
+        typeof configuration["runtimeStrategySlug"] === "string"
+          ? configuration["runtimeStrategySlug"]
+          : strategy.slug,
+      targetSymbols: stringArray(configuration["targetSymbols"]).length
+        ? stringArray(configuration["targetSymbols"])
+        : ["*"],
+    });
+    setDialogOpen(true);
+  }
+
+  function openBacktest(strategy: Strategy) {
+    const targets = stringArray(strategy.configuration?.["targetSymbols"]);
+    const symbol = targets.length === 1 && targets[0] !== "*" ? targets[0] : undefined;
+    navigate({
+      to: "/backtest",
+      search: { strategyId: strategy.id, ...(symbol ? { symbol } : {}) },
+    });
+  }
+
+  function toggleSymbol(symbol: string, checked: boolean) {
+    setForm((current) => {
+      if (symbol === "*") return { ...current, targetSymbols: checked ? ["*"] : [] };
+      const selected = current.targetSymbols.includes("*")
+        ? (symbolsQuery.data?.map((item) => item.symbol) ?? [])
+        : current.targetSymbols;
+      if (current.targetSymbols.includes("*") && selected.length > maxSpecificSymbols) {
+        toast.info(
+          `This account has more than ${maxSpecificSymbols} symbols. Turn off “All account symbols” before selecting a specific subset.`,
+        );
+        return current;
+      }
+      const next = checked
+        ? [...new Set([...selected, symbol])]
+        : selected.filter((item) => item !== symbol);
+      if (next.length > maxSpecificSymbols) {
+        toast.info(
+          `Select up to ${maxSpecificSymbols} specific symbols, or use all account symbols.`,
+        );
+        return current;
+      }
+      return { ...current, targetSymbols: next };
+    });
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Strategies"
-        description="Strategy definitions available to your Kocel bots."
+        description="Build and manage reusable strategy configurations for your MT5 bots and historical tests."
+        actions={
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 size-4" />
+            New strategy
+          </Button>
+        }
       />
 
       {strategiesQuery.isLoading ? (
@@ -155,14 +327,6 @@ function StrategiesPage() {
             description={strategyErrorDescription(strategiesQuery.error)}
             errorCode={strategyErrorCode(strategiesQuery.error)}
             onRetry={() => void strategiesQuery.refetch()}
-          />
-        </div>
-      ) : (strategiesQuery.data ?? []).length === 0 ? (
-        <div className="panel">
-          <EmptyState
-            icon={LineChart}
-            title="No strategies are currently available"
-            description="Kocel strategy definitions will appear here when they are published."
           />
         </div>
       ) : (
@@ -183,7 +347,7 @@ function StrategiesPage() {
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
-                {categoryOptions.map((option) => (
+                {["All", ...categories].map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>
@@ -197,7 +361,7 @@ function StrategiesPage() {
               <EmptyState
                 icon={Search}
                 title="No matching strategies"
-                description="Try a different search or category filter."
+                description="Try a different search or create a strategy of your own."
               />
             </div>
           ) : (
@@ -216,15 +380,35 @@ function StrategiesPage() {
                   <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
                     {strategy.description}
                   </p>
-                  <Button
-                    className="mt-4 self-start"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedStrategy(strategy)}
-                  >
-                    <BookOpen className="mr-2 size-4" />
-                    View definition
-                  </Button>
+                  <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedStrategy(strategy)}
+                    >
+                      <BookOpen className="mr-2 size-4" />
+                      View definition
+                    </Button>
+                    <Button size="sm" onClick={() => openBacktest(strategy)}>
+                      Backtest
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Edit ${strategy.name}`}
+                      onClick={() => openEdit(strategy)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Delete ${strategy.name}`}
+                      onClick={() => setDeleteTarget(strategy)}
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -233,13 +417,180 @@ function StrategiesPage() {
       )}
 
       <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingStrategy(null);
+            saveMutation.reset();
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingStrategy ? "Edit strategy" : "Create strategy"}</DialogTitle>
+            <DialogDescription>
+              Choose a supported Kocel runtime so the strategy can be analyzed by bots and replayed
+              by Backtest. The MT5 EA remains the terminal executor.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!form.targetSymbols.length) {
+                toast.error("Choose at least one symbol or enable all account symbols.");
+                return;
+              }
+              saveMutation.mutate();
+            }}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="strategy-name">Name</Label>
+                <Input
+                  id="strategy-name"
+                  value={form.name}
+                  maxLength={80}
+                  required
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(value) => setForm({ ...form, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Runtime engine</Label>
+              <Select
+                value={form.engineSlug}
+                onValueChange={(value) => setForm({ ...form, engineSlug: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a supported strategy engine" />
+                </SelectTrigger>
+                <SelectContent>
+                  {backtestableEngines.map((engine) => (
+                    <SelectItem key={engine.slug} value={engine.slug}>
+                      {engine.slug}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="strategy-summary">Short description</Label>
+              <Input
+                id="strategy-summary"
+                value={form.shortDescription}
+                maxLength={240}
+                onChange={(event) => setForm({ ...form, shortDescription: event.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="strategy-description">Definition and notes</Label>
+              <Textarea
+                id="strategy-description"
+                value={form.description}
+                maxLength={4000}
+                rows={4}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+              />
+            </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Symbols</legend>
+              <p className="text-xs text-muted-foreground">
+                Select specific symbols from this account’s Market Watch or allow all of them.
+              </p>
+              <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={form.targetSymbols.includes("*")}
+                    onCheckedChange={(checked) => toggleSymbol("*", checked === true)}
+                  />
+                  All account symbols
+                </label>
+                {symbolsQuery.data?.map((item) => (
+                  <label key={item.symbol} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={
+                        form.targetSymbols.includes("*") || form.targetSymbols.includes(item.symbol)
+                      }
+                      onCheckedChange={(checked) => toggleSymbol(item.symbol, checked === true)}
+                    />
+                    <span className="truncate">{item.symbol}</span>
+                  </label>
+                ))}
+                {!symbolsQuery.isLoading && !symbolsQuery.data?.length && (
+                  <p className="text-xs text-muted-foreground">
+                    Connect the Bridge EA to populate account symbols. All symbols remains
+                    available.
+                  </p>
+                )}
+              </div>
+            </fieldset>
+            <Button type="submit" disabled={saveMutation.isPending || !form.name.trim()}>
+              {saveMutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {editingStrategy ? "Save strategy" : "Create strategy"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={selectedStrategy !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedStrategy(null);
         }}
       >
-        <StrategyDetails strategy={selectedStrategy} />
+        <StrategyDetails
+          strategy={selectedStrategy}
+          onBacktest={() => selectedStrategy && openBacktest(selectedStrategy)}
+        />
       </Dialog>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this strategy?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.is_builtin
+                ? "This hides the built-in strategy from your library only; it does not affect other users or existing bots."
+                : "This permanently deletes your strategy. Strategies used by bots or analysis history cannot be deleted."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (deleteTarget) deleteMutation.mutate(deleteTarget);
+              }}
+            >
+              {deleteMutation.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

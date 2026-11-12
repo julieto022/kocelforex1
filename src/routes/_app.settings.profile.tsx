@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ImagePlus, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionCard } from "@/components/kocel/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { updateProfile } from "@/services/users";
 
 export const Route = createFileRoute("/_app/settings/profile")({
@@ -18,6 +20,7 @@ export const Route = createFileRoute("/_app/settings/profile")({
 function ProfileSettings() {
   const { user, profile, refresh } = useAuth();
   const [form, setForm] = useState({ full_name: "", username: "", phone: "", country: "" });
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -44,6 +47,34 @@ function ProfileSettings() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!user) throw new Error("Sign in to upload a profile picture.");
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error("Choose a JPG, PNG, or WebP image.");
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("Profile pictures must be 5 MB or smaller.");
+      }
+
+      const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
+      const path = `${user.id}/profile.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      await updateProfile(user.id, { avatar_url: `${data.publicUrl}?t=${Date.now()}` });
+    },
+    onSuccess: () => {
+      refresh();
+      toast.success("Profile picture updated.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
     <SectionCard title="Profile" description="Details shown across your Kocel workspace.">
       <form
@@ -53,6 +84,49 @@ function ProfileSettings() {
           mutation.mutate();
         }}
       >
+        <div className="flex items-center gap-4">
+          <Avatar className="size-16">
+            {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt="Profile picture" />}
+            <AvatarFallback className="bg-primary/15 text-base font-semibold text-primary">
+              {(profile?.full_name || profile?.username || "K")
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0]?.toUpperCase() ?? "")
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Profile picture</p>
+            <p className="text-xs text-muted-foreground">JPG, PNG, or WebP; up to 5 MB.</p>
+            <input
+              ref={fileInput}
+              className="sr-only"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="Choose profile picture"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) avatarMutation.mutate(file);
+                event.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={avatarMutation.isPending}
+              onClick={() => fileInput.current?.click()}
+            >
+              {avatarMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <ImagePlus className="mr-2 size-4" />
+              )}
+              Upload picture
+            </Button>
+          </div>
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="full_name">Full name</Label>
           <Input
