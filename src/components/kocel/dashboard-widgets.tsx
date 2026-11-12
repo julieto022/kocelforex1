@@ -184,8 +184,10 @@ export function DashboardWidgets() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs text-foreground">{post.content}</p>
                   <p className="text-[0.65rem] text-muted-foreground">
-                    {post.author?.full_name ?? post.author?.username ?? "Kocel trader"} ·{" "}
-                    {post.reaction_count ?? 0} likes · {post.comment_count ?? 0} comments
+                    {post.author?.username
+                      ? `@${post.author.username}`
+                      : (post.author?.full_name ?? "Trader")}{" "}
+                    · {post.reaction_count ?? 0} likes · {post.comment_count ?? 0} comments
                   </p>
                 </div>
               </li>

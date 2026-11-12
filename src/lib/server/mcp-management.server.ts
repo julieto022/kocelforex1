@@ -3,6 +3,7 @@ import { z } from "zod";
 import { conflict, forbidden, invalid, notFound } from "@/lib/api/errors";
 import { recordAudit } from "@/lib/server/audit.server";
 import { getStrategyDefinition } from "@/lib/trading/strategies/registry";
+import { customRulesSchema } from "@/lib/trading/strategies/custom-rules";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -116,8 +117,7 @@ export async function updateMcpRiskSettings(
     connection_id: connectionId,
     max_lot_size: patch.maxLotSize ?? current.max_lot_size,
     max_open_positions: patch.maxOpenPositions ?? current.max_open_positions,
-    max_positions_per_symbol:
-      patch.maxPositionsPerSymbol ?? current.max_positions_per_symbol,
+    max_positions_per_symbol: patch.maxPositionsPerSymbol ?? current.max_positions_per_symbol,
     max_daily_loss: patch.maxDailyLoss === undefined ? current.max_daily_loss : patch.maxDailyLoss,
     max_daily_loss_percent:
       patch.maxDailyLossPercent === undefined
@@ -381,6 +381,12 @@ export async function createMcpStrategy(
   if (!getStrategyDefinition(input.engineSlug)) {
     throw invalid("Choose an engine strategy supported by the Kocel runtime.");
   }
+  if (
+    input.engineSlug === "custom-rules" &&
+    !customRulesSchema.safeParse(input.configuration["customRules"]).success
+  ) {
+    throw invalid("Custom runtime strategies require a valid customRules configuration.");
+  }
   const db = await admin();
   const configuration = {
     ...input.configuration,
@@ -442,7 +448,7 @@ export async function updateMcpStrategy(
   const currentConfiguration = asRecord(
     existingOverride?.configuration_override ?? strategy.configuration,
   );
-  const nextConfiguration = {
+  const nextConfiguration: Record<string, unknown> = {
     ...currentConfiguration,
     ...patch.configuration,
     ...(patch.engineSlug ? { runtimeStrategySlug: patch.engineSlug } : {}),
@@ -453,6 +459,12 @@ export async function updateMcpStrategy(
       : strategy.slug;
   if (!getStrategyDefinition(runtimeSlug)) {
     throw invalid("The selected runtime strategy is not supported.");
+  }
+  if (
+    runtimeSlug === "custom-rules" &&
+    !customRulesSchema.safeParse(nextConfiguration["customRules"]).success
+  ) {
+    throw invalid("Custom runtime strategies require a valid customRules configuration.");
   }
   if (patch.isActive === false && strategy.is_builtin) {
     return deleteMcpStrategy(userId, strategyId);

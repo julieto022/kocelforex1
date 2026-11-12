@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getNews } from "@/services/news";
+import { getMarketNewsFeed } from "@/lib/functions/market-intelligence.functions";
 import { getEconomicEvents } from "@/services/economic-calendar";
 import { IMPACT_MODEL, NEWS_CATEGORIES, NEWS_CURRENCIES, type ImpactLevel } from "@/services/types";
 
@@ -56,7 +56,8 @@ function NewsPage() {
 
   const newsQuery = useQuery({
     queryKey: ["news", { search, category, currency, impact, range }],
-    queryFn: () => getNews({ search, category, currency, impact, range }),
+    queryFn: () => getMarketNewsFeed({ data: { search, category, currency, impact, range } }),
+    staleTime: 5 * 60_000,
   });
 
   const eventsQuery = useQuery({
@@ -68,12 +69,18 @@ function NewsPage() {
     <div className="space-y-5">
       <PageHeader
         title="News & Economic Calendar"
-        description="Market news and scheduled economic releases. Kocel only displays data from connected providers — nothing is generated."
+        description="Trading-related headlines from FXStreet, CNBC Business, the Federal Reserve, and the ECB, with source links. News headlines are not trading signals."
       />
 
       <SectionCard>
         <div className="flex flex-wrap items-center gap-2">
-          <Tabs value={tab} onValueChange={setTab}>
+          <Tabs
+            value={tab}
+            onValueChange={(nextTab) => {
+              setTab(nextTab);
+              if (nextTab === "news" && range === "tomorrow") setRange("all");
+            }}
+          >
             <TabsList>
               <TabsTrigger value="news">News</TabsTrigger>
               <TabsTrigger value="calendar">Economic calendar</TabsTrigger>
@@ -134,16 +141,27 @@ function NewsPage() {
                 <SelectValue placeholder="Range" />
               </SelectTrigger>
               <SelectContent>
-                {RANGES.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.label}
-                  </SelectItem>
-                ))}
+                {(tab === "news" ? RANGES.filter((item) => item.id !== "tomorrow") : RANGES).map(
+                  (item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
           </div>
         </div>
       </SectionCard>
+
+      {tab === "news" && (newsQuery.data?.warnings.length ?? 0) > 0 && (
+        <p
+          className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-muted-foreground"
+          role="status"
+        >
+          Some news sources are temporarily unavailable: {newsQuery.data?.warnings.join(" ")}
+        </p>
+      )}
 
       {tab === "news" ? (
         <SectionCard title="Latest news" bodyClassName="p-0 sm:p-0">
@@ -159,18 +177,18 @@ function NewsPage() {
           ) : newsQuery.isError ? (
             <ErrorState
               title="News could not be loaded"
-              description="We couldn't reach the news store. Try again in a moment."
+              description="We couldn't reach the live news sources. Try again in a moment."
               onRetry={() => newsQuery.refetch()}
             />
-          ) : (newsQuery.data ?? []).length === 0 ? (
+          ) : (newsQuery.data?.items ?? []).length === 0 ? (
             <EmptyState
               icon={Newspaper}
               title="No news available"
-              description="No articles match these filters yet. News appears here as soon as a news provider is connected and publishing."
+              description="No articles from the live trading-news feeds match these filters."
             />
           ) : (
             <ul className="divide-y divide-border">
-              {(newsQuery.data ?? []).map((item) => (
+              {(newsQuery.data?.items ?? []).map((item) => (
                 <li key={item.id} className="px-4 py-3.5 sm:px-5">
                   <div className="flex flex-wrap items-center gap-2">
                     {impactBadge(String(item.impact))}

@@ -1,4 +1,5 @@
 import type { StrategyAnalysis, StrategyContext, StrategyDefinition } from "./types";
+import { analyzeCustomRules } from "./custom-rules";
 
 const none = (reason: string, state: StrategyAnalysis["state"] = "WAIT"): StrategyAnalysis => ({
   state, direction: "NONE", confidence: 0, reason, factors: [], marketState: "UNCLEAR", entryPrice: null, stopLoss: null, takeProfit: null,
@@ -131,7 +132,10 @@ function kocelAiScalper(context: StrategyContext): StrategyAnalysis {
 }
 
 function scalping(context: StrategyContext): StrategyAnalysis {
-  const configured = String(context.configuration.subStrategy ?? "").trim().toLowerCase().replace(/\s+/g, "-");
+  const configured = String(context.configuration["subStrategy"] ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
   const evaluators: Record<string, (value: StrategyContext) => StrategyAnalysis> = {
     "micro-momentum": microMomentum,
     momentum: momentumStrategy,
@@ -210,6 +214,7 @@ const definitions: StrategyDefinition[] = [
     if (indicators.close < indicators.vwap && context.candles.at(-1)!.close < context.candles.at(-1)!.open) return result(context, "SELL", 69, "Price rejected VWAP with a bearish completed candle.", ["VWAP available", "Price below VWAP", "Bearish rejection candle"], "TRENDING_DOWN", 1.5);
     return none("Price/VWAP direction is not confirmed.");
   } },
+  { slug: "custom-rules", version: "1.0", analyze: analyzeCustomRules },
   { slug: "nfp-news-trading", version: "1.0", analyze: () => none("NEWS_DATA_UNAVAILABLE", "DATA_UNAVAILABLE") },
   { slug: "carry", version: "1.0", analyze: () => none("DATA_UNAVAILABLE: real rate or swap data is required.", "DATA_UNAVAILABLE") },
   { slug: "grid", version: "1.0", analyze: (context) => ({ ...range(context), reason: "Grid suitability analyzed; no orders are created in this phase.", state: "WAIT", direction: "NONE" }) },

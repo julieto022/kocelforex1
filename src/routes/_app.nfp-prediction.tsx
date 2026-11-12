@@ -9,12 +9,30 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   countdownTo,
-  getLatestNfpPrediction,
   getNfpHistory,
   getUpcomingNfpPrediction,
   resolveFactors,
 } from "@/services/nfp";
+import { getNfpMarketOutlook } from "@/lib/functions/market-intelligence.functions";
 import type { NfpFactorStatus, StatusTone } from "@/services/types";
+
+type NfpSource = {
+  name: string;
+  url: string;
+  summary: string;
+  published_at: string | null;
+};
+
+function isNfpSource(value: unknown): value is NfpSource {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Record<string, unknown>;
+  return (
+    typeof source["name"] === "string" &&
+    typeof source["url"] === "string" &&
+    typeof source["summary"] === "string" &&
+    (typeof source["published_at"] === "string" || source["published_at"] === null)
+  );
+}
 
 export const Route = createFileRoute("/_app/nfp-prediction")({
   component: NfpPredictionPage,
@@ -35,10 +53,15 @@ function biasTone(bias: string | null): StatusTone {
   return "neutral";
 }
 
+function formatReleaseDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString();
+}
+
 function NfpPredictionPage() {
-  const latestQuery = useQuery({
-    queryKey: ["nfp", "latest"],
-    queryFn: getLatestNfpPrediction,
+  const outlookQuery = useQuery({
+    queryKey: ["nfp", "live-outlook"],
+    queryFn: () => getNfpMarketOutlook(),
+    staleTime: 15 * 60_000,
   });
   const upcomingQuery = useQuery({
     queryKey: ["nfp", "upcoming"],
@@ -46,9 +69,29 @@ function NfpPredictionPage() {
   });
   const historyQuery = useQuery({ queryKey: ["nfp", "history"], queryFn: () => getNfpHistory() });
 
-  const prediction = upcomingQuery.data ?? latestQuery.data ?? null;
+  const prediction = outlookQuery.data ?? upcomingQuery.data ?? null;
   const countdown = countdownTo(prediction?.release_date ?? null);
   const factors = resolveFactors(prediction);
+  const sources =
+    prediction && "sources" in prediction && Array.isArray(prediction.sources)
+      ? prediction.sources.filter(isNfpSource)
+      : [];
+  const modelVersion =
+    prediction && "model_version" in prediction && typeof prediction.model_version === "string"
+      ? prediction.model_version
+      : null;
+  const releaseDateEstimated =
+    prediction !== null &&
+    "release_date_estimated" in prediction &&
+    prediction.release_date_estimated === true;
+  const releaseTime =
+    prediction && "release_time" in prediction && typeof prediction.release_time === "string"
+      ? prediction.release_time
+      : null;
+  const warnings =
+    prediction && "warnings" in prediction && Array.isArray(prediction.warnings)
+      ? prediction.warnings.filter((warning): warning is string => typeof warning === "string")
+      : [];
 
   const impacts = [
     { label: "USD", value: prediction?.usd_impact ?? null },
@@ -62,24 +105,43 @@ function NfpPredictionPage() {
     <div className="space-y-5">
       <PageHeader
         title="NFP Prediction"
-        description="Kocel's Non-Farm Payroll outlook, built server-side from 15 labour-market and macro factors. Values appear only when the analysis engine has published them."
+        description="A transparent, on-demand labor-market outlook combining official BLS data with attributed market headlines. It is an uncalibrated estimate, not a probability or trading recommendation."
       />
 
-      {latestQuery.isLoading || upcomingQuery.isLoading ? (
+      {outlookQuery.isError && upcomingQuery.data && (
+        <p
+          className="rounded-md border border-warning/40 bg-warning/12 px-3 py-2 text-xs text-muted-foreground"
+          role="status"
+        >
+          The live outlook is unavailable; showing the published prediction instead.
+        </p>
+      )}
+      {warnings.length > 0 && (
+        <p
+          className="rounded-md border border-warning/40 bg-warning/12 px-3 py-2 text-xs text-muted-foreground"
+          role="status"
+        >
+          Some evidence is unavailable: {warnings.join(" ")}
+        </p>
+      )}
+
+      {outlookQuery.isLoading || upcomingQuery.isLoading ? (
         <SectionCard>
           <div className="space-y-3">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-24 w-full" />
           </div>
         </SectionCard>
-      ) : latestQuery.isError || upcomingQuery.isError ? (
+      ) : outlookQuery.isError && !upcomingQuery.data ? (
         <SectionCard>
           <ErrorState
             title="NFP prediction could not be loaded"
-            onRetry={() => {
-              void latestQuery.refetch();
-              void upcomingQuery.refetch();
-            }}
+            description={
+              outlookQuery.error instanceof Error
+                ? outlookQuery.error.message
+                : "Official labor data is temporarily unavailable."
+            }
+            onRetry={() => void outlookQuery.refetch()}
           />
         </SectionCard>
       ) : !prediction ? (
@@ -93,8 +155,16 @@ function NfpPredictionPage() {
       ) : (
         <>
           <SectionCard
-            title={`Release ${new Date(prediction.release_date).toLocaleDateString()}`}
-            description={prediction.expected_impact ?? undefined}
+            title={`Release ${formatReleaseDate(prediction.release_date)}`}
+            description={[
+              prediction.expected_impact,
+              releaseTime ? `Scheduled release time: ${releaseTime}.` : null,
+              releaseDateEstimated
+                ? "Date estimate: first Friday rule; confirm the official BLS schedule."
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
             action={
               countdown && (
                 <StatusBadge tone={countdown.past ? "neutral" : "warning"} size="sm">
@@ -125,7 +195,7 @@ function NfpPredictionPage() {
 
             <div className="mt-4">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Confidence</span>
+                <span>Evidence alignment (not a probability)</span>
                 <span className="num">
                   {prediction.confidence !== null ? `${prediction.confidence}%` : "—"}
                 </span>
@@ -136,7 +206,43 @@ function NfpPredictionPage() {
             {prediction.analysis && (
               <p className="mt-4 text-sm text-muted-foreground">{prediction.analysis}</p>
             )}
+            {modelVersion && (
+              <p className="mt-2 text-[0.68rem] text-muted-foreground">
+                Model {modelVersion} · Updated {new Date(prediction.updated_at).toLocaleString()}
+              </p>
+            )}
           </SectionCard>
+
+          {sources.length > 0 && (
+            <SectionCard
+              title="Evidence and sources"
+              description="Use the original sources to verify each input; headlines can be incomplete or revised."
+            >
+              <ul className="space-y-3">
+                {sources.map((source) => (
+                  <li
+                    key={`${source.name}-${source.url}`}
+                    className="rounded-md border border-border p-3"
+                  >
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      {source.name}
+                    </a>
+                    <p className="mt-1 text-sm text-muted-foreground">{source.summary}</p>
+                    {source.published_at && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(source.published_at).toLocaleString()}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard

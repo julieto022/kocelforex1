@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { getFollowCounts } from "@/services/community";
 import { updateProfile } from "@/services/users";
 
 export const Route = createFileRoute("/_app/settings/profile")({
@@ -21,6 +22,11 @@ function ProfileSettings() {
   const { user, profile, refresh } = useAuth();
   const [form, setForm] = useState({ full_name: "", username: "", phone: "", country: "" });
   const fileInput = useRef<HTMLInputElement>(null);
+  const communityCounts = useQuery({
+    queryKey: ["community-follow-counts", user?.id],
+    queryFn: () => getFollowCounts(user!.id),
+    enabled: Boolean(user?.id),
+  });
 
   useEffect(() => {
     if (!profile) return;
@@ -147,7 +153,7 @@ function ProfileSettings() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" value={profile?.email ?? user?.email ?? ""} disabled />
+          <Input id="email" value={user?.email ?? profile?.email ?? ""} disabled />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -174,6 +180,43 @@ function ProfileSettings() {
           Save changes
         </Button>
       </form>
+
+      <div className="mt-6 border-t border-border pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Community profile</h3>
+            <p className="text-xs text-muted-foreground">
+              Your public identity, followers, and shared trading discussions.
+            </p>
+          </div>
+          {user && (
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/community/$userId" params={{ userId: user.id }}>
+                View profile
+              </Link>
+            </Button>
+          )}
+        </div>
+        <div className="mt-3 grid max-w-sm grid-cols-2 gap-3">
+          <div className="rounded-md border border-border bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground">Followers</p>
+            <p className="num mt-1 text-lg font-semibold text-foreground">
+              {communityCounts.data?.followers ?? 0}
+            </p>
+          </div>
+          <div className="rounded-md border border-border bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground">Following</p>
+            <p className="num mt-1 text-lg font-semibold text-foreground">
+              {communityCounts.data?.following ?? 0}
+            </p>
+          </div>
+        </div>
+        {communityCounts.isError && (
+          <p className="mt-2 text-xs text-destructive" role="alert">
+            Community counts could not be loaded.
+          </p>
+        )}
+      </div>
     </SectionCard>
   );
 }

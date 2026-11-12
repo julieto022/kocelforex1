@@ -8,11 +8,9 @@ import { PageHeader } from "@/components/kocel/page-header";
 import { PositionsList } from "@/components/kocel/positions-list";
 import { EmptyState, SectionCard } from "@/components/kocel/states";
 import { BridgeStatusBadge } from "@/components/kocel/status-badge";
-import { TradingPanel } from "@/components/kocel/trading-panel";
 import { Button } from "@/components/ui/button";
 import { useConnections } from "@/lib/use-connections";
 import { maskLogin } from "@/services/mt5";
-
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
@@ -101,10 +99,7 @@ function DashboardPage() {
             )}
           </SectionCard>
 
-          <TradingPanel />
-
           <PositionsList />
-
         </>
       )}
 

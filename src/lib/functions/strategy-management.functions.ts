@@ -7,6 +7,7 @@ import {
   deleteMcpStrategy,
   updateMcpStrategy,
 } from "@/lib/server/mcp-management.server";
+import { customRulesSchema } from "@/lib/trading/strategies/custom-rules";
 
 const strategyId = z.string().uuid();
 const engineSlug = z.string().trim().min(1).max(80);
@@ -24,6 +25,7 @@ export const createStrategy = createServerFn({ method: "POST" })
         description: z.string().max(4000),
         shortDescription: z.string().max(240),
         engineSlug,
+        customRules: customRulesSchema.optional(),
         targetSymbols,
         timeframes,
         markets,
@@ -33,7 +35,10 @@ export const createStrategy = createServerFn({ method: "POST" })
   .handler(({ data, context }) =>
     createMcpStrategy(context.userId, {
       ...data,
-      configuration: { targetSymbols: data.targetSymbols },
+      configuration: {
+        targetSymbols: data.targetSymbols,
+        ...(data.customRules ? { customRules: data.customRules } : {}),
+      },
     }),
   );
 
@@ -48,6 +53,7 @@ export const updateStrategy = createServerFn({ method: "POST" })
         description: z.string().max(4000).optional(),
         shortDescription: z.string().max(240).optional(),
         engineSlug: engineSlug.optional(),
+        customRules: customRulesSchema.optional(),
         targetSymbols: targetSymbols.optional(),
         timeframes: timeframes.optional(),
         markets: markets.optional(),
@@ -62,12 +68,14 @@ export const updateStrategy = createServerFn({ method: "POST" })
     const {
       strategyId: id,
       targetSymbols: symbols,
+      customRules,
       timeframes: frames,
       markets: classes,
       ...patch
     } = data;
     const configuration: Record<string, unknown> = {};
     if (symbols !== undefined) configuration["targetSymbols"] = symbols;
+    if (customRules !== undefined) configuration["customRules"] = customRules;
     const strategyPatch = {
       ...patch,
       ...(frames !== undefined ? { timeframes: frames } : {}),

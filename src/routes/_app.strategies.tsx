@@ -43,6 +43,7 @@ import {
   updateStrategy,
 } from "@/lib/functions/strategy-management.functions";
 import { getStrategyDefinitions } from "@/lib/trading/strategies/registry";
+import { customRulesSchema, defaultCustomRules } from "@/lib/trading/strategies/custom-rules";
 import { useConnections } from "@/lib/use-connections";
 import { getStrategies, StrategyServiceError } from "@/services/strategies";
 import type { Strategy } from "@/services/types";
@@ -74,6 +75,7 @@ type StrategyForm = {
   description: string;
   shortDescription: string;
   engineSlug: string;
+  customRulesJson: string;
   targetSymbols: string[];
 };
 
@@ -83,6 +85,7 @@ const emptyForm = (): StrategyForm => ({
   description: "",
   shortDescription: "",
   engineSlug: backtestableEngines[0]?.slug ?? "momentum",
+  customRulesJson: JSON.stringify(defaultCustomRules, null, 2),
   targetSymbols: ["*"],
 });
 
@@ -94,6 +97,22 @@ function stringArray(value: unknown): string[] {
 
 function strategyErrorCode(error: unknown) {
   return error instanceof StrategyServiceError ? error.code : "UNKNOWN_ERROR";
+}
+
+function parseCustomRules(value: string) {
+  let configuration: unknown;
+  try {
+    configuration = JSON.parse(value);
+  } catch {
+    throw new Error("Custom rules must be valid JSON.");
+  }
+  const parsed = customRulesSchema.safeParse(configuration);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid custom rules: ${parsed.error.issues[0]?.message ?? "check the schema."}`,
+    );
+  }
+  return parsed.data;
 }
 
 function strategyErrorDescription(error: unknown) {
@@ -202,6 +221,8 @@ function StrategiesPage() {
   };
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const customRules =
+        form.engineSlug === "custom-rules" ? parseCustomRules(form.customRulesJson) : undefined;
       if (editingStrategy) {
         await updateStrategy({
           data: {
@@ -211,6 +232,7 @@ function StrategiesPage() {
             description: form.description,
             shortDescription: form.shortDescription,
             engineSlug: form.engineSlug,
+            ...(customRules ? { customRules } : {}),
             targetSymbols: form.targetSymbols,
           },
         });
@@ -223,6 +245,7 @@ function StrategiesPage() {
           description: form.description,
           shortDescription: form.shortDescription,
           engineSlug: form.engineSlug,
+          ...(customRules ? { customRules } : {}),
           targetSymbols: form.targetSymbols,
           timeframes: [...supportedTimeframes],
           markets: ["account_symbols"],
@@ -265,6 +288,7 @@ function StrategiesPage() {
         typeof configuration["runtimeStrategySlug"] === "string"
           ? configuration["runtimeStrategySlug"]
           : strategy.slug,
+      customRulesJson: JSON.stringify(configuration["customRules"] ?? defaultCustomRules, null, 2),
       targetSymbols: stringArray(configuration["targetSymbols"]).length
         ? stringArray(configuration["targetSymbols"])
         : ["*"],
@@ -431,7 +455,9 @@ function StrategiesPage() {
             <DialogTitle>{editingStrategy ? "Edit strategy" : "Create strategy"}</DialogTitle>
             <DialogDescription>
               Choose a supported Kocel runtime so the strategy can be analyzed by bots and replayed
-              by Backtest. The MT5 EA remains the terminal executor.
+              by Backtest. The custom-rules runtime is a validated declarative ruleset; it is
+              interpreted by the same engine for live bot analysis and historical tests. The EA
+              receives validated trade commands, never executable strategy code.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -487,12 +513,31 @@ function StrategiesPage() {
                 <SelectContent>
                   {backtestableEngines.map((engine) => (
                     <SelectItem key={engine.slug} value={engine.slug}>
-                      {engine.slug}
+                      {engine.slug === "custom-rules" ? "Custom rules (version 1)" : engine.slug}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {form.engineSlug === "custom-rules" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="strategy-custom-rules">Custom runtime rules (JSON)</Label>
+                <Textarea
+                  id="strategy-custom-rules"
+                  value={form.customRulesJson}
+                  maxLength={4000}
+                  rows={12}
+                  spellCheck={false}
+                  onChange={(event) => setForm({ ...form, customRulesJson: event.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Each side requires 1–8 conditions. Compare a supported indicator to another
+                  indicator or a number. Example:{" "}
+                  <code>{'{"left":"rsi14","operator":"gt","right":55}'}</code>. Stop and target
+                  levels use ATR multiples.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="strategy-summary">Short description</Label>
               <Input

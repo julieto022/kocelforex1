@@ -17,6 +17,8 @@ export const RATE_LIMITS = {
   connectionCode: { limit: 10, windowSeconds: 3600 },
   /** Community posting. */
   communityPost: { limit: 10, windowSeconds: 3600 },
+  /** Community member discovery. */
+  communitySearch: { limit: 60, windowSeconds: 60 },
   /** Community comments. */
   communityComment: { limit: 40, windowSeconds: 3600 },
   /** Reports. */
@@ -25,6 +27,10 @@ export const RATE_LIMITS = {
   bridge: { limit: 240, windowSeconds: 60 },
   /** MCP tool requests, per API key. */
   mcp: { limit: 120, windowSeconds: 60 },
+  /** External market-news requests. */
+  marketNews: { limit: 30, windowSeconds: 60 },
+  /** BLS-backed NFP outlook requests. */
+  nfpOutlook: { limit: 6, windowSeconds: 300 },
   /** MCP key creation, per user. */
   mcpKey: { limit: 5, windowSeconds: 3600 },
   /** Bridge registration attempts, per caller. */

@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { BarChart3, Database, Loader2, Play, Trash2 } from "lucide-react";
+import { BarChart3, Database, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -380,18 +380,33 @@ function BacktestPage() {
             : "Select or connect an MT5 account to use its EA-reported symbols and historical candles."
         }
         action={
-          <StatusBadge
-            tone={catalogQuery.isError ? "danger" : availableSymbols.length ? "success" : "warning"}
-            size="sm"
-          >
-            {catalogQuery.isError
-              ? "Data error"
-              : catalogQuery.isLoading
-                ? "Loading"
-                : availableSymbols.length
-                  ? `${availableSymbols.length} symbols`
-                  : "No EA symbols"}
-          </StatusBadge>
+          <div className="flex items-center gap-2">
+            <StatusBadge
+              tone={
+                catalogQuery.isError ? "danger" : availableSymbols.length ? "success" : "warning"
+              }
+              size="sm"
+            >
+              {catalogQuery.isError
+                ? "Data error"
+                : catalogQuery.isLoading
+                  ? "Loading"
+                  : availableSymbols.length
+                    ? `${availableSymbols.length} symbols`
+                    : "No EA symbols"}
+            </StatusBadge>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={catalogQuery.isFetching || !active}
+              onClick={() => void catalogQuery.refetch()}
+            >
+              <RefreshCw
+                className={`mr-1.5 size-3.5 ${catalogQuery.isFetching ? "animate-spin" : ""}`}
+              />
+              Refresh symbols
+            </Button>
+          </div>
         }
       >
         {catalogQuery.isError ? (

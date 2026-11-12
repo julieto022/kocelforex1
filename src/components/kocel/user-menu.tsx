@@ -31,7 +31,8 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "row" })
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const name = profile?.full_name || profile?.username || "Kocel trader";
+  const name = profile?.full_name || profile?.username || user?.email || "Profile";
+  const username = profile?.username ? `@${profile.username}` : null;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -69,7 +70,7 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "row" })
                 {name}
               </span>
               <span className="block truncate text-[0.68rem] text-muted-foreground">
-                {user?.email}
+                {[username, user?.email].filter(Boolean).join(" · ")}
               </span>
             </span>
           </button>
@@ -78,7 +79,9 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "row" })
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex flex-col">
           <span className="text-sm">{name}</span>
-          <span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
+          <span className="truncate text-xs font-normal text-muted-foreground">
+            {[username, user?.email].filter(Boolean).join(" · ")}
+          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navigate({ to: "/settings/profile" })}>

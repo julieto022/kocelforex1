@@ -147,6 +147,9 @@ const editStrategyArgsSchema = z
   })
   .strict();
 
+const CUSTOM_RULES_GUIDANCE =
+  ' For custom logic, use engineSlug "custom-rules" and provide configuration.customRules as { version: 1, buy: [{ left: "rsi14", operator: "gt", right: 55 }], sell: [{ left: "rsi14", operator: "lt", right: 45 }], stopLossAtr: 1.5, takeProfitAtr: 3 }. Conditions in each list are ANDed. Supported indicators: close, sma20, ema9, ema20, ema50, rsi14, momentum10, atr14, standardDeviation20, highestHigh20, lowestLow20, averageRange14, vwap. Arbitrary code is not accepted; missing indicators or conflicting rules produce no trade.';
+
 const backtestArgsSchema = z.object({
   strategyId: z.string().uuid(),
   symbol: z.string().trim().min(1).max(64),
@@ -448,7 +451,8 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
     {
       title: "Create a strategy",
       description:
-        "Create an account-owned strategy using a supported Kocel runtime engine. This does not deploy or start a bot.",
+        "Create an account-owned strategy using a supported Kocel runtime engine. This does not deploy or start a bot." +
+        CUSTOM_RULES_GUIDANCE,
       inputSchema: { ...createStrategyArgsSchema.shape },
     },
     safeTool("create_strategy", async (args) =>
@@ -466,7 +470,8 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
     {
       title: "Edit a strategy",
       description:
-        "Edit an owned strategy, or create account-specific overrides for a built-in strategy without changing it for other users.",
+        "Edit an owned strategy, or create account-specific overrides for a built-in strategy without changing it for other users." +
+        CUSTOM_RULES_GUIDANCE,
       inputSchema: { ...editStrategyArgsSchema.shape },
     },
     safeTool("edit_strategy", async ({ strategyId, ...patch }) =>

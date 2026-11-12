@@ -9,6 +9,7 @@ import {
 import { isTradingTimeframe, type MarketCandle } from "@/lib/trading/market/types";
 import { getStrategyDefinition } from "@/lib/trading/strategies/registry";
 import { isStrategySymbolAllowed } from "@/lib/trading/strategies/symbols";
+import { customRulesSchema } from "@/lib/trading/strategies/custom-rules";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -56,6 +57,12 @@ async function requireStrategy(userId: string, strategyId: string) {
   const definition = getStrategyDefinition(runtimeSlug);
   if (!definition) {
     throw invalid("This strategy has no supported runtime and cannot be backtested.");
+  }
+  if (
+    runtimeSlug === "custom-rules" &&
+    !customRulesSchema.safeParse(configuration["customRules"]).success
+  ) {
+    throw invalid("This custom strategy has invalid rules and cannot be backtested.");
   }
   return { strategy, configuration, definition };
 }

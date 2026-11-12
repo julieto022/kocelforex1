@@ -104,7 +104,8 @@ export function PostCard({
     onError: () => toast.error("Could not submit the report."),
   });
 
-  const name = post.author?.full_name ?? post.author?.username ?? "Kocel trader";
+  const name = post.author?.full_name || post.author?.username || "Trader";
+  const handle = post.author?.username ? `@${post.author.username}` : name;
   const isOwner = user?.id === post.user_id;
 
   return (
@@ -122,10 +123,10 @@ export function PostCard({
                 params={{ userId: post.user_id }}
                 className="truncate text-sm font-semibold text-foreground hover:text-primary"
               >
-                {name}
+                {handle}
               </Link>
             ) : (
-              <span className="truncate text-sm font-semibold text-foreground">{name}</span>
+              <span className="truncate text-sm font-semibold text-foreground">{handle}</span>
             )}
             <StatusBadge tone="info" size="sm" dot={false}>
               {categoryLabel(String(post.category))}
@@ -136,7 +137,10 @@ export function PostCard({
               </StatusBadge>
             )}
           </div>
-          <p className="num text-xs text-muted-foreground">{formatTime(post.created_at)}</p>
+          <p className="num text-xs text-muted-foreground">
+            {post.author?.full_name && post.author.username ? `${post.author.full_name} · ` : ""}
+            {formatTime(post.created_at)}
+          </p>
         </div>
         {isOwner && (
           <Button
@@ -253,7 +257,9 @@ export function PostCard({
                   </Avatar>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground">
-                      {item.author?.full_name ?? item.author?.username ?? "Kocel trader"}
+                      {item.author?.username
+                        ? `@${item.author.username}`
+                        : (item.author?.full_name ?? "Trader")}
                     </p>
                     <p className="text-sm text-muted-foreground">{item.content}</p>
                   </div>

@@ -383,6 +383,8 @@ export type CommunityAuthor = {
   avatar_url: string | null;
 };
 
+export type CommunityMember = CommunityAuthor & { following: boolean };
+
 export type CommunityPost = {
   id: string;
   user_id: string;

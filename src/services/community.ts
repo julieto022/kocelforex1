@@ -2,10 +2,17 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listSavedPostIds,
   reportContent as reportContentFn,
+  searchCommunityMembers as searchCommunityMembersFn,
   savePost,
   unsavePost,
 } from "@/lib/functions/community.functions";
-import type { CommunityAuthor, CommunityComment, CommunityPost, TradingIdea } from "./types";
+import type {
+  CommunityAuthor,
+  CommunityComment,
+  CommunityMember,
+  CommunityPost,
+  TradingIdea,
+} from "./types";
 
 export type CommunityFilters = {
   category?: string | undefined;
@@ -247,6 +254,10 @@ export async function blockUser(blockerId: string, blockedId: string) {
 export async function getAuthor(userId: string): Promise<CommunityAuthor | null> {
   const authors = await loadAuthors([userId]);
   return authors.get(userId) ?? null;
+}
+
+export async function searchMembers(search = ""): Promise<CommunityMember[]> {
+  return searchCommunityMembersFn({ data: { search } });
 }
 
 /** Recent community activity for the dashboard widget. */

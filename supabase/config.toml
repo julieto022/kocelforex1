@@ -1,1 +1,5 @@
 project_id = "olyltcymfnmuayvdfqer"
+
+[auth.email.template.confirmation]
+subject = "Kocel Trading Hub"
+content_path = "./supabase/templates/confirmation.html"

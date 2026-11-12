@@ -1,0 +1,28 @@
+<div style="background: #0b1220; color: #e5e7eb; font-family: Arial, sans-serif; padding: 32px">
+  <div style="margin: 0 auto; max-width: 560px">
+    <p style="color: #67e8f9; font-size: 12px; font-weight: 700; letter-spacing: 2px">KOCEL</p>
+    <h1 style="color: #ffffff; font-size: 26px">Kocel Trading Hub</h1>
+    <p>Hi {{ .Data.username }},</p>
+    <p>
+      Thanks for creating your account. Confirm your email address to activate your Kocel profile.
+    </p>
+    <p style="margin: 28px 0">
+      <a
+        href="{{ .ConfirmationURL }}"
+        style="
+          background: #06b6d4;
+          border-radius: 6px;
+          color: #001018;
+          font-weight: 700;
+          padding: 12px 18px;
+          text-decoration: none;
+        "
+      >
+        Confirm email
+      </a>
+    </p>
+    <p style="color: #9ca3af; font-size: 12px">
+      If you did not create this account, you can ignore this message.
+    </p>
+  </div>
+</div>

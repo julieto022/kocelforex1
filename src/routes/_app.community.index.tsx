@@ -1,12 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessagesSquare } from "lucide-react";
+import { MessagesSquare, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PostCard } from "@/components/kocel/community-post";
 import { PageHeader } from "@/components/kocel/page-header";
 import { EmptyState, ErrorState, SectionCard } from "@/components/kocel/states";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
-import { createPost, getPosts } from "@/services/community";
+import { createPost, getPosts, searchMembers, toggleFollow } from "@/services/community";
 import { COMMUNITY_CATEGORIES } from "@/services/types";
 
 export const Route = createFileRoute("/_app/community/")({
@@ -53,6 +54,7 @@ function CommunityPage() {
   const [symbol, setSymbol] = useState("all");
   const [sort, setSort] = useState("latest");
   const [search, setSearch] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
 
   const [draftCategory, setDraftCategory] = useState("general");
   const [draftSymbol, setDraftSymbol] = useState("none");
@@ -63,6 +65,12 @@ function CommunityPage() {
   const postsQuery = useQuery({
     queryKey: feedKey,
     queryFn: () => getPosts({ category, symbol, sort, search }, user?.id ?? null),
+  });
+  const membersQuery = useQuery({
+    queryKey: ["community-members", user?.id, memberSearch],
+    queryFn: () => searchMembers(memberSearch),
+    enabled: Boolean(user),
+    staleTime: 30_000,
   });
 
   const createMutation = useMutation({
@@ -78,6 +86,17 @@ function CommunityPage() {
       queryClient.invalidateQueries({ queryKey: ["community-posts"] });
     },
     onError: () => toast.error("Could not publish your post."),
+  });
+  const followMutation = useMutation({
+    mutationFn: (input: { memberId: string; following: boolean }) =>
+      toggleFollow(user!.id, input.memberId, input.following),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["community-members", user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["community-follow-counts"] }),
+      ]);
+    },
+    onError: (error: Error) => toast.error(error.message || "Could not update follow state."),
   });
 
   const posts = postsQuery.data ?? [];
@@ -142,6 +161,81 @@ function CommunityPage() {
               </Button>
             </div>
           </form>
+        </SectionCard>
+      )}
+
+      {user && (
+        <SectionCard
+          title="Find traders"
+          description="Discover people by username, follow their market discussions, and visit their profiles."
+          action={<Users className="size-4 text-muted-foreground" />}
+        >
+          <div className="space-y-3">
+            <Input
+              aria-label="Search community usernames"
+              placeholder="Search usernames"
+              value={memberSearch}
+              maxLength={30}
+              onChange={(event) => setMemberSearch(event.target.value)}
+            />
+            {membersQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Finding community members…</p>
+            ) : membersQuery.isError ? (
+              <p className="text-sm text-destructive" role="alert">
+                Community members could not be loaded.
+              </p>
+            ) : (membersQuery.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No members found. Try a shorter username search.
+              </p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {(membersQuery.data ?? []).map((member) => (
+                  <li
+                    key={member.id}
+                    className="flex min-w-0 items-center gap-2 rounded-md border border-border p-2.5"
+                  >
+                    <Avatar className="size-9">
+                      {member.avatar_url && (
+                        <AvatarImage
+                          src={member.avatar_url}
+                          alt={member.full_name || member.username || "Community member"}
+                        />
+                      )}
+                      <AvatarFallback>
+                        {(member.username?.[0] ?? member.full_name?.[0] ?? "T").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to="/community/$userId"
+                        params={{ userId: member.id }}
+                        className="block truncate text-sm font-medium text-foreground hover:text-primary"
+                      >
+                        @{member.username}
+                      </Link>
+                      {member.full_name && (
+                        <p className="truncate text-xs text-muted-foreground">{member.full_name}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={member.following ? "outline" : "default"}
+                      disabled={followMutation.isPending}
+                      onClick={() =>
+                        followMutation.mutate({
+                          memberId: member.id,
+                          following: member.following,
+                        })
+                      }
+                    >
+                      {member.following ? "Following" : "Follow"}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </SectionCard>
       )}
 

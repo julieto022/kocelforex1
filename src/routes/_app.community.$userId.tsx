@@ -94,14 +94,14 @@ function CommunityProfilePage() {
   });
 
   const author = authorQuery.data;
-  const name = author?.full_name ?? author?.username ?? "Kocel trader";
+  const name = author?.full_name || author?.username || "Trader";
   const isSelf = user?.id === userId;
   const posts = postsQuery.data ?? [];
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Trader profile"
+        title="Community profile"
         description="Community activity shared by this trader."
         actions={
           <Button variant="outline" size="sm" asChild>
