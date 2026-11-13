@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -52,6 +46,10 @@ export type Database = {
       }
       bots: {
         Row: {
+          automation_interval_minutes: number
+          automation_last_run_at: string | null
+          automation_lot_size: number
+          automation_next_run_at: string | null
           broker_connection_id: string | null
           configuration: Json
           created_at: string
@@ -67,6 +65,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          automation_interval_minutes?: number
+          automation_last_run_at?: string | null
+          automation_lot_size?: number
+          automation_next_run_at?: string | null
           broker_connection_id?: string | null
           configuration?: Json
           created_at?: string
@@ -82,6 +84,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          automation_interval_minutes?: number
+          automation_last_run_at?: string | null
+          automation_lot_size?: number
+          automation_next_run_at?: string | null
           broker_connection_id?: string | null
           configuration?: Json
           created_at?: string
@@ -109,6 +115,73 @@ export type Database = {
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_automation_runs: {
+        Row: {
+          bot_id: string
+          command_id: string | null
+          completed_at: string | null
+          connection_id: string
+          created_at: string
+          direction: string | null
+          id: string
+          reason: string | null
+          scheduled_for: string
+          signal: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          command_id?: string | null
+          completed_at?: string | null
+          connection_id: string
+          created_at?: string
+          direction?: string | null
+          id?: string
+          reason?: string | null
+          scheduled_for: string
+          signal?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          command_id?: string | null
+          completed_at?: string | null
+          connection_id?: string
+          created_at?: string
+          direction?: string | null
+          id?: string
+          reason?: string | null
+          scheduled_for?: string
+          signal?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_automation_runs_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_automation_runs_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "mt5_trade_commands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_automation_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
             referencedColumns: ["id"]
           },
         ]
@@ -2244,6 +2317,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      claim_due_bot_automation_runs: {
+        Args: { p_limit?: number }
+        Returns: {
+          bot_id: string
+          command_id: string | null
+          completed_at: string | null
+          connection_id: string
+          created_at: string
+          direction: string | null
+          id: string
+          reason: string | null
+          scheduled_for: string
+          signal: Json | null
+          status: string
+          user_id: string
+        }[]
+      }
       soft_delete_account: { Args: { _user_id: string }; Returns: undefined }
     }
     Enums: {
@@ -2278,10 +2368,8 @@ export type Tables<
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -2290,8 +2378,7 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -2315,8 +2402,7 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -2340,8 +2426,7 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -2357,8 +2442,7 @@ export type Enums<
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }

@@ -13,8 +13,12 @@ import {
   runBacktestForUser,
 } from "@/lib/server/backtest.server";
 import {
+  clearMcpStrategies,
   createMcpBot,
+  createMultipleMcpBots,
+  createMultipleMcpStrategies,
   createMcpStrategy,
+  deleteAllMcpBots,
   deleteMcpBot,
   deleteMcpStrategy,
   getMcpRiskSettings,
@@ -107,6 +111,8 @@ const createBotArgsSchema = z.object({
   symbol: z.string().trim().min(2).max(64),
   strategyId: z.string().uuid(),
   timeframe: z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]),
+  automationIntervalMinutes: z.number().int().min(5).max(1440).default(5),
+  automationLotSize: z.number().positive().max(1000).default(0.01),
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]).default("BALANCED"),
   configuration: z.record(z.string(), z.unknown()).optional(),
 });
@@ -118,6 +124,8 @@ const updateBotArgsSchema = z
     symbol: z.string().trim().min(2).max(64).optional(),
     strategyId: z.string().uuid().optional(),
     timeframe: z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]).optional(),
+    automationIntervalMinutes: z.number().int().min(5).max(1440).optional(),
+    automationLotSize: z.number().positive().max(1000).optional(),
     riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]).optional(),
     configuration: z.record(z.string(), z.unknown()).optional(),
   })
@@ -132,6 +140,14 @@ const createStrategyArgsSchema = z.object({
   timeframes: z.array(z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"])).default([]),
   markets: z.array(z.string().trim().min(1).max(40)).default([]),
   configuration: z.record(z.string(), z.unknown()).optional(),
+});
+
+const createBotsArgsSchema = z.object({
+  bots: z.array(createBotArgsSchema).min(1).max(20),
+});
+
+const createStrategiesArgsSchema = z.object({
+  strategies: z.array(createStrategyArgsSchema).min(1).max(20),
 });
 
 const editStrategyArgsSchema = z
@@ -380,7 +396,7 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
     {
       title: "Create a bot",
       description:
-        "Create a stopped bot for the MT5 account scoped to this key, using an active strategy you own or a built-in strategy.",
+        "Create a stopped bot for the MT5 account scoped to this key, using an active strategy you own or a built-in strategy. Set automationIntervalMinutes and automationLotSize for its schedule and per-order volume.",
       inputSchema: { ...createBotArgsSchema.shape },
     },
     safeTool("create_bot", async (args) =>
@@ -394,11 +410,33 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
   );
 
   server.registerTool(
+    "create_bots",
+    {
+      title: "Create multiple bots",
+      description:
+        "Create 1–20 stopped bots in one atomic database insert, assigned to the MT5 account scoped to this MCP key. Creation does not start bots or place trades. Each bot can set automationIntervalMinutes and automationLotSize.",
+      inputSchema: { ...createBotsArgsSchema.shape },
+    },
+    safeTool("create_bots", async ({ bots }) =>
+      textResult(
+        await createMultipleMcpBots(
+          key.user_id,
+          key.connection_id,
+          bots.map((bot) => ({
+            ...bot,
+            configuration: bot.configuration ?? {},
+          })),
+        ),
+      ),
+    ),
+  );
+
+  server.registerTool(
     "update_bot",
     {
       title: "Edit a bot",
       description:
-        "Update the name, symbol, strategy, timeframe, risk profile, or configuration of one of this account's bots.",
+        "Update the name, symbol, strategy, timeframe, run interval, lot size, risk profile, or configuration of one of this account's bots.",
       inputSchema: { ...updateBotArgsSchema.shape },
     },
     safeTool("update_bot", async ({ botId, ...patch }) =>
@@ -417,9 +455,12 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
         status: z.enum(["DRAFT", "STOPPED", "RUNNING", "PAUSED"]),
       },
     },
-    safeTool("set_bot_status", async ({ botId, status }) =>
-      textResult(await setMcpBotStatus(key.user_id, key.connection_id, botId, status)),
-    ),
+    safeTool("set_bot_status", async ({ botId, status }) => {
+      if (status === "RUNNING" && !key.can_trade_directly) {
+        throw forbidden("Enable direct-trading permission for this MCP key before running bots.");
+      }
+      return textResult(await setMcpBotStatus(key.user_id, key.connection_id, botId, status));
+    }),
   );
 
   server.registerTool(
@@ -432,6 +473,19 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
     },
     safeTool("delete_bot", async ({ botId }) =>
       textResult(await deleteMcpBot(key.user_id, key.connection_id, botId)),
+    ),
+  );
+
+  server.registerTool(
+    "clear_bots",
+    {
+      title: "Delete all bots for this account",
+      description:
+        "Delete every bot definition owned by this user on the MT5 account scoped to this key. This does not close existing MT5 positions.",
+      inputSchema: {},
+    },
+    safeTool("clear_bots", async () =>
+      textResult(await deleteAllMcpBots(key.user_id, key.connection_id)),
     ),
   );
 
@@ -461,6 +515,28 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
           ...args,
           configuration: args.configuration ?? {},
         }),
+      ),
+    ),
+  );
+
+  server.registerTool(
+    "create_strategies",
+    {
+      title: "Create multiple strategies",
+      description:
+        "Create 1–20 account-owned strategies in one atomic database insert using supported Kocel runtime engines." +
+        CUSTOM_RULES_GUIDANCE,
+      inputSchema: { ...createStrategiesArgsSchema.shape },
+    },
+    safeTool("create_strategies", async ({ strategies }) =>
+      textResult(
+        await createMultipleMcpStrategies(
+          key.user_id,
+          strategies.map((strategy) => ({
+            ...strategy,
+            configuration: strategy.configuration ?? {},
+          })),
+        ),
       ),
     ),
   );
@@ -506,6 +582,17 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
     safeTool("delete_strategy", async ({ strategyId }) =>
       textResult(await deleteMcpStrategy(key.user_id, strategyId)),
     ),
+  );
+
+  server.registerTool(
+    "clear_strategies",
+    {
+      title: "Clear strategies",
+      description:
+        "Remove all strategies from this user's library. Built-in strategies are hidden only for this user; strategies used by bots or analysis history are reported as blocked.",
+      inputSchema: {},
+    },
+    safeTool("clear_strategies", async () => textResult(await clearMcpStrategies(key.user_id))),
   );
 
   server.registerTool(

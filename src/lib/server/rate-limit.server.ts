@@ -29,6 +29,8 @@ export const RATE_LIMITS = {
   mcp: { limit: 120, windowSeconds: 60 },
   /** External market-news requests. */
   marketNews: { limit: 30, windowSeconds: 60 },
+  /** External economic-calendar requests. */
+  marketCalendar: { limit: 30, windowSeconds: 60 },
   /** BLS-backed NFP outlook requests. */
   nfpOutlook: { limit: 6, windowSeconds: 300 },
   /** MCP key creation, per user. */

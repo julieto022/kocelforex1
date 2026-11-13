@@ -130,14 +130,18 @@ describe("stateless MCP transport", () => {
       "update_risk_settings",
       "list_bots",
       "create_bot",
+      "create_bots",
       "update_bot",
       "set_bot_status",
       "delete_bot",
+      "clear_bots",
       "list_strategies",
       "create_strategy",
+      "create_strategies",
       "edit_strategy",
       "rename_strategy",
       "delete_strategy",
+      "clear_strategies",
       "list_backtests",
       "run_backtest",
       "get_backtest",
@@ -167,5 +171,26 @@ describe("stateless MCP transport", () => {
     };
     expect(body.result.isError).toBe(true);
     expect(body.result.content[0]?.text).toContain("Direct trading is not enabled");
+  });
+
+  it("refuses to start automated bots when the key cannot trade directly", async () => {
+    const response = await sendStatelessMcpRequest({
+      jsonrpc: "2.0",
+      id: 4,
+      method: "tools/call",
+      params: {
+        name: "set_bot_status",
+        arguments: {
+          botId: "5fb432b2-0ae9-4dfb-9f73-2c5088b52650",
+          status: "RUNNING",
+        },
+      },
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    expect(body.result.isError).toBe(true);
+    expect(body.result.content[0]?.text).toContain("Enable direct-trading permission");
   });
 });

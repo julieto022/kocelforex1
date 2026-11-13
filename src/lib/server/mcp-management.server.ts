@@ -155,7 +155,7 @@ export async function listMcpBots(userId: string, connectionId: string) {
   const { data, error } = await db
     .from("bots")
     .select(
-      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, configuration, created_at, updated_at",
+      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, automation_interval_minutes, automation_lot_size, automation_next_run_at, automation_last_run_at, configuration, created_at, updated_at",
     )
     .eq("user_id", userId)
     .eq("broker_connection_id", connectionId)
@@ -173,6 +173,8 @@ export async function createMcpBot(
     symbol: string;
     strategyId: string;
     timeframe: string;
+    automationIntervalMinutes: number;
+    automationLotSize: number;
     riskProfile: "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE";
     configuration: Record<string, unknown>;
   },
@@ -195,14 +197,95 @@ export async function createMcpBot(
       status: "STOPPED",
       enabled: true,
       configuration: input.configuration as never,
+      automation_interval_minutes: input.automationIntervalMinutes,
+      automation_lot_size: input.automationLotSize,
     })
     .select(
-      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, configuration, created_at, updated_at",
+      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, automation_interval_minutes, automation_lot_size, automation_next_run_at, automation_last_run_at, configuration, created_at, updated_at",
     )
     .single();
   if (error) throw error;
   await recordAudit({ userId, action: "BOT_CREATED", entityType: "bot", entityId: data.id });
   return data;
+}
+
+export async function createMultipleMcpBots(
+  userId: string,
+  connectionId: string,
+  inputs: Array<{
+    name: string;
+    symbol: string;
+    strategyId: string;
+    timeframe: string;
+    automationIntervalMinutes: number;
+    automationLotSize: number;
+    riskProfile: "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE";
+    configuration: Record<string, unknown>;
+  }>,
+) {
+  if (inputs.length < 1 || inputs.length > 20) {
+    throw invalid("Create between 1 and 20 bots per MCP batch.");
+  }
+  await requireOwnedConnection(userId, connectionId);
+  const strategies = await Promise.all(
+    [...new Set(inputs.map((input) => input.strategyId))].map((strategyId) =>
+      requireOwnedStrategy(userId, strategyId),
+    ),
+  );
+  const activeStrategyIds = new Set(
+    strategies.filter((strategy) => strategy.is_active).map((strategy) => strategy.id),
+  );
+  if (inputs.some((input) => !activeStrategyIds.has(input.strategyId))) {
+    throw invalid("Every batch bot must use an active strategy you can access.");
+  }
+
+  const db = await admin();
+  const { data, error } = await db
+    .from("bots")
+    .insert(
+      inputs.map((input) => ({
+        user_id: userId,
+        name: input.name,
+        symbol: input.symbol,
+        strategy_id: input.strategyId,
+        broker_connection_id: connectionId,
+        timeframe: input.timeframe,
+        risk_profile: input.riskProfile,
+        status: "STOPPED",
+        enabled: true,
+        configuration: input.configuration as never,
+        automation_interval_minutes: input.automationIntervalMinutes,
+        automation_lot_size: input.automationLotSize,
+      })),
+    )
+    .select(
+      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, automation_interval_minutes, automation_lot_size, automation_next_run_at, automation_last_run_at, configuration, created_at, updated_at",
+    );
+  if (error) throw error;
+  for (const bot of data ?? []) {
+    await recordAudit({ userId, action: "BOT_CREATED", entityType: "bot", entityId: bot.id });
+  }
+  return data ?? [];
+}
+
+export async function deleteAllMcpBots(userId: string, connectionId: string) {
+  await requireOwnedConnection(userId, connectionId);
+  const db = await admin();
+  const { data, error } = await db
+    .from("bots")
+    .delete()
+    .eq("user_id", userId)
+    .eq("broker_connection_id", connectionId)
+    .select("id");
+  if (error) throw error;
+  for (const bot of data ?? []) {
+    await recordAudit({ userId, action: "BOT_DELETED", entityType: "bot", entityId: bot.id });
+  }
+  return {
+    deletedCount: data?.length ?? 0,
+    deletedIds: (data ?? []).map((bot) => bot.id),
+    warning: "Deleting bot definitions does not close existing MT5 positions.",
+  };
 }
 
 export async function updateMcpBot(
@@ -214,6 +297,8 @@ export async function updateMcpBot(
     symbol?: string | undefined;
     strategyId?: string | undefined;
     timeframe?: string | undefined;
+    automationIntervalMinutes?: number | undefined;
+    automationLotSize?: number | undefined;
     riskProfile?: "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE" | undefined;
     configuration?: Record<string, unknown> | undefined;
   },
@@ -221,7 +306,7 @@ export async function updateMcpBot(
   const db = await admin();
   const { data: bot, error: lookupError } = await db
     .from("bots")
-    .select("id")
+    .select("id, status")
     .eq("id", botId)
     .eq("user_id", userId)
     .eq("broker_connection_id", connectionId)
@@ -238,6 +323,18 @@ export async function updateMcpBot(
   if (patch.symbol !== undefined) updates["symbol"] = patch.symbol;
   if (patch.strategyId !== undefined) updates["strategy_id"] = patch.strategyId;
   if (patch.timeframe !== undefined) updates["timeframe"] = patch.timeframe;
+  if (patch.automationIntervalMinutes !== undefined) {
+    updates["automation_interval_minutes"] = patch.automationIntervalMinutes;
+  }
+  if (patch.automationLotSize !== undefined) {
+    updates["automation_lot_size"] = patch.automationLotSize;
+  }
+  if (
+    (patch.automationIntervalMinutes !== undefined || patch.automationLotSize !== undefined) &&
+    bot.status === "RUNNING"
+  ) {
+    updates["automation_next_run_at"] = new Date().toISOString();
+  }
   if (patch.riskProfile !== undefined) updates["risk_profile"] = patch.riskProfile;
   if (patch.configuration !== undefined) updates["configuration"] = patch.configuration;
   if (Object.keys(updates).length === 0) throw invalid("Provide at least one bot field to update.");
@@ -248,7 +345,7 @@ export async function updateMcpBot(
     .eq("id", botId)
     .eq("user_id", userId)
     .select(
-      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, configuration, created_at, updated_at",
+      "id, name, symbol, status, enabled, risk_profile, broker_connection_id, strategy_id, timeframe, automation_interval_minutes, automation_lot_size, automation_next_run_at, automation_last_run_at, configuration, created_at, updated_at",
     )
     .single();
   if (error) throw error;
@@ -278,7 +375,15 @@ export async function setMcpBotStatus(
     const connection = await requireOwnedConnection(userId, connectionId);
     if (connection.status !== "CONNECTED") status = "WAITING";
   }
-  const { error } = await db.from("bots").update({ status }).eq("id", botId).eq("user_id", userId);
+  const { error } = await db
+    .from("bots")
+    .update({
+      status,
+      enabled: status === "RUNNING",
+      automation_next_run_at: status === "RUNNING" ? new Date().toISOString() : null,
+    })
+    .eq("id", botId)
+    .eq("user_id", userId);
   if (error) throw error;
   await recordAudit({
     userId,
@@ -420,6 +525,69 @@ export async function createMcpStrategy(
   return data;
 }
 
+export async function createMultipleMcpStrategies(
+  userId: string,
+  inputs: Array<{
+    name: string;
+    category: string;
+    description: string;
+    shortDescription: string;
+    engineSlug: string;
+    timeframes: string[];
+    markets: string[];
+    configuration: Record<string, unknown>;
+  }>,
+) {
+  if (inputs.length < 1 || inputs.length > 20) {
+    throw invalid("Create between 1 and 20 strategies per MCP batch.");
+  }
+  for (const input of inputs) {
+    if (!getStrategyDefinition(input.engineSlug)) {
+      throw invalid(`Unsupported runtime engine "${input.engineSlug}".`);
+    }
+    if (
+      input.engineSlug === "custom-rules" &&
+      !customRulesSchema.safeParse(input.configuration["customRules"]).success
+    ) {
+      throw invalid(`Strategy "${input.name}" requires valid customRules configuration.`);
+    }
+  }
+
+  const db = await admin();
+  const { data, error } = await db
+    .from("strategies")
+    .insert(
+      inputs.map((input) => ({
+        user_id: userId,
+        is_builtin: false,
+        is_active: true,
+        name: input.name,
+        slug: `mcp-${userId.slice(0, 8)}-${crypto.randomUUID()}`,
+        category: input.category,
+        description: input.description,
+        short_description: input.shortDescription,
+        configuration: {
+          ...input.configuration,
+          runtimeStrategySlug: input.engineSlug,
+        } as never,
+        timeframes: input.timeframes as never,
+        markets: input.markets as never,
+        status: "available",
+      })),
+    )
+    .select("id, name, slug, category, description, short_description, is_active, configuration");
+  if (error) throw error;
+  for (const strategy of data ?? []) {
+    await recordAudit({
+      userId,
+      action: "STRATEGY_CREATED",
+      entityType: "strategy",
+      entityId: strategy.id,
+    });
+  }
+  return data ?? [];
+}
+
 export async function updateMcpStrategy(
   userId: string,
   strategyId: string,
@@ -525,7 +693,10 @@ export async function updateMcpStrategy(
   return { strategyId, updated: true };
 }
 
-export async function deleteMcpStrategy(userId: string, strategyId: string) {
+export async function deleteMcpStrategy(
+  userId: string,
+  strategyId: string,
+): Promise<{ strategyId: string; deleted: true; scope: "account" | "owner" }> {
   const strategy = await requireOwnedStrategy(userId, strategyId);
   const db = await admin();
   if (strategy.is_builtin) {
@@ -580,5 +751,33 @@ export async function deleteMcpStrategy(userId: string, strategyId: string) {
     entityId: strategyId,
     metadata: { ownerHidden: strategy.is_builtin },
   });
-  return { strategyId, deleted: true, scope: strategy.is_builtin ? "account" : "owner" };
+  return {
+    strategyId,
+    deleted: true,
+    scope: strategy.is_builtin ? "account" : "owner",
+  };
+}
+
+export async function clearMcpStrategies(userId: string) {
+  const strategies = await listMcpStrategies(userId);
+  const results: Array<
+    | { strategyId: string; deleted: true; scope: "account" | "owner" }
+    | { strategyId: string; deleted: false; reason: string }
+  > = [];
+  for (const strategy of strategies) {
+    try {
+      results.push(await deleteMcpStrategy(userId, strategy.id));
+    } catch (error) {
+      results.push({
+        strategyId: strategy.id,
+        deleted: false,
+        reason: error instanceof Error ? error.message : "The strategy could not be removed.",
+      });
+    }
+  }
+  return {
+    deletedCount: results.filter((result) => result.deleted).length,
+    blockedCount: results.filter((result) => !result.deleted).length,
+    results,
+  };
 }

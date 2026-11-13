@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { BookOpen, Download, FileUp, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { PageHeader } from "@/components/kocel/page-header";
 import { CardsSkeleton, EmptyState, ErrorState } from "@/components/kocel/states";
@@ -44,6 +45,7 @@ import {
 } from "@/lib/functions/strategy-management.functions";
 import { getStrategyDefinitions } from "@/lib/trading/strategies/registry";
 import { customRulesSchema, defaultCustomRules } from "@/lib/trading/strategies/custom-rules";
+import { exportPortableStrategy, parsePortableStrategy } from "@/lib/trading/strategies/portable";
 import { useConnections } from "@/lib/use-connections";
 import { getStrategies, StrategyServiceError } from "@/services/strategies";
 import type { Strategy } from "@/services/types";
@@ -76,7 +78,9 @@ type StrategyForm = {
   shortDescription: string;
   engineSlug: string;
   customRulesJson: string;
+  configurationJson: string;
   targetSymbols: string[];
+  timeframes: (typeof supportedTimeframes)[number][];
 };
 
 const emptyForm = (): StrategyForm => ({
@@ -86,7 +90,9 @@ const emptyForm = (): StrategyForm => ({
   shortDescription: "",
   engineSlug: backtestableEngines[0]?.slug ?? "momentum",
   customRulesJson: JSON.stringify(defaultCustomRules, null, 2),
+  configurationJson: "{}",
   targetSymbols: ["*"],
+  timeframes: [...supportedTimeframes],
 });
 
 function stringArray(value: unknown): string[] {
@@ -113,6 +119,19 @@ function parseCustomRules(value: string) {
     );
   }
   return parsed.data;
+}
+
+function parseConfiguration(value: string): Record<string, unknown> {
+  let configuration: unknown;
+  try {
+    configuration = JSON.parse(value);
+  } catch {
+    throw new Error("Runtime configuration must be valid JSON.");
+  }
+  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration)) {
+    throw new Error("Runtime configuration must be a JSON object.");
+  }
+  return z.record(z.string(), z.unknown()).parse(configuration);
 }
 
 function strategyErrorDescription(error: unknown) {
@@ -189,6 +208,7 @@ function StrategiesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Strategy | null>(null);
   const [form, setForm] = useState<StrategyForm>(emptyForm);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const importInput = useRef<HTMLInputElement>(null);
 
   const filteredStrategies = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -221,8 +241,14 @@ function StrategiesPage() {
   };
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const configuration = parseConfiguration(form.configurationJson);
       const customRules =
         form.engineSlug === "custom-rules" ? parseCustomRules(form.customRulesJson) : undefined;
+      const runtimeConfiguration = {
+        ...configuration,
+        runtimeStrategySlug: form.engineSlug,
+        ...(customRules ? { customRules } : {}),
+      };
       if (editingStrategy) {
         await updateStrategy({
           data: {
@@ -232,8 +258,10 @@ function StrategiesPage() {
             description: form.description,
             shortDescription: form.shortDescription,
             engineSlug: form.engineSlug,
+            configuration: runtimeConfiguration,
             ...(customRules ? { customRules } : {}),
             targetSymbols: form.targetSymbols,
+            timeframes: form.timeframes as (typeof supportedTimeframes)[number][],
           },
         });
         return;
@@ -245,9 +273,10 @@ function StrategiesPage() {
           description: form.description,
           shortDescription: form.shortDescription,
           engineSlug: form.engineSlug,
+          configuration: runtimeConfiguration,
           ...(customRules ? { customRules } : {}),
           targetSymbols: form.targetSymbols,
-          timeframes: [...supportedTimeframes],
+          timeframes: form.timeframes as (typeof supportedTimeframes)[number][],
           markets: ["account_symbols"],
         },
       });
@@ -278,6 +307,9 @@ function StrategiesPage() {
 
   function openEdit(strategy: Strategy) {
     const configuration = strategy.configuration ?? {};
+    const strategyTimeframes = supportedTimeframes.filter((timeframe) =>
+      strategy.timeframes?.includes(timeframe),
+    );
     setEditingStrategy(strategy);
     setForm({
       name: strategy.name,
@@ -289,9 +321,58 @@ function StrategiesPage() {
           ? configuration["runtimeStrategySlug"]
           : strategy.slug,
       customRulesJson: JSON.stringify(configuration["customRules"] ?? defaultCustomRules, null, 2),
+      configurationJson: JSON.stringify(
+        Object.fromEntries(
+          Object.entries(configuration).filter(
+            ([key]) => !["customRules", "targetSymbols", "runtimeStrategySlug"].includes(key),
+          ),
+        ),
+        null,
+        2,
+      ),
       targetSymbols: stringArray(configuration["targetSymbols"]).length
         ? stringArray(configuration["targetSymbols"])
         : ["*"],
+      timeframes: strategyTimeframes.length ? strategyTimeframes : [...supportedTimeframes],
+    });
+    setDialogOpen(true);
+  }
+
+  function exportStrategy(strategy: Strategy) {
+    const blob = new Blob([`${JSON.stringify(exportPortableStrategy(strategy), null, 2)}\n`], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${strategy.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "strategy"}.kocel.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importStrategy(file: File) {
+    if (file.size > 256 * 1024) throw new Error("Strategy JSON files must be 256 KB or smaller.");
+    const parsed: unknown = JSON.parse(await file.text());
+    const portable = parsePortableStrategy(parsed);
+    const configuration = { ...portable.configuration };
+    delete configuration["customRules"];
+    delete configuration["targetSymbols"];
+    delete configuration["runtimeStrategySlug"];
+    setEditingStrategy(null);
+    setForm({
+      name: portable.name,
+      category: portable.category,
+      description: portable.description,
+      shortDescription: portable.shortDescription,
+      engineSlug: portable.engine,
+      customRulesJson: JSON.stringify(
+        portable.configuration["customRules"] ?? defaultCustomRules,
+        null,
+        2,
+      ),
+      configurationJson: JSON.stringify(configuration, null, 2),
+      targetSymbols: portable.symbols,
+      timeframes: portable.timeframes,
     });
     setDialogOpen(true);
   }
@@ -336,10 +417,34 @@ function StrategiesPage() {
         title="Strategies"
         description="Build and manage reusable strategy configurations for your MT5 bots and historical tests."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 size-4" />
-            New strategy
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={importInput}
+              className="sr-only"
+              type="file"
+              accept="application/json,.json"
+              aria-label="Import strategy JSON"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void importStrategy(file).catch((error: unknown) =>
+                    toast.error(
+                      error instanceof Error ? error.message : "Could not import strategy.",
+                    ),
+                  );
+                }
+                event.target.value = "";
+              }}
+            />
+            <Button size="sm" variant="outline" onClick={() => importInput.current?.click()}>
+              <FileUp className="mr-2 size-4" />
+              Import JSON
+            </Button>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-2 size-4" />
+              New strategy
+            </Button>
+          </div>
         }
       />
 
@@ -418,6 +523,15 @@ function StrategiesPage() {
                     </Button>
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => exportStrategy(strategy)}
+                      aria-label={`Export ${strategy.name} as JSON`}
+                    >
+                      <Download className="mr-2 size-4" />
+                      JSON
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="ghost"
                       aria-label={`Edit ${strategy.name}`}
                       onClick={() => openEdit(strategy)}
@@ -466,6 +580,10 @@ function StrategiesPage() {
               event.preventDefault();
               if (!form.targetSymbols.length) {
                 toast.error("Choose at least one symbol or enable all account symbols.");
+                return;
+              }
+              if (!form.timeframes.length) {
+                toast.error("Choose at least one supported timeframe.");
                 return;
               }
               saveMutation.mutate();
@@ -539,6 +657,22 @@ function StrategiesPage() {
               </div>
             )}
             <div className="space-y-1.5">
+              <Label htmlFor="strategy-runtime-config">
+                Additional runtime configuration (JSON)
+              </Label>
+              <Textarea
+                id="strategy-runtime-config"
+                value={form.configurationJson}
+                maxLength={4000}
+                rows={5}
+                spellCheck={false}
+                onChange={(event) => setForm({ ...form, configurationJson: event.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use a JSON object for supported engine options. Arbitrary code is never executed.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="strategy-summary">Short description</Label>
               <Input
                 id="strategy-summary"
@@ -557,6 +691,27 @@ function StrategiesPage() {
                 onChange={(event) => setForm({ ...form, description: event.target.value })}
               />
             </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Timeframes</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {supportedTimeframes.map((timeframe) => (
+                  <label key={timeframe} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={form.timeframes.includes(timeframe)}
+                      onCheckedChange={(checked) =>
+                        setForm((current) => ({
+                          ...current,
+                          timeframes: checked
+                            ? [...new Set([...current.timeframes, timeframe])]
+                            : current.timeframes.filter((item) => item !== timeframe),
+                        }))
+                      }
+                    />
+                    {timeframe}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Symbols</legend>
               <p className="text-xs text-muted-foreground">

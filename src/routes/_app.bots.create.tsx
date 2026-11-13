@@ -52,6 +52,8 @@ function CreateBotPage() {
     connectionId: active?.id ?? "",
     strategyId: "",
     timeframe: "",
+    automationIntervalMinutes: "5",
+    automationLotSize: "0.01",
   });
 
   const strategies = useMemo(() => strategiesQuery.data ?? [], [strategiesQuery.data]);
@@ -67,7 +69,10 @@ function CreateBotPage() {
 
   useEffect(() => {
     if (!form.riskProfile && settings?.default_risk_profile) {
-      setForm((current) => ({ ...current, riskProfile: settings.default_risk_profile.toLowerCase() }));
+      setForm((current) => ({
+        ...current,
+        riskProfile: settings.default_risk_profile.toLowerCase(),
+      }));
     }
   }, [form.riskProfile, settings?.default_risk_profile]);
 
@@ -80,6 +85,8 @@ function CreateBotPage() {
         brokerConnectionId: form.connectionId || null,
         strategyId: form.strategyId || null,
         timeframe: form.timeframe || null,
+        automationIntervalMinutes: Number(form.automationIntervalMinutes),
+        automationLotSize: Number(form.automationLotSize),
       }),
     onSuccess: () => {
       toast.success("Bot created successfully.");
@@ -176,6 +183,43 @@ function CreateBotPage() {
             </Select>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="automation-interval">Run every (minutes)</Label>
+              <Input
+                id="automation-interval"
+                type="number"
+                min={5}
+                max={1440}
+                step={1}
+                required
+                value={form.automationIntervalMinutes}
+                onChange={(event) =>
+                  setForm({ ...form, automationIntervalMinutes: event.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum interval is 5 minutes. The schedule starts only after you press Run.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="automation-lot-size">Lot size per trade</Label>
+              <Input
+                id="automation-lot-size"
+                type="number"
+                min={0.0001}
+                max={1000}
+                step={0.01}
+                required
+                value={form.automationLotSize}
+                onChange={(event) => setForm({ ...form, automationLotSize: event.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Each automated order uses this lot size. Account risk limits still apply.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-3">
             <div>
               <Label className="text-base">Select Strategy</Label>
@@ -187,7 +231,9 @@ function CreateBotPage() {
             ) : strategiesQuery.isError ? (
               <p className="text-sm text-destructive">Unable to load strategies. Please retry.</p>
             ) : strategies.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No Kocel strategies are currently available.</p>
+              <p className="text-sm text-muted-foreground">
+                No Kocel strategies are currently available.
+              </p>
             ) : (
               <RadioGroup
                 value={form.strategyId}
@@ -231,10 +277,12 @@ function CreateBotPage() {
                 <h3 className="text-sm font-semibold text-foreground">{selectedStrategy.name}</h3>
                 <div className="mt-2 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                   <p>
-                    <span className="font-medium text-foreground">Category:</span> {selectedStrategy.category}
+                    <span className="font-medium text-foreground">Category:</span>{" "}
+                    {selectedStrategy.category}
                   </p>
                   <p>
-                    <span className="font-medium text-foreground">Status:</span> {selectedStrategy.status ?? "Active"}
+                    <span className="font-medium text-foreground">Status:</span>{" "}
+                    {selectedStrategy.status ?? "Active"}
                   </p>
                   <p>
                     <span className="font-medium text-foreground">Supported Timeframes:</span>{" "}
@@ -245,7 +293,9 @@ function CreateBotPage() {
                     {(selectedStrategy.markets ?? []).join(", ") || "N/A"}
                   </p>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{selectedStrategy.description}</p>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  {selectedStrategy.description}
+                </p>
               </div>
             )}
           </div>
@@ -306,11 +356,7 @@ function CreateBotPage() {
           <div className="flex gap-2">
             <Button
               type="submit"
-              disabled={
-                mutation.isPending ||
-                strategiesQuery.isLoading ||
-                connectionsLoading
-              }
+              disabled={mutation.isPending || strategiesQuery.isLoading || connectionsLoading}
             >
               {mutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
               {mutation.isPending ? "Creating Bot..." : "Create Bot"}
@@ -334,7 +380,9 @@ function CreateBotError({ reset }: { reset: () => void }) {
       />
       <SectionCard title="Create Bot could not be loaded.">
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">An unexpected error stopped this page from loading.</p>
+          <p className="text-sm text-muted-foreground">
+            An unexpected error stopped this page from loading.
+          </p>
           <Button type="button" onClick={reset}>
             Retry
           </Button>

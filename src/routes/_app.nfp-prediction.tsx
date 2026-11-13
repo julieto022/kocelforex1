@@ -70,7 +70,11 @@ function NfpPredictionPage() {
   const historyQuery = useQuery({ queryKey: ["nfp", "history"], queryFn: () => getNfpHistory() });
 
   const prediction = outlookQuery.data ?? upcomingQuery.data ?? null;
-  const countdown = countdownTo(prediction?.release_date ?? null);
+  const releaseTime =
+    prediction && "release_time" in prediction && typeof prediction.release_time === "string"
+      ? prediction.release_time
+      : null;
+  const countdown = countdownTo(prediction?.release_date ?? null, releaseTime);
   const factors = resolveFactors(prediction);
   const sources =
     prediction && "sources" in prediction && Array.isArray(prediction.sources)
@@ -84,10 +88,6 @@ function NfpPredictionPage() {
     prediction !== null &&
     "release_date_estimated" in prediction &&
     prediction.release_date_estimated === true;
-  const releaseTime =
-    prediction && "release_time" in prediction && typeof prediction.release_time === "string"
-      ? prediction.release_time
-      : null;
   const warnings =
     prediction && "warnings" in prediction && Array.isArray(prediction.warnings)
       ? prediction.warnings.filter((warning): warning is string => typeof warning === "string")

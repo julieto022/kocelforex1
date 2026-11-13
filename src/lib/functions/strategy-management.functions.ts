@@ -12,7 +12,10 @@ import { customRulesSchema } from "@/lib/trading/strategies/custom-rules";
 const strategyId = z.string().uuid();
 const engineSlug = z.string().trim().min(1).max(80);
 const targetSymbols = z.array(z.string().trim().min(1).max(64)).max(500);
-const timeframes = z.array(z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"])).max(7);
+const timeframes = z
+  .array(z.enum(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]))
+  .min(1)
+  .max(7);
 const markets = z.array(z.string().trim().min(1).max(40)).max(20);
 
 export const createStrategy = createServerFn({ method: "POST" })
@@ -25,6 +28,7 @@ export const createStrategy = createServerFn({ method: "POST" })
         description: z.string().max(4000),
         shortDescription: z.string().max(240),
         engineSlug,
+        configuration: z.record(z.string(), z.unknown()).optional(),
         customRules: customRulesSchema.optional(),
         targetSymbols,
         timeframes,
@@ -36,8 +40,10 @@ export const createStrategy = createServerFn({ method: "POST" })
     createMcpStrategy(context.userId, {
       ...data,
       configuration: {
+        ...data.configuration,
         targetSymbols: data.targetSymbols,
         ...(data.customRules ? { customRules: data.customRules } : {}),
+        runtimeStrategySlug: data.engineSlug,
       },
     }),
   );
@@ -53,6 +59,7 @@ export const updateStrategy = createServerFn({ method: "POST" })
         description: z.string().max(4000).optional(),
         shortDescription: z.string().max(240).optional(),
         engineSlug: engineSlug.optional(),
+        configuration: z.record(z.string(), z.unknown()).optional(),
         customRules: customRulesSchema.optional(),
         targetSymbols: targetSymbols.optional(),
         timeframes: timeframes.optional(),
@@ -71,11 +78,13 @@ export const updateStrategy = createServerFn({ method: "POST" })
       customRules,
       timeframes: frames,
       markets: classes,
+      configuration: runtimeConfiguration,
       ...patch
     } = data;
-    const configuration: Record<string, unknown> = {};
+    const configuration: Record<string, unknown> = { ...runtimeConfiguration };
     if (symbols !== undefined) configuration["targetSymbols"] = symbols;
     if (customRules !== undefined) configuration["customRules"] = customRules;
+    if (patch.engineSlug) configuration["runtimeStrategySlug"] = patch.engineSlug;
     const strategyPatch = {
       ...patch,
       ...(frames !== undefined ? { timeframes: frames } : {}),

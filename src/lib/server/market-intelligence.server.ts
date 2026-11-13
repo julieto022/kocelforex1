@@ -1,6 +1,6 @@
 import { logger } from "@/lib/api/logger";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { NfpFactor, NfpPrediction, NewsItem } from "@/services/types";
+import type { EconomicEvent, NfpFactor, NfpPrediction, NewsItem } from "@/services/types";
 
 const NEWS_FEEDS = [
   { name: "FXStreet", url: "https://www.fxstreet.com/rss/news", kind: "markets" },
@@ -39,6 +39,11 @@ type NewsFilters = {
 };
 
 export type MarketNewsResult = { items: NewsItem[]; warnings: string[]; updatedAt: string };
+export type MarketCalendarResult = {
+  items: EconomicEvent[];
+  warnings: string[];
+  updatedAt: string;
+};
 type NfpSource = { name: string; url: string; summary: string; published_at: string | null };
 export type LiveNfpOutlook = NfpPrediction & {
   release_time: string | null;
@@ -47,6 +52,29 @@ export type LiveNfpOutlook = NfpPrediction & {
   sources: NfpSource[];
   warnings: string[];
 };
+export type NfpCountdownSchedule = {
+  releaseDate: string;
+  releaseAt: string;
+  isEstimated: boolean;
+  source: string;
+};
+
+type ForexFactoryEvent = {
+  title?: unknown;
+  country?: unknown;
+  date?: unknown;
+  impact?: unknown;
+  forecast?: unknown;
+  previous?: unknown;
+};
+
+type CachedCalendar = {
+  result: MarketCalendarResult;
+  expiresAt: number;
+};
+
+let calendarCache: CachedCalendar | null = null;
+const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 
 type BlsObservation = { year: string; period: string; value: number };
 type BlsResponse = {
@@ -232,6 +260,111 @@ export async function getMarketNews(filters: NewsFilters = {}): Promise<MarketNe
   return { items, warnings, updatedAt: new Date().toISOString() };
 }
 
+type CalendarFilters = {
+  currency?: string | undefined;
+  impact?: string | undefined;
+  range?: string | undefined;
+  limit?: number | undefined;
+};
+
+function calendarImpact(value: unknown): string {
+  if (typeof value !== "string") return "low";
+  const impact = value.toLowerCase();
+  return impact === "high" || impact === "medium" ? impact : "low";
+}
+
+function calendarRangeMatches(eventTime: string, range: string | undefined, now: Date): boolean {
+  if (!range || range === "all") return true;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  if (range === "tomorrow") start.setDate(start.getDate() + 1);
+  const end = new Date(start);
+  end.setDate(end.getDate() + (range === "week" ? 7 : 1));
+  const eventTimestamp = Date.parse(eventTime);
+  return eventTimestamp >= start.getTime() && eventTimestamp < end.getTime();
+}
+
+async function fetchCalendar(): Promise<MarketCalendarResult> {
+  const response = await fetch(CALENDAR_URL, {
+    headers: { accept: "application/json", "user-agent": "KocelTradingHub/1.0" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`Economic calendar returned HTTP ${response.status}.`);
+  const payload: unknown = await response.json();
+  if (!Array.isArray(payload)) throw new Error("Economic calendar returned an invalid response.");
+
+  const now = Date.now();
+  const items = payload.flatMap((value): EconomicEvent[] => {
+    if (!value || typeof value !== "object") return [];
+    const event = value as ForexFactoryEvent;
+    const title = typeof event.title === "string" ? event.title.trim() : "";
+    const currency = typeof event.country === "string" ? event.country.trim() : "";
+    const eventTime =
+      typeof event.date === "string" && Number.isFinite(Date.parse(event.date))
+        ? new Date(event.date).toISOString()
+        : null;
+    if (!title || !currency || !eventTime || Date.parse(eventTime) < now) return [];
+    return [
+      {
+        id: `${eventTime}:${currency}:${title}`,
+        event_name: title,
+        currency,
+        impact: calendarImpact(event.impact),
+        previous: typeof event.previous === "string" ? event.previous || null : null,
+        forecast: typeof event.forecast === "string" ? event.forecast || null : null,
+        actual: null,
+        event_time: eventTime,
+        source: "Forex Factory calendar",
+      },
+    ];
+  });
+
+  return {
+    items: items.sort((left, right) => Date.parse(left.event_time) - Date.parse(right.event_time)),
+    warnings: [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function getMarketCalendar(
+  filters: CalendarFilters = {},
+): Promise<MarketCalendarResult> {
+  let result: MarketCalendarResult;
+  if (calendarCache && calendarCache.expiresAt > Date.now()) {
+    result = calendarCache.result;
+  } else {
+    try {
+      result = await fetchCalendar();
+      calendarCache = { result, expiresAt: Date.now() + 5 * 60_000 };
+    } catch (error) {
+      logger.warn("system", "economic calendar source unavailable", {
+        message: error instanceof Error ? error.message : "Unknown calendar error",
+      });
+      if (!calendarCache) throw error;
+      result = {
+        ...calendarCache.result,
+        warnings: ["The live calendar source is temporarily unavailable; showing cached events."],
+      };
+    }
+  }
+
+  const now = new Date();
+  return {
+    ...result,
+    items: result.items
+      .filter((event) => Date.parse(event.event_time) >= now.getTime())
+      .filter(
+        (event) =>
+          !filters.currency || filters.currency === "all" || event.currency === filters.currency,
+      )
+      .filter(
+        (event) => !filters.impact || filters.impact === "all" || event.impact === filters.impact,
+      )
+      .filter((event) => calendarRangeMatches(event.event_time, filters.range, now))
+      .slice(0, Math.min(Math.max(filters.limit ?? 60, 1), 100)),
+  };
+}
+
 function observations(response: BlsResponse): BlsObservation[] {
   const rows = response.Results?.series?.[0]?.data ?? [];
   return rows
@@ -261,16 +394,79 @@ async function getBlsSeries(seriesId: string): Promise<BlsObservation[]> {
   return rows;
 }
 
-function firstFridayAfterToday(now: Date): string {
-  for (let monthOffset = 0; monthOffset < 3; monthOffset += 1) {
-    const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + monthOffset, 1));
-    const day = 1 + ((5 - first.getUTCDay() + 7) % 7);
-    const release = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), day));
-    if (release.getTime() > Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) {
-      return release.toISOString().slice(0, 10);
+function newYorkReleaseTime(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  if (!year || !month || !day) throw new Error("Invalid NFP release date.");
+  const desired = Date.UTC(year, month - 1, day, 8, 30);
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  let timestamp = desired;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value]),
+    );
+    const representedAsUtc = Date.UTC(
+      Number(parts["year"]),
+      Number(parts["month"]) - 1,
+      Number(parts["day"]),
+      Number(parts["hour"]),
+      Number(parts["minute"]),
+      Number(parts["second"]),
+    );
+    timestamp += desired - representedAsUtc;
+  }
+  return new Date(timestamp).toISOString();
+}
+
+function estimatedNfpRelease(now: Date): NfpCountdownSchedule {
+  for (let monthOffset = 0; monthOffset < 4; monthOffset += 1) {
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + monthOffset, 1));
+    const firstFridayDay = 1 + ((5 - monthStart.getUTCDay() + 7) % 7);
+    const releaseDate = new Date(
+      Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), firstFridayDay),
+    )
+      .toISOString()
+      .slice(0, 10);
+    const releaseAt = newYorkReleaseTime(releaseDate);
+    if (Date.parse(releaseAt) > now.getTime()) {
+      return {
+        releaseDate,
+        releaseAt,
+        isEstimated: true,
+        source: "Estimated from the usual BLS first-Friday, 8:30 a.m. ET schedule",
+      };
     }
   }
-  throw new Error("Could not estimate the next monthly payroll release date.");
+  throw new Error("Could not estimate the next monthly payroll release.");
+}
+
+export async function getNfpCountdownSchedule(): Promise<NfpCountdownSchedule> {
+  const now = new Date();
+  const { data, error } = await supabaseAdmin
+    .from("nfp_events")
+    .select("release_date, release_time, source")
+    .gt("release_time", now.toISOString())
+    .order("release_time", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (data) {
+    return {
+      releaseDate: data.release_date,
+      releaseAt: data.release_time,
+      isEstimated: false,
+      source: data.source || "Published NFP release schedule",
+    };
+  }
+  return estimatedNfpRelease(now);
 }
 
 function stateFor(value: number | null): NfpFactor["status"] {
@@ -345,8 +541,9 @@ export async function getLiveNfpOutlook(): Promise<LiveNfpOutlook> {
     .maybeSingle();
   if (eventError) throw eventError;
 
-  const releaseDate = event?.release_date ?? firstFridayAfterToday(new Date());
-  const releaseTime = event?.release_time ?? null;
+  const estimatedRelease = estimatedNfpRelease(new Date());
+  const releaseDate = event?.release_date ?? estimatedRelease.releaseDate;
+  const releaseTime = event?.release_time ?? estimatedRelease.releaseAt;
   const unemploymentStatus = stateFor(-unemploymentChange);
   const momentumStatus = stateFor(momentum);
   const newsStatus = stateFor(newsScore);

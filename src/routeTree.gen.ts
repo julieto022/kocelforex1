@@ -39,6 +39,7 @@ import { Route as AppSettingsMt5RouteImport } from './routes/_app.settings.mt5'
 import { Route as AppSettingsNotificationsRouteImport } from './routes/_app.settings.notifications'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app.settings.profile'
 import { Route as AppSettingsSecurityRouteImport } from './routes/_app.settings.security'
+import { Route as ApiCronBotsRouteImport } from './routes/api/cron/bots'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthorizeMt5RequestIdRouteImport } from './routes/authorize.mt5.$requestId'
 import { Route as AppBotsBotIdEditRouteImport } from './routes/_app.bots.$botId.edit'
@@ -203,6 +204,11 @@ const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
   path: '/security',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const ApiCronBotsRoute = ApiCronBotsRouteImport.update({
+  id: '/api/cron/bots',
+  path: '/api/cron/bots',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
   path: '/api/public/health',
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AppSettingsNotificationsRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
+  '/api/cron/bots': typeof ApiCronBotsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community/': typeof AppCommunityIndexRoute
@@ -348,6 +355,7 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AppSettingsNotificationsRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/security': typeof AppSettingsSecurityRoute
+  '/api/cron/bots': typeof ApiCronBotsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/community': typeof AppCommunityIndexRoute
@@ -394,6 +402,7 @@ export interface FileRoutesById {
   '/_app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/settings/security': typeof AppSettingsSecurityRoute
+  '/api/cron/bots': typeof ApiCronBotsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/authorize/mt5/$requestId': typeof AuthorizeMt5RequestIdRoute
   '/_app/community/': typeof AppCommunityIndexRoute
@@ -440,6 +449,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
+    | '/api/cron/bots'
     | '/api/public/health'
     | '/authorize/mt5/$requestId'
     | '/community/'
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
+    | '/api/cron/bots'
     | '/api/public/health'
     | '/authorize/mt5/$requestId'
     | '/community'
@@ -528,6 +539,7 @@ export interface FileRouteTypes {
     | '/_app/settings/notifications'
     | '/_app/settings/profile'
     | '/_app/settings/security'
+    | '/api/cron/bots'
     | '/api/public/health'
     | '/authorize/mt5/$requestId'
     | '/_app/community/'
@@ -554,6 +566,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiMcpRoute: typeof ApiMcpRoute
+  ApiCronBotsRoute: typeof ApiCronBotsRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   AuthorizeMt5RequestIdRoute: typeof AuthorizeMt5RequestIdRoute
   ApiPublicBridgeAuthenticateRoute: typeof ApiPublicBridgeAuthenticateRoute
@@ -780,6 +793,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsSecurityRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/api/cron/bots': {
+      id: '/api/cron/bots'
+      path: '/api/cron/bots'
+      fullPath: '/api/cron/bots'
+      preLoaderRoute: typeof ApiCronBotsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/health': {
       id: '/api/public/health'
       path: '/api/public/health'
@@ -956,6 +976,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiMcpRoute: ApiMcpRoute,
+  ApiCronBotsRoute: ApiCronBotsRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   AuthorizeMt5RequestIdRoute: AuthorizeMt5RequestIdRoute,
   ApiPublicBridgeAuthenticateRoute: ApiPublicBridgeAuthenticateRoute,

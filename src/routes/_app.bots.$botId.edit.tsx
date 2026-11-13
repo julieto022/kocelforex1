@@ -53,6 +53,8 @@ function EditBotPage() {
     connectionId: "",
     strategyId: "",
     timeframe: "",
+    automationIntervalMinutes: "5",
+    automationLotSize: "0.01",
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +68,8 @@ function EditBotPage() {
       connectionId: bot.broker_connection_id ?? "",
       strategyId: bot.strategy_id ?? "",
       timeframe: bot.timeframe ?? "",
+      automationIntervalMinutes: String(bot.automation_interval_minutes ?? 5),
+      automationLotSize: String(bot.automation_lot_size ?? 0.01),
     });
   }, [botQuery.data]);
 
@@ -75,8 +79,7 @@ function EditBotPage() {
   );
 
   const selectedStrategy =
-    availableStrategies.find((strategy) => strategy.id === form.strategyId) ??
-    null;
+    availableStrategies.find((strategy) => strategy.id === form.strategyId) ?? null;
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -87,6 +90,8 @@ function EditBotPage() {
         brokerConnectionId: form.connectionId || null,
         riskProfile: form.riskProfile,
         timeframe: form.timeframe || null,
+        automationIntervalMinutes: Number(form.automationIntervalMinutes),
+        automationLotSize: Number(form.automationLotSize),
       }),
     onSuccess: () => {
       toast.success("Bot updated successfully.");
@@ -108,7 +113,10 @@ function EditBotPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Edit bot" description="Update the selected strategy, account and bot configuration." />
+      <PageHeader
+        title="Edit bot"
+        description="Update the selected strategy, account and bot configuration."
+      />
 
       <SectionCard title="Bot configuration">
         <form
@@ -173,6 +181,40 @@ function EditBotPage() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="automation-interval">Run every (minutes)</Label>
+              <Input
+                id="automation-interval"
+                type="number"
+                min={5}
+                max={1440}
+                step={1}
+                required
+                value={form.automationIntervalMinutes}
+                onChange={(event) =>
+                  setForm({ ...form, automationIntervalMinutes: event.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="automation-lot-size">Lot size per trade</Label>
+              <Input
+                id="automation-lot-size"
+                type="number"
+                min={0.0001}
+                max={1000}
+                step={0.01}
+                required
+                value={form.automationLotSize}
+                onChange={(event) => setForm({ ...form, automationLotSize: event.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Account risk limits still apply to every automated order.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -247,11 +289,13 @@ function EditBotPage() {
                   <SelectValue placeholder="Choose a timeframe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(selectedStrategy.timeframes ?? ["M1", "M5", "M15", "M30", "H1"]).map((timeframe) => (
-                    <SelectItem key={timeframe} value={timeframe}>
-                      {timeframe}
-                    </SelectItem>
-                  ))}
+                  {(selectedStrategy.timeframes ?? ["M1", "M5", "M15", "M30", "H1"]).map(
+                    (timeframe) => (
+                      <SelectItem key={timeframe} value={timeframe}>
+                        {timeframe}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>

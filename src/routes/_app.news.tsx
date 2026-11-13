@@ -16,8 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getMarketNewsFeed } from "@/lib/functions/market-intelligence.functions";
-import { getEconomicEvents } from "@/services/economic-calendar";
+import {
+  getMarketCalendarFeed,
+  getMarketNewsFeed,
+} from "@/lib/functions/market-intelligence.functions";
 import { IMPACT_MODEL, NEWS_CATEGORIES, NEWS_CURRENCIES, type ImpactLevel } from "@/services/types";
 
 export const Route = createFileRoute("/_app/news")({
@@ -62,7 +64,11 @@ function NewsPage() {
 
   const eventsQuery = useQuery({
     queryKey: ["economic-events", { currency, impact, range }],
-    queryFn: () => getEconomicEvents({ currency, impact, range }),
+    queryFn: () =>
+      getMarketCalendarFeed({
+        data: { currency, impact, range, limit: 100 },
+      }),
+    staleTime: 5 * 60_000,
   });
 
   return (
@@ -162,6 +168,14 @@ function NewsPage() {
           Some news sources are temporarily unavailable: {newsQuery.data?.warnings.join(" ")}
         </p>
       )}
+      {tab === "calendar" && (eventsQuery.data?.warnings.length ?? 0) > 0 && (
+        <p
+          className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-muted-foreground"
+          role="status"
+        >
+          {eventsQuery.data?.warnings.join(" ")}
+        </p>
+      )}
 
       {tab === "news" ? (
         <SectionCard title="Latest news" bodyClassName="p-0 sm:p-0">
@@ -233,11 +247,11 @@ function NewsPage() {
               title="Calendar could not be loaded"
               onRetry={() => eventsQuery.refetch()}
             />
-          ) : (eventsQuery.data ?? []).length === 0 ? (
+          ) : (eventsQuery.data?.items ?? []).length === 0 ? (
             <EmptyState
               icon={CalendarClock}
               title="No scheduled events"
-              description="Economic releases appear here once an economic-data provider is connected."
+              description="No future events are currently listed by the economic calendar source."
             />
           ) : (
             <div className="overflow-x-auto">
@@ -254,13 +268,18 @@ function NewsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {(eventsQuery.data ?? []).map((event) => (
+                  {(eventsQuery.data?.items ?? []).map((event) => (
                     <tr key={event.id}>
                       <td className="num whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                         {formatTime(event.event_time)}
                       </td>
                       <td className="num px-4 py-2.5 font-medium">{event.currency}</td>
-                      <td className="px-4 py-2.5">{event.event_name}</td>
+                      <td className="px-4 py-2.5">
+                        <div>{event.event_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {event.source ?? "Economic calendar"}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5">{impactBadge(String(event.impact))}</td>
                       <td className="num px-4 py-2.5 text-right">{event.previous ?? "—"}</td>
                       <td className="num px-4 py-2.5 text-right">{event.forecast ?? "—"}</td>

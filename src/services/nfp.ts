@@ -63,14 +63,56 @@ export function resolveFactors(prediction: NfpPrediction | null): NfpFactor[] {
   });
 }
 
-export function countdownTo(releaseDate: string | null | undefined): {
+function releaseTimestamp(releaseDate: string, releaseTime?: string | null): number {
+  if (releaseTime) {
+    const scheduled = Date.parse(releaseTime);
+    if (Number.isFinite(scheduled)) return scheduled;
+  }
+  const parsedDate = Date.parse(releaseDate);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) return parsedDate;
+
+  const [year, month, day] = releaseDate.split("-").map(Number);
+  const desired = Date.UTC(year!, month! - 1, day!, 8, 30);
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  let timestamp = desired;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value]),
+    );
+    const representedAsUtc = Date.UTC(
+      Number(parts["year"]),
+      Number(parts["month"]) - 1,
+      Number(parts["day"]),
+      Number(parts["hour"]),
+      Number(parts["minute"]),
+      Number(parts["second"]),
+    );
+    timestamp += desired - representedAsUtc;
+  }
+  return timestamp;
+}
+
+export function countdownTo(
+  releaseDate: string | null | undefined,
+  releaseTime?: string | null,
+): {
   days: number;
   hours: number;
   minutes: number;
+  seconds: number;
   past: boolean;
 } | null {
   if (!releaseDate) return null;
-  const target = new Date(releaseDate).getTime();
+  const target = releaseTimestamp(releaseDate, releaseTime);
   if (Number.isNaN(target)) return null;
   const diff = target - Date.now();
   const abs = Math.abs(diff);
@@ -78,6 +120,7 @@ export function countdownTo(releaseDate: string | null | undefined): {
     days: Math.floor(abs / 86_400_000),
     hours: Math.floor((abs % 86_400_000) / 3_600_000),
     minutes: Math.floor((abs % 3_600_000) / 60_000),
+    seconds: Math.floor((abs % 60_000) / 1_000),
     past: diff < 0,
   };
 }

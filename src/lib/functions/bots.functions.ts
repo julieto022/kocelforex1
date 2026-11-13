@@ -16,6 +16,8 @@ const createSchema = z.object({
   timeframe: z.string().trim().min(1).max(10),
   brokerConnectionId: z.string().uuid(),
   strategyId: z.string().uuid(),
+  automationIntervalMinutes: z.number().int().min(5).max(1440),
+  automationLotSize: z.number().positive().max(1000),
   configuration: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -57,8 +59,6 @@ export const createBot = createServerFn({ method: "POST" })
         userId,
         code: authError?.code,
         message: authError?.message,
-        details: authError?.details,
-        hint: authError?.hint,
         status: authError?.status,
       });
       throw unauthenticated("Your session has expired. Please sign in again.");
@@ -106,6 +106,8 @@ export const createBot = createServerFn({ method: "POST" })
         status: "STOPPED",
         enabled: true,
         configuration: data.configuration as never,
+        automation_interval_minutes: data.automationIntervalMinutes,
+        automation_lot_size: data.automationLotSize,
       })
       .select("*")
       .single();
@@ -136,6 +138,8 @@ const updateSchema = z.object({
   riskProfile: z.enum(["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]).optional(),
   strategyId: z.string().uuid().nullable().optional(),
   brokerConnectionId: z.string().uuid().nullable().optional(),
+  automationIntervalMinutes: z.number().int().min(5).max(1440).optional(),
+  automationLotSize: z.number().positive().max(1000).optional(),
   configuration: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -169,7 +173,12 @@ export const updateBot = createServerFn({ method: "POST" })
     if (data.timeframe !== undefined) patch["timeframe"] = data.timeframe;
     if (data.riskProfile !== undefined) patch["risk_profile"] = data.riskProfile;
     if (data.strategyId !== undefined) patch["strategy_id"] = data.strategyId;
-    if (data.brokerConnectionId !== undefined) patch["broker_connection_id"] = data.brokerConnectionId;
+    if (data.brokerConnectionId !== undefined)
+      patch["broker_connection_id"] = data.brokerConnectionId;
+    if (data.automationIntervalMinutes !== undefined) {
+      patch["automation_interval_minutes"] = data.automationIntervalMinutes;
+    }
+    if (data.automationLotSize !== undefined) patch["automation_lot_size"] = data.automationLotSize;
     if (data.configuration !== undefined) patch["configuration"] = data.configuration;
     if (Object.keys(patch).length === 0) throw invalid("Nothing to update.");
 
@@ -192,8 +201,7 @@ const statusSchema = z.object({
 });
 
 /**
- * Records the requested run-state. Actual execution happens in the Bridge EA,
- * so a bot without a connected account can only ever reach WAITING.
+ * Starts or stops the scheduled server-side signal worker for this bot.
  */
 export const setBotStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -204,11 +212,17 @@ export const setBotStatus = createServerFn({ method: "POST" })
 
     const { data: bot, error: readError } = await supabase
       .from("bots")
-      .select("id, name, broker_connection_id, broker_connections:broker_connection_id(status)")
+      .select(
+        "id, name, broker_connection_id, automation_interval_minutes, broker_connections:broker_connection_id(status)",
+      )
       .eq("id", data.botId)
       .single();
     if (readError) {
-      logBotDatabaseError("bots.status.read", userId, readError, ["id", "name", "broker_connection_id"]);
+      logBotDatabaseError("bots.status.read", userId, readError, [
+        "id",
+        "name",
+        "broker_connection_id",
+      ]);
       throw toBotApiError(readError);
     }
 
@@ -217,9 +231,21 @@ export const setBotStatus = createServerFn({ method: "POST" })
         ?.status === "CONNECTED";
     const status = data.status === "RUNNING" && !connected ? "WAITING" : data.status;
 
-    const { error } = await supabase.from("bots").update({ status }).eq("id", data.botId);
+    const now = new Date();
+    const { error } = await supabase
+      .from("bots")
+      .update({
+        status,
+        enabled: status === "RUNNING",
+        automation_next_run_at: status === "RUNNING" ? now.toISOString() : null,
+      })
+      .eq("id", data.botId);
     if (error) {
-      logBotDatabaseError("bots.status.update", userId, error, ["status"]);
+      logBotDatabaseError("bots.status.update", userId, error, [
+        "status",
+        "enabled",
+        "automation_next_run_at",
+      ]);
       throw toBotApiError(error);
     }
 

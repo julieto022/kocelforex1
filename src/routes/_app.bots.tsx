@@ -1,6 +1,18 @@
 import { Link, Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, Bot, Edit3, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import {
+  Activity,
+  Bot,
+  Clock3,
+  Edit3,
+  Loader2,
+  Pause,
+  Play,
+  Plus,
+  Save,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -31,7 +43,13 @@ import { useAuth } from "@/lib/auth";
 import { useConnections } from "@/lib/use-connections";
 import { analyzeBot } from "@/lib/functions/analysis.functions";
 import type { TradingSignal } from "@/lib/trading/signals/types";
-import { deleteBot, getBots, updateBot } from "@/services/bots";
+import {
+  deleteBot,
+  getBots,
+  getRecentBotAutomationRuns,
+  setBotStatus,
+  updateBot,
+} from "@/services/bots";
 import { getStrategies } from "@/services/strategies";
 
 export const Route = createFileRoute("/_app/bots")({
@@ -51,6 +69,8 @@ function BotsPage() {
     strategyId: "",
     timeframe: "",
     riskProfile: "BALANCED",
+    automationIntervalMinutes: "5",
+    automationLotSize: "0.01",
   });
 
   const botsQuery = useQuery({
@@ -87,8 +107,16 @@ function BotsPage() {
     enabled: Boolean(user?.id),
   });
 
+  const automationRunsQuery = useQuery({
+    queryKey: ["bot-automation-runs", user?.id],
+    queryFn: () => getRecentBotAutomationRuns(user!.id),
+    enabled: Boolean(user?.id),
+    refetchInterval: 30_000,
+  });
+
   const strategyLookup = useMemo(
-    () => Object.fromEntries((strategiesQuery.data ?? []).map((strategy) => [strategy.id, strategy])),
+    () =>
+      Object.fromEntries((strategiesQuery.data ?? []).map((strategy) => [strategy.id, strategy])),
     [strategiesQuery.data],
   );
 
@@ -96,6 +124,15 @@ function BotsPage() {
     () => Object.fromEntries(connections.map((connection) => [connection.id, connection])),
     [connections],
   );
+
+  const automationRuns = automationRunsQuery.data;
+  const latestRunByBot = useMemo(() => {
+    const latest = new Map<string, NonNullable<typeof automationRuns>[number]>();
+    for (const run of automationRuns ?? []) {
+      if (!latest.has(run.bot_id)) latest.set(run.bot_id, run);
+    }
+    return latest;
+  }, [automationRuns]);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["bots", user?.id] });
 
@@ -117,6 +154,8 @@ function BotsPage() {
         strategyId: editForm.strategyId,
         timeframe: editForm.timeframe || null,
         riskProfile: editForm.riskProfile,
+        automationIntervalMinutes: Number(editForm.automationIntervalMinutes),
+        automationLotSize: Number(editForm.automationLotSize),
       }),
     onSuccess: () => {
       toast.success("Bot updated successfully.");
@@ -126,9 +165,24 @@ function BotsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const statusMutation = useMutation({
+    mutationFn: ({ botId, status }: { botId: string; status: "RUNNING" | "PAUSED" | "STOPPED" }) =>
+      setBotStatus(botId, status),
+    onSuccess: ({ status }) => {
+      toast.success(
+        status === "WAITING"
+          ? "Bot is waiting. Connect its MT5 account, then press Run again."
+          : `Bot ${status.toLowerCase()}.`,
+      );
+      void invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const analysisMutation = useMutation({
     mutationFn: (botId: string) => analyzeBot({ data: { botId } }),
-    onSuccess: (analysis) => setAnalysisByBot((current) => ({ ...current, [analysis.botId]: analysis })),
+    onSuccess: (analysis) =>
+      setAnalysisByBot((current) => ({ ...current, [analysis.botId]: analysis })),
     onError: (error: Error) => toast.error(`Analysis failed: ${error.message}`),
   });
 
@@ -140,14 +194,18 @@ function BotsPage() {
         actions={
           <Button size="sm" asChild>
             <Link to="/bots/create">
-              <Plus className="mr-2 size-4" />
-              + Create Bot
+              <Plus className="mr-2 size-4" />+ Create Bot
             </Link>
           </Button>
         }
       />
 
       <SectionCard title="Your bots" bodyClassName="p-0 sm:p-0">
+        {automationRunsQuery.isError && (
+          <p className="px-4 pt-3 text-xs text-destructive" role="alert">
+            Automated analysis history could not be loaded.
+          </p>
+        )}
         {botsQuery.isLoading ? (
           <div className="p-4">
             <CardsSkeleton count={3} />
@@ -181,187 +239,318 @@ function BotsPage() {
         ) : (
           <ul className="divide-y divide-border">
             {(botsQuery.data ?? []).map((bot) => {
-              const strategy = bot.strategy_id ? strategyLookup[bot.strategy_id] ?? null : null;
+              const strategy = bot.strategy_id ? (strategyLookup[bot.strategy_id] ?? null) : null;
               const connection = bot.broker_connection_id
-                ? connectionLookup[bot.broker_connection_id] ?? null
+                ? (connectionLookup[bot.broker_connection_id] ?? null)
                 : null;
+              const latestRun = latestRunByBot.get(bot.id);
+              const runSignal =
+                latestRun?.signal &&
+                typeof latestRun.signal === "object" &&
+                !Array.isArray(latestRun.signal)
+                  ? latestRun.signal
+                  : null;
+              const runPrice = (key: string) => {
+                const value = runSignal?.[key];
+                return typeof value === "number" ? value : null;
+              };
 
               return (
-              <li key={bot.id} className="px-4 py-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-semibold text-foreground">{bot.name}</p>
-                      <StatusBadge
-                        tone={
-                          bot.status === "RUNNING"
-                            ? "success"
-                            : bot.status === "ERROR"
-                              ? "danger"
-                              : bot.status === "WAITING"
-                                ? "warning"
-                                : "neutral"
-                        }
-                        size="sm"
-                      >
-                        {String(bot.status ?? "DRAFT")}
-                      </StatusBadge>
-                    </div>
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      <p>
-                        <span className="font-medium text-foreground">Strategy:</span>{" "}
-                        {strategy?.name ?? "Unassigned"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">Account:</span>{" "}
-                        {connection?.account_name ?? "Not assigned"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">Symbol:</span> {bot.symbol}
-                        {bot.timeframe ? ` · ${bot.timeframe}` : ""}
-                      </p>
-                      {typeof bot.configuration?.subStrategy === "string" && (
+                <li key={bot.id} className="px-4 py-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold text-foreground">{bot.name}</p>
+                        <StatusBadge
+                          tone={
+                            bot.status === "RUNNING"
+                              ? "success"
+                              : bot.status === "ERROR"
+                                ? "danger"
+                                : bot.status === "WAITING"
+                                  ? "warning"
+                                  : "neutral"
+                          }
+                          size="sm"
+                        >
+                          {String(bot.status ?? "DRAFT")}
+                        </StatusBadge>
+                      </div>
+                      <div className="mt-2 text-sm text-muted-foreground">
                         <p>
-                          <span className="font-medium text-foreground">Sub-strategy:</span>{" "}
-                          {bot.configuration.subStrategy}
+                          <span className="font-medium text-foreground">Strategy:</span>{" "}
+                          {strategy?.name ?? "Unassigned"}
                         </p>
+                        <p>
+                          <span className="font-medium text-foreground">Account:</span>{" "}
+                          {connection?.account_name ?? "Not assigned"}
+                        </p>
+                        <p>
+                          <span className="font-medium text-foreground">Symbol:</span> {bot.symbol}
+                          {bot.timeframe ? ` · ${bot.timeframe}` : ""}
+                        </p>
+                        <p>
+                          <span className="font-medium text-foreground">Automation:</span> Every{" "}
+                          {bot.automation_interval_minutes} min · {bot.automation_lot_size} lots
+                          {bot.automation_next_run_at
+                            ? ` · next ${new Date(bot.automation_next_run_at).toLocaleString()}`
+                            : ""}
+                        </p>
+                        {typeof bot.configuration?.["subStrategy"] === "string" && (
+                          <p>
+                            <span className="font-medium text-foreground">Sub-strategy:</span>{" "}
+                            {bot.configuration["subStrategy"]}
+                          </p>
+                        )}
+                        {latestRun && (
+                          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2 text-xs">
+                            <p className="font-medium text-foreground">
+                              Latest automated analysis: {latestRun.direction ?? "No trade signal"}{" "}
+                              · {latestRun.status}
+                            </p>
+                            <p>
+                              {new Date(latestRun.created_at).toLocaleString()}
+                              {runPrice("entryPrice") !== null
+                                ? ` · Entry ${runPrice("entryPrice")}`
+                                : ""}
+                              {runPrice("stopLoss") !== null ? ` · SL ${runPrice("stopLoss")}` : ""}
+                              {runPrice("takeProfit") !== null
+                                ? ` · TP ${runPrice("takeProfit")}`
+                                : ""}
+                            </p>
+                            {latestRun.reason && <p>{latestRun.reason}</p>}
+                            {latestRun.command_id && (
+                              <Link
+                                to="/trades"
+                                className="font-medium text-primary hover:underline"
+                              >
+                                View trade activity
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start lg:self-auto">
+                      {bot.status === "RUNNING" ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={statusMutation.isPending}
+                            onClick={() =>
+                              statusMutation.mutate({ botId: bot.id, status: "PAUSED" })
+                            }
+                          >
+                            <Pause className="mr-2 size-4" />
+                            Pause
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={statusMutation.isPending}
+                            onClick={() =>
+                              statusMutation.mutate({ botId: bot.id, status: "STOPPED" })
+                            }
+                          >
+                            <Square className="mr-2 size-4" />
+                            Stop
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled={statusMutation.isPending}
+                          onClick={() =>
+                            statusMutation.mutate({ botId: bot.id, status: "RUNNING" })
+                          }
+                        >
+                          {statusMutation.isPending &&
+                          statusMutation.variables?.botId === bot.id ? (
+                            <Loader2 className="mr-2 size-4 animate-spin" />
+                          ) : (
+                            <Play className="mr-2 size-4" />
+                          )}
+                          Run
+                        </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={analysisMutation.isPending}
+                        onClick={() => analysisMutation.mutate(bot.id)}
+                      >
+                        {analysisMutation.isPending && analysisMutation.variables === bot.id ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <Activity className="mr-2 size-4" />
+                        )}
+                        Analyze
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingBotId(bot.id);
+                          setEditForm({
+                            name: bot.name,
+                            symbol: bot.symbol,
+                            strategyId: bot.strategy_id ?? "",
+                            timeframe: bot.timeframe ?? "",
+                            riskProfile: (bot.risk_profile ?? "BALANCED").toUpperCase(),
+                            automationIntervalMinutes: String(bot.automation_interval_minutes ?? 5),
+                            automationLotSize: String(bot.automation_lot_size ?? 0.01),
+                          });
+                        }}
+                      >
+                        <Edit3 className="mr-2 size-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        disabled={removeMutation.isPending}
+                        onClick={() => setBotToDelete(bot.id)}
+                      >
+                        <Trash2 className="mr-2 size-4" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-start lg:self-auto">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={analysisMutation.isPending}
-                      onClick={() => analysisMutation.mutate(bot.id)}
-                    >
-                      {analysisMutation.isPending && analysisMutation.variables === bot.id ? (
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                      ) : (
-                        <Activity className="mr-2 size-4" />
-                      )}
-                      Analyze
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingBotId(bot.id);
-                        setEditForm({
-                          name: bot.name,
-                          symbol: bot.symbol,
-                          strategyId: bot.strategy_id ?? "",
-                          timeframe: bot.timeframe ?? "",
-                          riskProfile: (bot.risk_profile ?? "BALANCED").toUpperCase(),
-                        });
-                      }}
-                    >
-                      <Edit3 className="mr-2 size-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      disabled={removeMutation.isPending}
-                      onClick={() => setBotToDelete(bot.id)}
-                    >
-                      <Trash2 className="mr-2 size-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
+                  {analysisByBot[bot.id] && <BotAnalysisResult analysis={analysisByBot[bot.id]!} />}
 
-                {analysisByBot[bot.id] && (
-                  <BotAnalysisResult analysis={analysisByBot[bot.id]!} />
-                )}
+                  {editingBotId === bot.id && (
+                    <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label>Bot name</Label>
+                          <Input
+                            value={editForm.name}
+                            onChange={(event) =>
+                              setEditForm({ ...editForm, name: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Symbol</Label>
+                          <Input
+                            value={editForm.symbol}
+                            onChange={(event) =>
+                              setEditForm({ ...editForm, symbol: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Risk profile</Label>
+                          <Select
+                            value={editForm.riskProfile}
+                            onValueChange={(value) =>
+                              setEditForm({ ...editForm, riskProfile: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CONSERVATIVE">CONSERVATIVE</SelectItem>
+                              <SelectItem value="BALANCED">BALANCED</SelectItem>
+                              <SelectItem value="AGGRESSIVE">AGGRESSIVE</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Timeframe</Label>
+                          <Input
+                            value={editForm.timeframe}
+                            onChange={(event) =>
+                              setEditForm({ ...editForm, timeframe: event.target.value })
+                            }
+                            placeholder="M5"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Run every (minutes)</Label>
+                          <Input
+                            type="number"
+                            min={5}
+                            max={1440}
+                            step={1}
+                            value={editForm.automationIntervalMinutes}
+                            onChange={(event) =>
+                              setEditForm({
+                                ...editForm,
+                                automationIntervalMinutes: event.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Lot size per trade</Label>
+                          <Input
+                            type="number"
+                            min={0.0001}
+                            max={1000}
+                            step={0.01}
+                            value={editForm.automationLotSize}
+                            onChange={(event) =>
+                              setEditForm({ ...editForm, automationLotSize: event.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
 
-                {editingBotId === bot.id && (
-                  <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label>Bot name</Label>
-                        <Input
-                          value={editForm.name}
-                          onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Symbol</Label>
-                        <Input
-                          value={editForm.symbol}
-                          onChange={(event) => setEditForm({ ...editForm, symbol: event.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Risk profile</Label>
+                      <div className="mt-4 space-y-1.5">
+                        <Label>Strategy</Label>
                         <Select
-                          value={editForm.riskProfile}
-                          onValueChange={(value) => setEditForm({ ...editForm, riskProfile: value })}
+                          value={editForm.strategyId}
+                          onValueChange={(value) => setEditForm({ ...editForm, strategyId: value })}
                         >
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Choose one strategy" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="CONSERVATIVE">CONSERVATIVE</SelectItem>
-                            <SelectItem value="BALANCED">BALANCED</SelectItem>
-                            <SelectItem value="AGGRESSIVE">AGGRESSIVE</SelectItem>
+                            {(strategiesQuery.data ?? []).map((strategy) => (
+                              <SelectItem key={strategy.id} value={strategy.id}>
+                                {strategy.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label>Timeframe</Label>
-                        <Input
-                          value={editForm.timeframe}
-                          onChange={(event) => setEditForm({ ...editForm, timeframe: event.target.value })}
-                          placeholder="M5"
-                        />
+
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => updateMutation.mutate()}
+                          disabled={updateMutation.isPending}
+                        >
+                          <Save className="mr-2 size-4" />
+                          Save changes
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingBotId(null)}>
+                          Cancel
+                        </Button>
+                        <span className="flex items-center text-xs text-muted-foreground">
+                          <Clock3 className="mr-1 size-3" />
+                          Updated settings apply to upcoming runs.
+                        </span>
                       </div>
                     </div>
-
-                    <div className="mt-4 space-y-1.5">
-                      <Label>Strategy</Label>
-                      <Select
-                        value={editForm.strategyId}
-                        onValueChange={(value) => setEditForm({ ...editForm, strategyId: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose one strategy" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(strategiesQuery.data ?? []).map((strategy) => (
-                            <SelectItem key={strategy.id} value={strategy.id}>
-                              {strategy.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="mt-4 flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => updateMutation.mutate()}
-                        disabled={updateMutation.isPending}
-                      >
-                        <Save className="mr-2 size-4" />
-                        Save changes
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingBotId(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </li>
+                  )}
+                </li>
               );
             })}
           </ul>
         )}
       </SectionCard>
 
-      <AlertDialog open={Boolean(botToDelete)} onOpenChange={(open) => !open && setBotToDelete(null)}>
+      <AlertDialog
+        open={Boolean(botToDelete)}
+        onOpenChange={(open) => !open && setBotToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Bot?</AlertDialogTitle>
@@ -390,41 +579,76 @@ function BotsPage() {
 }
 
 function BotAnalysisResult({ analysis }: { analysis: TradingSignal }) {
-  const stateTone = analysis.direction === "BUY" ? "text-emerald-600" : analysis.direction === "SELL" ? "text-red-600" : "text-amber-600";
+  const stateTone =
+    analysis.direction === "BUY"
+      ? "text-emerald-600"
+      : analysis.direction === "SELL"
+        ? "text-red-600"
+        : "text-amber-600";
   const reason = analysisReason(analysis.reason, analysis.symbol, analysis.timeframe);
-  const dataAge = analysis.dataTimestamp ? Math.max(0, Math.round((Date.now() - Date.parse(analysis.dataTimestamp)) / 1000)) : null;
+  const dataAge = analysis.dataTimestamp
+    ? Math.max(0, Math.round((Date.now() - Date.parse(analysis.dataTimestamp)) / 1000))
+    : null;
   return (
     <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Market analysis</p>
           <p className="text-xs text-muted-foreground">
-            {analysis.symbol} · {analysis.timeframe} · {analysis.dataStatus === "FRESH" ? "Fresh data" : reason}
+            {analysis.symbol} · {analysis.timeframe} ·{" "}
+            {analysis.dataStatus === "FRESH" ? "Fresh data" : reason}
           </p>
         </div>
         <div className="text-right">
           <p className={`text-lg font-bold ${stateTone}`}>{analysis.state}</p>
-          <p className="text-xs text-muted-foreground">Analytical confidence: {analysis.confidence}/100</p>
+          <p className="text-xs text-muted-foreground">
+            Analytical confidence: {analysis.confidence}/100
+          </p>
         </div>
       </div>
       <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-        <p><span className="font-medium text-foreground">Strategy:</span> {analysis.strategyName}</p>
-        <p><span className="font-medium text-foreground">MT5 symbol:</span> {analysis.resolvedSymbol ?? "Not resolved"}</p>
-        <p><span className="font-medium text-foreground">Market state:</span> {analysis.marketState}</p>
-        <p><span className="font-medium text-foreground">Market data:</span> {analysis.candleCount} candles{analysis.latestPrice !== null ? ` · ${analysis.latestPrice}` : ""}</p>
-        <p><span className="font-medium text-foreground">Data timestamp:</span> {analysis.dataTimestamp ? new Date(analysis.dataTimestamp).toLocaleString() : reason}</p>
-        <p><span className="font-medium text-foreground">Data age:</span> {dataAge === null ? "Unavailable" : `${dataAge}s`}</p>
-        <p><span className="font-medium text-foreground">Generated:</span> {new Date(analysis.timestamp).toLocaleString()}</p>
+        <p>
+          <span className="font-medium text-foreground">Strategy:</span> {analysis.strategyName}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">MT5 symbol:</span>{" "}
+          {analysis.resolvedSymbol ?? "Not resolved"}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Market state:</span> {analysis.marketState}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Market data:</span> {analysis.candleCount}{" "}
+          candles{analysis.latestPrice !== null ? ` · ${analysis.latestPrice}` : ""}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Data timestamp:</span>{" "}
+          {analysis.dataTimestamp ? new Date(analysis.dataTimestamp).toLocaleString() : reason}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Data age:</span>{" "}
+          {dataAge === null ? "Unavailable" : `${dataAge}s`}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Generated:</span>{" "}
+          {new Date(analysis.timestamp).toLocaleString()}
+        </p>
       </div>
       <p className="mt-3 text-sm text-muted-foreground">{reason}</p>
       {analysis.factors.length > 0 && (
         <ul className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-          {analysis.factors.map((factor) => <li key={factor}>• {factor}</li>)}
+          {analysis.factors.map((factor) => (
+            <li key={factor}>• {factor}</li>
+          ))}
         </ul>
       )}
       {Object.keys(analysis.indicators).length > 0 && (
         <div className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
-          {Object.entries(analysis.indicators).map(([name, value]) => <span key={name}>{name}: {value === null ? "n/a" : value}</span>)}
+          {Object.entries(analysis.indicators).map(([name, value]) => (
+            <span key={name}>
+              {name}: {value === null ? "n/a" : value}
+            </span>
+          ))}
         </div>
       )}
     </div>

@@ -30,6 +30,8 @@ export type CreateBotInput = {
   brokerConnectionId: string | null;
   strategyId: string | null;
   timeframe?: string | null;
+  automationIntervalMinutes: number;
+  automationLotSize: number;
 };
 
 export type ValidateBotInput = {
@@ -39,7 +41,9 @@ export type ValidateBotInput = {
   connectionId?: string | null;
 };
 
-export function validateBotInput(input: ValidateBotInput): { ok: true } | { ok: false; message: string } {
+export function validateBotInput(
+  input: ValidateBotInput,
+): { ok: true } | { ok: false; message: string } {
   const name = (input.name ?? "").trim();
   const symbol = (input.symbol ?? "").trim();
   const strategyId = (input.strategyId ?? "").trim();
@@ -77,6 +81,19 @@ export async function getBots(userId: string): Promise<Bot[]> {
   return (data ?? []) as unknown as Bot[];
 }
 
+export async function getRecentBotAutomationRuns(userId: string) {
+  const { data, error } = await supabase
+    .from("bot_automation_runs")
+    .select(
+      "id, bot_id, status, direction, reason, signal, command_id, scheduled_for, created_at, completed_at",
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function createBot(_userId: string, input: CreateBotInput): Promise<Bot> {
   const validation = validateBotInput({
     name: input.name,
@@ -94,6 +111,8 @@ export async function createBot(_userId: string, input: CreateBotInput): Promise
       timeframe: input.timeframe ?? null,
       brokerConnectionId: input.brokerConnectionId,
       strategyId: input.strategyId,
+      automationIntervalMinutes: input.automationIntervalMinutes,
+      automationLotSize: input.automationLotSize,
       configuration: {},
     },
   });
@@ -109,6 +128,8 @@ export async function updateBot(
     strategyId?: string | null;
     brokerConnectionId?: string | null;
     riskProfile?: string;
+    automationIntervalMinutes?: number;
+    automationLotSize?: number;
   },
 ) {
   const next = { ...patch };
@@ -126,6 +147,8 @@ export async function updateBot(
       riskProfile: next.riskProfile,
       strategyId: next.strategyId,
       brokerConnectionId: next.brokerConnectionId,
+      automationIntervalMinutes: next.automationIntervalMinutes,
+      automationLotSize: next.automationLotSize,
     },
   });
 }
@@ -136,7 +159,7 @@ export async function deleteBot(id: string) {
 
 /** Records the requested run-state; the Bridge EA performs the actual execution. */
 export async function setBotStatus(id: string, status: Bot["status"]) {
-  await setBotStatusFn({
+  return setBotStatusFn({
     data: { botId: id, status: String(status).toUpperCase() as never },
   });
 }

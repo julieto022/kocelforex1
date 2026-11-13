@@ -191,6 +191,10 @@ export type Bot = {
   broker_connection_id: string | null;
   strategy_id: string | null;
   timeframe: string | null;
+  automation_interval_minutes: number;
+  automation_lot_size: number;
+  automation_next_run_at: string | null;
+  automation_last_run_at: string | null;
   configuration: Record<string, unknown> | null;
   created_at: string;
   updated_at?: string;

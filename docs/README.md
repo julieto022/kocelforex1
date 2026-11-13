@@ -57,6 +57,10 @@ endpoint returns the Bridge token. Kocel never receives the broker password.
   rate-limited per key, and revocable from `/mcp`. Direct trading is an explicit per-key
   capability; commands still pass the account's risk checks, Bridge freshness checks, and EA
   validation. Bot, strategy, and backtest tools are restricted to the key owner's account data.
+- Automated bots are claimed by the authenticated `/api/cron/bots` worker. Each scheduled run
+  stores its analysis, skips stale or repeated signals, and queues trades only when both stop-loss
+  and take-profit levels are valid. Orders still pass the normal account risk checks and are not
+  confirmed as executed until the connected Bridge EA reports the result.
 - Built-in strategies are shared and cannot be changed globally by an MCP client. Rename, edit,
   or hide operations create private owner-specific overrides; custom strategies are owner-scoped.
 - Backtests replay historical OHLC candles received from the MT5 Bridge EA. They use next-candle
@@ -100,3 +104,14 @@ Apply `supabase/migrations/20261111185000_mcp_ai_feature.sql` and
 Supabase project before deploying the expanded MCP and backtest features. The endpoint uses
 stateless JSON-RPC POST requests; the page's AI activity indicator reflects authenticated MCP
 requests received in the prior two minutes, not a persistent transport session.
+
+For scheduled bot execution, also apply
+`supabase/migrations/20261113130000_bot_automation_schedule.sql` and set a strong `CRON_SECRET`
+environment variable in Vercel. The Vercel Cron configuration invokes the worker every minute;
+the interval selected on each bot determines its individual cadence. Vercel plan limits may
+restrict cron frequency. A bot must be started by the user or an MCP key with direct-trading
+permission, and its MT5 Bridge must be online for queued orders to reach the terminal.
+
+The MCP server supports bulk creation and clearing for bots and strategies. Creating a bot leaves
+it stopped; starting it schedules analysis and execution using its configured interval and lot size.
+`clear_bots` removes bot definitions only and does not close open MT5 positions.
