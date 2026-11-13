@@ -105,12 +105,15 @@ Supabase project before deploying the expanded MCP and backtest features. The en
 stateless JSON-RPC POST requests; the page's AI activity indicator reflects authenticated MCP
 requests received in the prior two minutes, not a persistent transport session.
 
-For scheduled bot execution, also apply
-`supabase/migrations/20261113130000_bot_automation_schedule.sql` and set a strong `CRON_SECRET`
-environment variable in Vercel. The Vercel Cron configuration invokes the worker every minute;
-the interval selected on each bot determines its individual cadence. Vercel plan limits may
-restrict cron frequency. A bot must be started by the user or an MCP key with direct-trading
-permission, and its MT5 Bridge must be online for queued orders to reach the terminal.
+For scheduled bot execution, apply
+`supabase/migrations/20261113130000_bot_automation_schedule.sql` and set a strong
+`CRON_SECRET` environment variable in Vercel. Vercel Hobby permits only daily cron jobs, so
+`.github/workflows/bot-automation.yml` calls the protected worker every five minutes instead.
+In GitHub repository **Settings → Secrets and variables → Actions**, add a `CRON_SECRET` secret
+with the same value as Vercel's, then add the `BOT_SCHEDULER_ENABLED` variable with value `true`.
+GitHub may delay scheduled workflow starts during periods of high load. Each bot's configured
+interval determines its individual cadence. A bot must be started by the user or an MCP key with
+direct-trading permission, and its MT5 Bridge must be online for queued orders to reach the terminal.
 
 The MCP server supports bulk creation and clearing for bots and strategies. Creating a bot leaves
 it stopped; starting it schedules analysis and execution using its configured interval and lot size.
