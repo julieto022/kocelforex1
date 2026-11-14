@@ -61,7 +61,7 @@ mt5-bridge/
 - `InpPanelPosition`: chart corner for the EA panel.
 - `InpShowDetailedStatus`: shows extra MT5/API status details on the chart panel.
 
-EA version 1.0.1 uses the MT5 server name as the broker label if the terminal does not report a broker company name.
+EA version 1.0.2 downloads requested backtest history in bounded pages while keeping the terminal timer responsive.
 
 ## Phase 2 Endpoint Alignment
 
@@ -95,13 +95,15 @@ The EA reports a clear error when MT5 blocks the request.
 4. The EA polls until authorization succeeds, then stores the Bridge session only in runtime memory.
 5. Heartbeats and status diagnostics run on timers.
 6. The EA reports symbols in MT5 Market Watch. Backtest history downloads are requested by
-   symbol, timeframe, and date range, then uploaded in bounded chunks (up to 5,000 candles).
+   symbol, timeframe, and date range, then copied and uploaded in bounded pages of up to 4,000
+   candles. Pages are processed over timer cycles so heartbeats and commands remain responsive.
 7. Click `DISCONNECT` to revoke the Bridge session without changing MT5 positions.
 
 ## Backtest history
 
 Keep the desired instruments visible in MT5 Market Watch. Kocel lists those symbols in the
 Backtest page and asks the connected EA to read completed M1, M5, M15, M30, H1, H4, or D1 bars
-for the selected range. A download is limited to 5,000 candles; narrow the date range if the
-selected timeframe would exceed that limit. The terminal must be connected and have the
-requested broker history available. The backtester does not create missing candles.
+for the selected range. There is no overall candle-count limit; long ranges are transferred in
+bounded pages. The terminal must be connected and the broker must provide the requested history
+(MT5 cannot supply bars that are unavailable from the broker). The backtester does not create
+missing candles.

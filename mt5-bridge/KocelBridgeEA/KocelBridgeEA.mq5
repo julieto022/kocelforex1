@@ -1,5 +1,5 @@
 #property strict
-#property version   "1.01"
+#property version   "1.02"
 #property copyright "Kocel Forex Hub"
 #property description "Kocel Bridge EA foundation for MetaTrader 5."
 
@@ -21,6 +21,16 @@
 int ShellExecuteW(int hwnd, string operation, string file, string parameters, string directory, int show_command);
 #import
 
+struct KocelMarketHistoryRequest
+{
+   string request_id;
+   string symbol;
+   string timeframe;
+   string start_at;
+   string end_at;
+   string page_start_at;
+};
+
 input string InpKocelApiBaseUrl = KOCEL_DEFAULT_API_BASE_URL;
 input bool InpEnableDebugLogging = false;
 input int InpHeartbeatIntervalSeconds = KOCEL_DEFAULT_HEARTBEAT_SECONDS;
@@ -37,10 +47,13 @@ CKocelBridgeClient g_bridge;
 CKocelPanel g_panel;
 CKocelCommandProcessor g_commands;
 KocelMt5AccountInfo g_account_info;
+KocelMarketHistoryRequest g_market_history_queue[];
+KocelMarketHistoryRequest g_active_market_history;
 
 bool g_panel_ready = false;
 bool g_terminal_status_known = false;
 bool g_last_account_available = false;
+bool g_has_active_market_history = false;
 bool g_market_history_synced = false;
 long g_last_account_login = 0;
 string g_last_account_server = "";
@@ -52,6 +65,7 @@ datetime g_next_command_poll = 0;
 datetime g_next_network_retry = 0;
 datetime g_next_fast_sync = 0;
 datetime g_closed_history_from = 0;
+datetime g_next_market_history_page = 0;
 int g_network_failures = 0;
 int g_fast_sync_failures = 0;
 string g_last_fast_fingerprint = "";
@@ -127,6 +141,48 @@ int KocelPendingClosedTradeIndex(const ulong position_ticket)
    return -1;
 }
 
+void KocelClearMarketHistoryQueue()
+{
+   ArrayFree(g_market_history_queue);
+   g_active_market_history.request_id = "";
+   g_active_market_history.symbol = "";
+   g_active_market_history.timeframe = "";
+   g_active_market_history.start_at = "";
+   g_active_market_history.end_at = "";
+   g_active_market_history.page_start_at = "";
+   g_has_active_market_history = false;
+   g_next_market_history_page = 0;
+}
+
+void KocelFinishMarketHistoryRequest()
+{
+   g_active_market_history.request_id = "";
+   g_active_market_history.symbol = "";
+   g_active_market_history.timeframe = "";
+   g_active_market_history.start_at = "";
+   g_active_market_history.end_at = "";
+   g_active_market_history.page_start_at = "";
+   g_has_active_market_history = false;
+   g_next_market_history_page = 0;
+}
+
+void KocelEnqueueMarketHistoryRequest(const KocelMarketHistoryRequest &request)
+{
+   if(g_has_active_market_history && g_active_market_history.request_id == request.request_id)
+      return;
+   for(int i = 0; i < ArraySize(g_market_history_queue); i++)
+      if(g_market_history_queue[i].request_id == request.request_id)
+         return;
+
+   const int index = ArraySize(g_market_history_queue);
+   if(ArrayResize(g_market_history_queue, index + 1) != index + 1)
+   {
+      g_logger.Error("MT5 history request could not be queued.");
+      return;
+   }
+   g_market_history_queue[index] = request;
+}
+
 void KocelProcessMarketHistoryRequests(const string poll_data)
 {
    string requests_json = "";
@@ -152,50 +208,98 @@ void KocelProcessMarketHistoryRequests(const string poll_data)
          continue;
       }
 
-      g_logger.Info("Downloading MT5 history for " + symbol + " " + timeframe + ".");
-      KocelMt5Candle candles[];
-      int candle_count = 0;
-      string message = "";
-      if(!g_terminal.ReadMarketHistory(symbol, timeframe, start_at, end_at, candles, candle_count, message))
-      {
-         string upload_message = "";
-         if(!g_bridge.UploadHistoryChunk(request_id, candles, 0, 0, true, message, upload_message))
-            g_logger.Error("MT5 history sync failed (" + upload_message + ").");
-         else
-            g_logger.Warning("MT5 history sync failed (" + message + ").");
-         ArrayFree(candles);
-         continue;
-      }
-
-      if(candle_count == 0)
-      {
-         string upload_message = "";
-         if(!g_bridge.UploadHistoryChunk(request_id, candles, 0, 0, true, "", upload_message))
-            g_logger.Error("Empty MT5 history response could not be reported (" + upload_message + ").");
-         else
-            g_logger.Warning("MT5 returned no historical candles for " + symbol + " " + timeframe + ".");
-         ArrayFree(candles);
-         continue;
-      }
-
-      bool uploaded = true;
-      for(int offset = 0; offset < candle_count; offset += 250)
-      {
-         const int chunk_count = MathMin(250, candle_count - offset);
-         const bool complete = offset + chunk_count >= candle_count;
-         string upload_message = "";
-         if(!g_bridge.UploadHistoryChunk(request_id, candles, offset, chunk_count, complete, "", upload_message))
-         {
-            g_logger.Error("MT5 history chunk upload failed (" + upload_message + "); the Bridge will retry the request.");
-            uploaded = false;
-            break;
-         }
-      }
-      if(uploaded)
-         g_logger.Info("MT5 history sync completed for " + symbol + " " + timeframe + ".");
-      ArrayFree(candles);
+      KocelMarketHistoryRequest request;
+      request.request_id = request_id;
+      request.symbol = symbol;
+      request.timeframe = timeframe;
+      request.start_at = start_at;
+      request.end_at = end_at;
+      request.page_start_at = start_at;
+      KocelEnqueueMarketHistoryRequest(request);
    }
    ArrayFree(requests);
+}
+
+bool KocelStartNextMarketHistoryRequest()
+{
+   if(g_has_active_market_history || ArraySize(g_market_history_queue) == 0)
+      return g_has_active_market_history;
+
+   g_active_market_history = g_market_history_queue[0];
+   const int remaining = ArraySize(g_market_history_queue) - 1;
+   for(int i = 0; i < remaining; i++)
+      g_market_history_queue[i] = g_market_history_queue[i + 1];
+   ArrayResize(g_market_history_queue, remaining);
+   g_has_active_market_history = true;
+   g_next_market_history_page = 0;
+   g_logger.Info("Downloading MT5 history for " + g_active_market_history.symbol + " " +
+                 g_active_market_history.timeframe + ".");
+   return true;
+}
+
+void KocelProcessNextMarketHistoryPage()
+{
+   if(g_state.Current() != KOCEL_STATE_CONNECTED || !g_bridge.HasBridgeSession())
+      return;
+   if(!KocelStartNextMarketHistoryRequest())
+      return;
+   if(g_next_market_history_page > 0 && TimeLocal() < g_next_market_history_page)
+      return;
+
+   KocelMt5Candle candles[];
+   int candle_count = 0;
+   string next_start_at = "";
+   string message = "";
+   const bool read_ok = g_terminal.ReadMarketHistoryPage(
+      g_active_market_history.symbol,
+      g_active_market_history.timeframe,
+      g_active_market_history.page_start_at,
+      g_active_market_history.end_at,
+      candles,
+      candle_count,
+      next_start_at,
+      message
+   );
+   string upload_message = "";
+   if(!read_ok)
+   {
+      if(!g_bridge.UploadHistoryChunk(
+            g_active_market_history.request_id, candles, 0, 0, true, message, upload_message))
+      {
+         g_logger.Error("MT5 history sync failed (" + upload_message + "); retry scheduled.");
+         g_next_market_history_page = TimeLocal() + 5;
+      }
+      else
+      {
+         g_logger.Warning("MT5 history sync failed (" + message + ").");
+         KocelFinishMarketHistoryRequest();
+      }
+      ArrayFree(candles);
+      return;
+   }
+
+   const bool complete = next_start_at == "";
+   if(!g_bridge.UploadHistoryChunk(
+         g_active_market_history.request_id, candles, 0, candle_count, complete, "", upload_message))
+   {
+      g_logger.Error("MT5 history page upload failed (" + upload_message + "); retry scheduled.");
+      g_next_market_history_page = TimeLocal() + 5;
+      ArrayFree(candles);
+      return;
+   }
+
+   if(complete)
+   {
+      g_logger.Info("MT5 history sync completed for " + g_active_market_history.symbol + " " +
+                    g_active_market_history.timeframe + ".");
+      KocelFinishMarketHistoryRequest();
+   }
+   else
+   {
+      g_active_market_history.page_start_at = next_start_at;
+      g_next_market_history_page = TimeLocal() + KOCEL_TIMER_SECONDS;
+   }
+   ArrayFree(candles);
 }
 
 void KocelCollectClosedTrades()
@@ -329,6 +433,7 @@ void KocelDisconnectLocal(const string message, const string log_message)
 {
    g_bridge.Clear();
    g_commands.Reset();
+   KocelClearMarketHistoryQueue();
    KocelResetRetry();
    g_next_poll = 0;
    g_next_heartbeat = 0;
@@ -509,6 +614,7 @@ int OnInit()
    g_next_heartbeat = 0;
    g_next_status = 0;
    g_next_fast_sync = 0;
+   KocelClearMarketHistoryQueue();
    g_closed_history_from = TimeCurrent() - KOCEL_CLOSED_HISTORY_LOOKBACK_SECONDS;
    g_last_fast_fingerprint = "";
 
@@ -733,7 +839,10 @@ void OnTimer()
          {
             g_next_status = now + KOCEL_STATUS_INTERVAL_SECONDS;
          }
+
       }
+
+      KocelProcessNextMarketHistoryPage();
    }
 
    KocelRefreshPanel();

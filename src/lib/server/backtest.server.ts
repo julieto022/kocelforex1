@@ -1,8 +1,8 @@
 import { invalid, notFound } from "@/lib/api/errors";
 import { recordAudit } from "@/lib/server/audit.server";
+import { requestMarketHistorySync } from "@/lib/server/market-history.server";
 import {
   BACKTEST_ENGINE_VERSION,
-  MAX_BACKTEST_CANDLES,
   simulateBacktest,
   type BacktestSettings,
 } from "@/lib/trading/backtest/engine";
@@ -181,6 +181,27 @@ export async function runBacktestForUser(input: {
   if (!isStrategySymbolAllowed(configuration, symbol)) {
     throw invalid("The selected symbol is not allowed by this strategy.");
   }
+
+  const historySync = await requestMarketHistorySync({
+    userId: input.userId,
+    connectionId: input.connectionId,
+    symbol,
+    timeframe: input.timeframe,
+    startAt: input.startAt,
+    endAt: input.endAt,
+  });
+  if (historySync.status !== "COMPLETED") {
+    return {
+      status: "SYNCING" as const,
+      syncRequestId: historySync.id,
+      syncStatus: historySync.status,
+      symbol,
+      timeframe: input.timeframe,
+      startAt: input.startAt,
+      endAt: input.endAt,
+    };
+  }
+
   const { count, error: countError } = await db
     .from("market_candles")
     .select("timestamp", { count: "exact", head: true })
@@ -191,28 +212,34 @@ export async function runBacktestForUser(input: {
     .gte("timestamp", input.startAt)
     .lte("timestamp", input.endAt);
   if (countError) throw countError;
-  if (!count) throw invalid("No EA-synced candles exist in the selected date range.");
-  if (count > MAX_BACKTEST_CANDLES) {
-    throw invalid(
-      `The selected range contains more than ${MAX_BACKTEST_CANDLES.toLocaleString()} candles. Narrow the date range.`,
-    );
-  }
+  if (!count) throw invalid("The MT5 terminal returned no completed candles for this date range.");
 
   const rows: MarketCandle[] = [];
-  for (let offset = 0; offset < count; offset += 1_000) {
-    const { data, error } = await db
-      .from("market_candles")
-      .select("timestamp, open, high, low, close, volume")
-      .eq("user_id", input.userId)
-      .eq("broker_connection_id", input.connectionId)
-      .eq("symbol", symbol)
-      .eq("timeframe", input.timeframe)
-      .gte("timestamp", input.startAt)
-      .lte("timestamp", input.endAt)
-      .order("timestamp", { ascending: true })
-      .range(offset, Math.min(offset + 999, count - 1));
-    if (error) throw error;
-    rows.push(...((data ?? []) as MarketCandle[]));
+  const pageSize = 1_000;
+  const pageOffsets = Array.from(
+    { length: Math.ceil(count / pageSize) },
+    (_, page) => page * pageSize,
+  );
+  for (let batchStart = 0; batchStart < pageOffsets.length; batchStart += 5) {
+    const batch = await Promise.all(
+      pageOffsets.slice(batchStart, batchStart + 5).map((offset) =>
+        db
+          .from("market_candles")
+          .select("timestamp, open, high, low, close, volume")
+          .eq("user_id", input.userId)
+          .eq("broker_connection_id", input.connectionId)
+          .eq("symbol", symbol)
+          .eq("timeframe", input.timeframe)
+          .gte("timestamp", input.startAt)
+          .lte("timestamp", input.endAt)
+          .order("timestamp", { ascending: true })
+          .range(offset, Math.min(offset + pageSize - 1, count - 1)),
+      ),
+    );
+    for (const page of batch) {
+      if (page.error) throw page.error;
+      rows.push(...((page.data ?? []) as MarketCandle[]));
+    }
   }
 
   const { data: warmupRows, error: warmupError } = await db
@@ -227,11 +254,6 @@ export async function runBacktestForUser(input: {
     .limit(55);
   if (warmupError) throw warmupError;
   const candles = [...((warmupRows ?? []) as MarketCandle[]).reverse(), ...rows];
-  if (candles.length > MAX_BACKTEST_CANDLES) {
-    throw invalid(
-      `The selected range and indicator warm-up contain more than ${MAX_BACKTEST_CANDLES.toLocaleString()} candles. Narrow the date range.`,
-    );
-  }
   if (candles.length < 55) {
     throw invalid(
       "At least 55 valid candles, including available EA history before the test start, are required.",

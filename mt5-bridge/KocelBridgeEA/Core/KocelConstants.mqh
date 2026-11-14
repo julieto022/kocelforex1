@@ -3,7 +3,7 @@
 
 const string KOCEL_EA_NAME = "Kocel Bridge";
 const string KOCEL_PRODUCT_NAME = "Kocel Forex Hub";
-const string KOCEL_EA_VERSION = "1.0.1";
+const string KOCEL_EA_VERSION = "1.0.2";
 const int    KOCEL_PROTOCOL_VERSION = 1;
 
 #define KOCEL_DEFAULT_API_BASE_URL "https://kocelforex1.vercel.app"
@@ -33,6 +33,7 @@ const int KOCEL_MAX_NETWORK_FAILURES = 3;
 const int KOCEL_MAX_BACKOFF_SECONDS = 60;
 const int KOCEL_STATUS_INTERVAL_SECONDS = 60;
 const int KOCEL_CLOSED_HISTORY_LOOKBACK_SECONDS = 604800;
+const int KOCEL_HISTORY_PAGE_CANDLES = 4000;
 
 const string KOCEL_OBJECT_PREFIX = "KocelBridge_";
 const string KOCEL_UI_FONT = "Segoe UI";

@@ -193,18 +193,21 @@ public:
       return count > 0;
    }
 
-   bool ReadMarketHistory(const string symbol, const string timeframe_name,
-                          const string start_at, const string end_at,
-                          KocelMt5Candle &candles[], int &count, string &message) const
+   bool ReadMarketHistoryPage(const string symbol, const string timeframe_name,
+                              const string page_start_at, const string end_at,
+                              KocelMt5Candle &candles[], int &count,
+                              string &next_start_at, string &message) const
    {
       ArrayFree(candles);
       count = 0;
+      next_start_at = "";
       message = "";
       const ENUM_TIMEFRAMES timeframe = TimeframeFromName(timeframe_name);
-      const datetime start_time = ParseRangeTime(start_at);
+      const datetime start_time = ParseRangeTime(page_start_at);
       const datetime end_time = ParseRangeTime(end_at);
+      const int period_seconds = PeriodSeconds(timeframe);
       if(symbol == "" || timeframe == PERIOD_CURRENT || start_time <= 0 ||
-         end_time <= start_time || end_time > TimeTradeServer())
+         end_time <= start_time || end_time > TimeTradeServer() || period_seconds <= 0)
       {
          message = "The requested symbol, timeframe, or date range is invalid.";
          return false;
@@ -215,12 +218,20 @@ public:
          return false;
       }
 
+      datetime page_end = end_time;
+      const datetime max_page_end =
+         start_time + (datetime)(period_seconds * KOCEL_HISTORY_PAGE_CANDLES - 1);
+      if(page_end > max_page_end)
+         page_end = max_page_end;
+      if(page_end < end_time)
+         next_start_at = IsoUtcTime(page_end + 1);
+
       MqlRates rates[];
       ArraySetAsSeries(rates, false);
-      const int copied = CopyRates(symbol, timeframe, start_time, end_time, rates);
+      const int copied = CopyRates(symbol, timeframe, start_time, page_end, rates);
       if(copied < 0)
       {
-         message = "MT5 could not read historical candles for this symbol and range.";
+         message = "MT5 could not read this history page. Check that the terminal has downloaded the broker's history.";
          return false;
       }
       const datetime current_bar_time = iTime(symbol, timeframe, 0);
@@ -228,9 +239,9 @@ public:
       for(int i = 0; i < copied; i++)
          if(current_bar_time <= 0 || rates[i].time < current_bar_time)
             completed_count++;
-      if(completed_count > 5000)
+      if(completed_count > KOCEL_HISTORY_PAGE_CANDLES)
       {
-         message = "The requested range exceeds the 5,000 candle sync limit.";
+         message = "MT5 returned too many candles for one bounded history page.";
          return false;
       }
       if(completed_count == 0)

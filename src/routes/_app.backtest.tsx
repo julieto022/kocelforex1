@@ -66,6 +66,19 @@ export const Route = createFileRoute("/_app/backtest")({
 
 const backtestTimeframes = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"] as const;
 
+type BacktestRequest = {
+  connectionId: string;
+  strategyId: string;
+  symbol: string;
+  timeframe: (typeof backtestTimeframes)[number];
+  startAt: string;
+  endAt: string;
+  initialBalance: number;
+  riskPercent: number;
+  spread: number;
+  slippage: number;
+};
+
 function isBacktestTimeframe(value: string): value is (typeof backtestTimeframes)[number] {
   return backtestTimeframes.some((timeframe) => timeframe === value);
 }
@@ -168,6 +181,10 @@ function BacktestPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [syncRequestId, setSyncRequestId] = useState("");
+  const [pendingBacktest, setPendingBacktest] = useState<{
+    syncRequestId: string;
+    request: BacktestRequest;
+  } | null>(null);
   const [initialBalance, setInitialBalance] = useState("10000");
   const [riskPercent, setRiskPercent] = useState("1");
   const [spread, setSpread] = useState("0");
@@ -285,34 +302,17 @@ function BacktestPage() {
   });
 
   const runMutation = useMutation({
-    mutationFn: () => {
-      if (!active) throw new Error("Select an MT5 account first.");
-      if (!startDate || !endDate) throw new Error("Select a start and end date.");
-      const startAt = new Date(`${startDate}T00:00:00.000Z`);
-      const endAt = new Date(`${endDate}T23:59:59.999Z`);
-      if (
-        !Number.isFinite(startAt.getTime()) ||
-        !Number.isFinite(endAt.getTime()) ||
-        startAt >= endAt
-      ) {
-        throw new Error("The selected date range is invalid.");
+    mutationFn: (request: BacktestRequest) => runBacktest({ data: request }),
+    onSuccess: async (result, request) => {
+      if ("status" in result && result.status === "SYNCING") {
+        setSyncRequestId(result.syncRequestId);
+        setPendingBacktest({ syncRequestId: result.syncRequestId, request });
+        toast.info("The MT5 terminal is downloading the selected history.");
+        return;
       }
-      return runBacktest({
-        data: {
-          connectionId: active.id,
-          strategyId,
-          symbol,
-          timeframe,
-          startAt: startAt.toISOString(),
-          endAt: endAt.toISOString(),
-          initialBalance: Number(initialBalance),
-          riskPercent: Number(riskPercent),
-          spread: Number(spread),
-          slippage: Number(slippage),
-        },
-      });
-    },
-    onSuccess: async (run) => {
+
+      setPendingBacktest(null);
+      const run = result;
       setSelectedRunId(run.id);
       toast.success("Backtest completed and saved.");
       await Promise.all([
@@ -320,8 +320,39 @@ function BacktestPage() {
         queryClient.invalidateQueries({ queryKey: ["backtest-run", active?.id, run.id] }),
       ]);
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      setPendingBacktest(null);
+      toast.error(error.message);
+    },
   });
+  const runBacktestMutation = runMutation.mutate;
+
+  const startBacktest = () => {
+    if (!active) {
+      toast.error("Select an MT5 account first.");
+      return;
+    }
+    if (!startDate || !endDate) {
+      toast.error("Select a start and end date.");
+      return;
+    }
+    if (startDate > endDate) {
+      toast.error("Start date must be on or before end date.");
+      return;
+    }
+    runBacktestMutation({
+      connectionId: active.id,
+      strategyId,
+      symbol,
+      timeframe,
+      startAt: dateStartIso(startDate),
+      endAt: dateEndIso(endDate),
+      initialBalance: Number(initialBalance),
+      riskPercent: Number(riskPercent),
+      spread: Number(spread),
+      slippage: Number(slippage),
+    });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (runId: string) => {
@@ -354,6 +385,7 @@ function BacktestPage() {
     setEndDate("");
     setSelectedRunId("");
     setSyncRequestId("");
+    setPendingBacktest(null);
   }, [active?.id]);
 
   const lastSyncCompletion = useRef("");
@@ -364,6 +396,27 @@ function BacktestPage() {
     lastSyncCompletion.current = sync.id;
     void queryClient.invalidateQueries({ queryKey: ["backtest-catalog", active?.id] });
   }, [active?.id, historySyncQuery.data, queryClient]);
+
+  useEffect(() => {
+    if (!pendingBacktest) return;
+    const sync = historySyncQuery.data;
+    if (!sync || sync.id !== pendingBacktest.syncRequestId) return;
+    if (sync.status === "COMPLETED") {
+      const request = pendingBacktest.request;
+      setPendingBacktest(null);
+      runBacktestMutation(request);
+    } else if (sync.status === "FAILED") {
+      setPendingBacktest(null);
+      toast.error(sync.error_message || "MT5 history download failed.");
+    }
+  }, [historySyncQuery.data, pendingBacktest, runBacktestMutation]);
+
+  useEffect(() => {
+    if (pendingBacktest && historySyncQuery.isError) {
+      setPendingBacktest(null);
+      toast.error("Could not check the MT5 history download status.");
+    }
+  }, [historySyncQuery.isError, pendingBacktest]);
 
   return (
     <div className="space-y-5">
@@ -571,6 +624,7 @@ function BacktestPage() {
                   className="w-full"
                   variant="outline"
                   disabled={
+                    Boolean(pendingBacktest) ||
                     syncMutation.isPending ||
                     !symbol ||
                     !startDate ||
@@ -588,15 +642,20 @@ function BacktestPage() {
                 </Button>
                 <Button
                   className="w-full"
-                  disabled={!canRun || strategiesQuery.isLoading || !supportedStrategies.length}
-                  onClick={() => runMutation.mutate()}
+                  disabled={
+                    !canRun ||
+                    Boolean(pendingBacktest) ||
+                    strategiesQuery.isLoading ||
+                    !supportedStrategies.length
+                  }
+                  onClick={startBacktest}
                 >
-                  {runMutation.isPending ? (
+                  {runMutation.isPending || pendingBacktest ? (
                     <Loader2 className="mr-2 size-4 animate-spin" />
                   ) : (
                     <Play className="mr-2 size-4" />
                   )}
-                  Run backtest
+                  {pendingBacktest ? "Downloading EA history…" : "Run backtest"}
                 </Button>
               </div>
             </div>
@@ -630,10 +689,11 @@ function BacktestPage() {
           </p>
         )}
         <p className="mt-4 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-          Historical downloads are limited to 5,000 candles per request. Results use
-          percentage-of-equity risk sizing and the spread/slippage you enter. Contract
-          specifications, commission, swaps, gaps, and live execution differences are not modeled.
-          Same-candle stop/target ambiguity is resolved conservatively in favor of the stop.
+          Run backtest automatically requests the complete selected date range from the connected
+          MT5 terminal in bounded upload pages. Results use percentage-of-equity risk sizing and the
+          spread/slippage you enter. Contract specifications, commission, swaps, gaps, and live
+          execution differences are not modeled. Same-candle stop/target ambiguity is resolved
+          conservatively in favor of the stop.
         </p>
       </SectionCard>
 

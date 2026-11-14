@@ -574,8 +574,8 @@ function McpPage() {
               "manage owned strategies and private built-in overrides",
             ],
             [
-              "list_backtests / run_backtest / get_backtest / delete_backtest",
-              "run and manage simulations using EA-synced candles",
+              "list_backtests / run_backtest / get_backtest_sync / get_backtest / delete_backtest",
+              "request and backtest full date-range MT5 history",
             ],
           ].map(([name, description]) => (
             <li key={name} className="flex gap-2 rounded-md border border-border p-3">

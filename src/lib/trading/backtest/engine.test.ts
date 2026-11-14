@@ -4,11 +4,15 @@ import type { MarketCandle } from "../market/types";
 import type { StrategyDefinition } from "../strategies/types";
 import { simulateBacktest } from "./engine";
 
-function testCandles(overrides: Record<number, Partial<MarketCandle>> = {}) {
-  return Array.from({ length: 60 }, (_, index): MarketCandle => {
+function testCandles(
+  overrides: Record<number, Partial<MarketCandle>> = {},
+  length = 60,
+  stepMinutes = 5,
+) {
+  return Array.from({ length }, (_, index): MarketCandle => {
     const close = index > 54 ? 100 + (index - 54) * 0.02 : 100;
     return {
-      timestamp: new Date(Date.UTC(2025, 0, 1, 0, index * 5)).toISOString(),
+      timestamp: new Date(Date.UTC(2025, 0, 1, 0, index * stepMinutes)).toISOString(),
       open: index > 54 ? close - 0.02 : 100,
       high: close + 0.01,
       low: close - 0.02,
@@ -18,11 +22,12 @@ function testCandles(overrides: Record<number, Partial<MarketCandle>> = {}) {
   });
 }
 
+const firstSignalTimestamp = new Date(Date.UTC(2025, 0, 1, 0, 54 * 5)).toISOString();
 const oneSignalStrategy: StrategyDefinition = {
   slug: "test",
   version: "1",
   analyze: (context) => {
-    if (context.candles.length !== 55) {
+    if (context.candles.at(-1)?.timestamp !== firstSignalTimestamp) {
       return {
         state: "WAIT",
         direction: "NONE",
@@ -49,12 +54,12 @@ const oneSignalStrategy: StrategyDefinition = {
   },
 };
 
-function run(candles: MarketCandle[]) {
+function run(candles: MarketCandle[], strategy = oneSignalStrategy, timeframe = "M5") {
   return simulateBacktest({
-    strategy: oneSignalStrategy,
+    strategy,
     strategyId: "test-strategy",
     symbol: "EURUSD",
-    timeframe: "M5",
+    timeframe,
     configuration: {},
     candles,
     settings: { initialBalance: 10_000, riskPercent: 1, spread: 0, slippage: 0 },
@@ -98,4 +103,46 @@ describe("strategy backtesting", () => {
       netProfit: 10,
     });
   });
+
+  it("backtests a full year of M1 data", () => {
+    const candles = testCandles({}, 365 * 24 * 60, 1);
+    const signalTimestamp = candles.at(-2)!.timestamp;
+    const endOfRangeStrategy: StrategyDefinition = {
+      slug: "end-of-range-test",
+      version: "1",
+      analyze: (context) =>
+        context.candles.at(-1)?.timestamp === signalTimestamp
+          ? {
+              state: "BUY",
+              direction: "BUY",
+              confidence: 70,
+              reason: "Test entry near the end of the range.",
+              factors: [],
+              marketState: "TRENDING_UP",
+              entryPrice: context.candles.at(-1)!.close,
+              stopLoss: context.candles.at(-1)!.close - 1,
+              takeProfit: context.candles.at(-1)!.close + 2,
+            }
+          : {
+              state: "WAIT",
+              direction: "NONE",
+              confidence: 0,
+              reason: "No test signal.",
+              factors: [],
+              marketState: "UNCLEAR",
+              entryPrice: null,
+              stopLoss: null,
+              takeProfit: null,
+            },
+    };
+
+    const result = run(candles, endOfRangeStrategy, "M1");
+
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0]).toMatchObject({
+      openedAt: candles.at(-1)?.timestamp,
+      closedAt: candles.at(-1)?.timestamp,
+      exitReason: "END_OF_TEST",
+    });
+  }, 120_000);
 });

@@ -144,6 +144,7 @@ describe("stateless MCP transport", () => {
       "clear_strategies",
       "list_backtests",
       "run_backtest",
+      "get_backtest_sync",
       "get_backtest",
       "delete_backtest",
     ]);

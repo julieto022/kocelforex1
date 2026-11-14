@@ -6,6 +6,7 @@ import { forbidden, isApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/api/logger";
 import { hashSecretValue } from "@/lib/server/crypto.server";
 import { recordAudit } from "@/lib/server/audit.server";
+import { getMarketHistorySync } from "@/lib/server/market-history.server";
 import {
   deleteBacktestRun,
   getBacktestCatalog,
@@ -176,6 +177,10 @@ const backtestArgsSchema = z.object({
   riskPercent: z.number().min(0.1).max(5),
   spread: z.number().min(0).max(1_000).default(0),
   slippage: z.number().min(0).max(1_000).default(0),
+});
+
+const backtestSyncArgsSchema = z.object({
+  syncRequestId: z.string().uuid(),
 });
 
 function safeTool<TArgs extends object>(
@@ -613,7 +618,7 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
     {
       title: "Run a strategy backtest",
       description:
-        "Replay up to 5,000 real historical candles synced by the Kocel Bridge EA. Uses risk-based simulated sizing; it never places MT5 orders.",
+        "Request the selected full date range directly from the connected MT5 terminal, then replay all returned EA candles with risk-based simulated sizing. If status is SYNCING, poll get_backtest_sync and call run_backtest again with the same arguments after it completes. This never places MT5 orders.",
       inputSchema: { ...backtestArgsSchema.shape },
     },
     safeTool("run_backtest", async (args) =>
@@ -634,6 +639,19 @@ export function createKocelMcpServer(key: McpApiKey): McpServer {
           },
         }),
       ),
+    ),
+  );
+
+  server.registerTool(
+    "get_backtest_sync",
+    {
+      title: "Get MT5 history sync status",
+      description:
+        "Check progress for a date-range history request started by run_backtest. When status is COMPLETED, call run_backtest again with the original arguments.",
+      inputSchema: { ...backtestSyncArgsSchema.shape },
+    },
+    safeTool("get_backtest_sync", async ({ syncRequestId }) =>
+      textResult(await getMarketHistorySync(key.user_id, key.connection_id, syncRequestId)),
     ),
   );
 

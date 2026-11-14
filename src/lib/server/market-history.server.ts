@@ -3,7 +3,6 @@ import type { BridgeCandle, BridgeIdentity } from "@/lib/contracts/broker";
 import { recordAudit } from "@/lib/server/audit.server";
 import { isTradingTimeframe } from "@/lib/trading/market/types";
 
-const MAX_BACKTEST_CANDLES = 5_000;
 const BRIDGE_FRESHNESS_MS = 90_000;
 
 export async function getAccountMarketSymbols(userId: string, connectionId: string) {
@@ -43,22 +42,6 @@ export async function requestMarketHistorySync(input: {
   endAt: string;
 }) {
   const db = await admin();
-  const { data: connection, error: connectionError } = await db
-    .from("broker_connections")
-    .select("id, status, last_seen_at")
-    .eq("id", input.connectionId)
-    .eq("user_id", input.userId)
-    .maybeSingle();
-  if (connectionError) throw connectionError;
-  if (!connection) throw notFound("The selected MT5 account was not found.");
-  if (
-    connection.status !== "CONNECTED" ||
-    !connection.last_seen_at ||
-    Date.now() - Date.parse(connection.last_seen_at) > BRIDGE_FRESHNESS_MS
-  ) {
-    throw invalid("Connect the MT5 Bridge EA before downloading historical candles.");
-  }
-
   const symbol = input.symbol.trim();
   if (!symbol || symbol.length > 64) throw invalid("The selected symbol is invalid.");
   if (!isTradingTimeframe(input.timeframe)) throw invalid("The selected timeframe is invalid.");
@@ -73,20 +56,37 @@ export async function requestMarketHistorySync(input: {
     throw invalid("Choose a valid historical date range.");
   }
 
-  const timeframeMinutes: Record<string, number> = {
-    M1: 1,
-    M5: 5,
-    M15: 15,
-    M30: 30,
-    H1: 60,
-    H4: 240,
-    D1: 1440,
-  };
-  const expectedCandles = (endMs - startMs) / (timeframeMinutes[input.timeframe]! * 60_000);
-  if (expectedCandles > MAX_BACKTEST_CANDLES) {
-    throw invalid(
-      `The selected range may exceed ${MAX_BACKTEST_CANDLES.toLocaleString()} candles. Narrow the date range.`,
-    );
+  const { data: connection, error: connectionError } = await db
+    .from("broker_connections")
+    .select("id, status, last_seen_at")
+    .eq("id", input.connectionId)
+    .eq("user_id", input.userId)
+    .maybeSingle();
+  if (connectionError) throw connectionError;
+  if (!connection) throw notFound("The selected MT5 account was not found.");
+
+  const { data: existingRequest, error: existingError } = await db
+    .from("market_data_sync_requests")
+    .select("id, status, symbol, timeframe, start_at, end_at, candle_count, error_message")
+    .eq("user_id", input.userId)
+    .eq("connection_id", input.connectionId)
+    .eq("symbol", symbol)
+    .eq("timeframe", input.timeframe)
+    .eq("start_at", input.startAt)
+    .eq("end_at", input.endAt)
+    .in("status", ["PENDING", "SYNCING", "COMPLETED"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existingRequest) return existingRequest;
+
+  if (
+    connection.status !== "CONNECTED" ||
+    !connection.last_seen_at ||
+    Date.now() - Date.parse(connection.last_seen_at) > BRIDGE_FRESHNESS_MS
+  ) {
+    throw invalid("Connect the MT5 Bridge EA before downloading historical candles.");
   }
 
   const { data: accountSymbol, error: symbolError } = await db
@@ -203,13 +203,16 @@ export async function receiveMarketHistoryChunk(
   const db = await admin();
   const { data: sync, error: lookupError } = await db
     .from("market_data_sync_requests")
-    .select("id, user_id, connection_id, symbol, timeframe, start_at, end_at, status")
+    .select("id, user_id, connection_id, symbol, timeframe, start_at, end_at, status, candle_count")
     .eq("id", input.requestId)
     .eq("connection_id", identity.connectionId)
     .eq("user_id", identity.userId)
     .maybeSingle();
   if (lookupError) throw lookupError;
   if (!sync) throw notFound("The history request does not belong to this MT5 connection.");
+  if (sync.status === "COMPLETED" || sync.status === "FAILED") {
+    return { status: sync.status, candleCount: sync.candle_count ?? 0 };
+  }
   if (sync.status !== "SYNCING") throw invalid("This history request is no longer active.");
 
   if (input.errorMessage) {

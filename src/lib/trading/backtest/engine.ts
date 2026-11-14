@@ -1,9 +1,14 @@
 import { calculateIndicators } from "../indicators";
-import { normalizeMarketData, validateMarketCandles, type MarketCandle } from "../market/types";
+import {
+  isTradingTimeframe,
+  validateMarketCandles,
+  type MarketCandle,
+  type NormalizedMarketData,
+} from "../market/types";
 import type { StrategyAnalysis, StrategyDefinition } from "../strategies/types";
 
-export const BACKTEST_ENGINE_VERSION = "1.0.0";
-export const MAX_BACKTEST_CANDLES = 5_000;
+export const BACKTEST_ENGINE_VERSION = "1.1.0";
+const STRATEGY_CONTEXT_CANDLES = 55;
 
 export type BacktestSettings = {
   initialBalance: number;
@@ -73,8 +78,8 @@ export function simulateBacktest(input: {
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || startMs >= endMs) {
     throw new Error("Backtest date range is invalid.");
   }
-  if (candles.length > MAX_BACKTEST_CANDLES) {
-    throw new Error(`Backtests are limited to ${MAX_BACKTEST_CANDLES.toLocaleString()} candles.`);
+  if (!isTradingTimeframe(input.timeframe)) {
+    throw new Error("Backtest timeframe is not supported.");
   }
   if (candles.length < 55 || !validateMarketCandles(candles, 55).ok) {
     throw new Error("At least 55 valid, chronological EA-synced candles are required.");
@@ -189,9 +194,14 @@ export function simulateBacktest(input: {
     const nextCandle = candles[index + 1];
     if (openTrade || !nextCandle || Date.parse(nextCandle.timestamp) > endMs) continue;
 
-    const history = candles.slice(Math.max(0, index - 499), index + 1);
-    const market = normalizeMarketData(input.symbol, input.timeframe, history, 55);
-    if (!market.quality.ok) continue;
+    const history = candles.slice(Math.max(0, index - STRATEGY_CONTEXT_CANDLES + 1), index + 1);
+    const market: NormalizedMarketData = {
+      symbol: input.symbol.trim(),
+      timeframe: input.timeframe,
+      candles: history,
+      quality: { ok: true, code: "OK", message: "Market candles are valid." },
+      latestTimestamp: history.at(-1)?.timestamp ?? null,
+    };
     const analysis: StrategyAnalysis = input.strategy.analyze({
       botId: "backtest",
       strategyId: input.strategyId,

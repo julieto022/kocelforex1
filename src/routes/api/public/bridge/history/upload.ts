@@ -15,7 +15,7 @@ import { receiveMarketHistoryChunk } from "@/lib/server/market-history.server";
 
 const schema = z.object({
   requestId: z.string().uuid(),
-  candles: z.array(bridgeCandleSchema).max(1_000),
+  candles: z.array(bridgeCandleSchema).max(4_000),
   complete: z.boolean(),
   errorMessage: z.string().trim().max(300).optional(),
 });

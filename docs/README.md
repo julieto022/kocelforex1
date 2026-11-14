@@ -63,10 +63,13 @@ endpoint returns the Bridge token. Kocel never receives the broker password.
   confirmed as executed until the connected Bridge EA reports the result.
 - Built-in strategies are shared and cannot be changed globally by an MCP client. Rename, edit,
   or hide operations create private owner-specific overrides; custom strategies are owner-scoped.
-- Backtests replay historical OHLC candles received from the MT5 Bridge EA. They use next-candle
-  entries, risk-based simulated sizing, supplied spread/slippage, and conservative stop-first
-  handling when a candle touches both stop and target. They do not model broker contract sizes,
-  commission, swaps, gaps, or execution latency.
+- Backtests replay historical OHLC candles received from the MT5 Bridge EA. Site and MCP runs
+  request the selected MT5 symbol/timeframe/date range when that completed range is not already
+  synced; long ranges are transferred in bounded pages without an overall candle-count cap. MCP
+  returns a sync request ID to poll before rerunning. The engine uses next-candle entries,
+  the latest 55 candles for each strategy evaluation, risk-based simulated sizing, supplied
+  spread/slippage, and conservative stop-first handling when a candle touches both stop and
+  target. It does not model broker contract sizes, commission, swaps, gaps, or execution latency.
 - Sensitive fields are redacted by `src/lib/api/logger.ts` before logging.
 
 ## Environment
@@ -104,6 +107,12 @@ Apply `supabase/migrations/20261111185000_mcp_ai_feature.sql` and
 Supabase project before deploying the expanded MCP and backtest features. The endpoint uses
 stateless JSON-RPC POST requests; the page's AI activity indicator reflects authenticated MCP
 requests received in the prior two minutes, not a persistent transport session.
+
+Full-range backtests reuse the existing `market_data_sync_requests` and `market_candles` tables;
+no new Supabase migration is required. Ensure
+`supabase/migrations/20261112110000_strategy_symbols_and_history_sync.sql` is applied.
+Compile the updated `mt5-bridge/KocelBridgeEA/KocelBridgeEA.mq5` (EA version 1.0.2) in MetaEditor
+and replace the older EA in the connected terminal to enable paged long-range downloads.
 
 For scheduled bot execution, apply
 `supabase/migrations/20261113130000_bot_automation_schedule.sql` and set a strong
